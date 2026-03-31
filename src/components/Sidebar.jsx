@@ -92,6 +92,7 @@ export const Sidebar = () => {
       case 'Marcas': path = '/marcas'; break;
       case 'Unidades de Medida': path = '/unidades-medida'; break;
       case 'Productos': path = '/productos'; break;
+      case 'Servicios': path = '/servicios'; break;
       default:
         path = `/${label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-')}`;
         break;
