@@ -79,7 +79,7 @@ export const ClientListPage = () => {
             onClick={() => { setSelectedClient(null); setIsModalOpen(true); }}
             className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-black transition-all shadow-md"
           >
-            <UserPlus size={16} /> <span className="hidden sm:inline">Nuevo</span>
+            <UserPlus size={16} /> <span className="hidden sm:inline">Nuevo cliente</span>
           </button>
         </div>
       </div>

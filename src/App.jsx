@@ -10,6 +10,7 @@ import { SupplierListPage } from './features/suppliers/pages/SupplierListPage';
 import { BrandListPage } from './features/brands/pages/BrandListPage';
 import { CategoryListPage } from './features/categories/pages/CategoryListPage';
 import { UnitListPage } from './features/units/pages/UnitListPage';
+import { ProductListPage } from './features/products/pages/ProductListPage';
 
 function App() {
   return (
@@ -86,6 +87,14 @@ function App() {
               <UnitListPage />
             </MainLayout>
           } />
+
+          <Route path="/productos" 
+            element={
+            <MainLayout>
+              <ProductListPage />
+              </MainLayout>
+            } 
+          />
 
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

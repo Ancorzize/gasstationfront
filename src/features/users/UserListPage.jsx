@@ -1,13 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { userService } from './services/userService';
-import { Plus, Edit2, Trash2, UserCheck, UserX, Shield } from 'lucide-react';
+import { Plus, Edit2, Trash2, Power, Shield, Loader2, UserCircle } from 'lucide-react';
 import { UserModal } from './components/UserModal';
+import { useToast } from '../../context/ToastContext';
+import { ConfirmModal } from '../../shared/components/ConfirmModal';
 
 export const UserListPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  
+  // Estados para eliminación profesional
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadUsers();
@@ -17,9 +26,11 @@ export const UserListPage = () => {
     setLoading(true);
     try {
       const data = await userService.getUsers();
-      setUsers(data.items);
+      if (data.items) {
+        setUsers(data.items);
+      }
     } catch (error) {
-      console.error("Error cargando usuarios:", error.message);
+      showToast("Error al cargar la lista de usuarios", "error");
     } finally {
       setLoading(false);
     }
@@ -35,16 +46,25 @@ export const UserListPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("¿Estás seguro de eliminar este usuario?")) {
-      try {
-        const result = await userService.deleteUser(id);
-        if (result.status) {
-          loadUsers();
-        }
-      } catch (error) {
-        console.error("Error al eliminar:", error);
+  const handleDeleteClick = (user) => {
+    setUserToDelete(user);
+    setIsConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    try {
+      const result = await userService.deleteUser(userToDelete.id);
+      if (result.status) {
+        showToast(result.message, "success");
+        loadUsers();
+        setIsConfirmOpen(false);
       }
+    } catch (error) {
+      showToast("No se pudo eliminar el usuario", "error");
+    } finally {
+      setDeleting(false);
+      setUserToDelete(null);
     }
   };
 
@@ -53,102 +73,115 @@ export const UserListPage = () => {
     try {
       const result = await userService.toggleStatus(userToChange.id, newStatus);
       if (result.status) {
+        showToast(result.message, "success");
         setUsers(users.map(u => 
           u.id === userToChange.id ? { ...u, is_active: newStatus } : u
         ));
       }
     } catch (error) {
-      console.error("Error al cambiar estado:", error);
+      showToast("Error al cambiar el estado", "error");
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-end">
+    <div className="p-4 md:p-8 space-y-6">
+      {/* Header unificado con los demás módulos */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight italic">
-            ADMINISTRACIÓN DE <span className="text-yellow-500">USUARIOS</span>
-          </h1>
-          <p className="text-slate-400 text-sm font-medium">Gestiona el personal y sus niveles de acceso</p>
+          <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">
+            Administración de Usuarios
+          </h2>
+          <p className="text-slate-500 text-xs md:text-sm">Gestiona el personal y sus niveles de acceso.</p>
         </div>
         
         <button 
           onClick={handleCreate}
-          className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-[10px] py-2.5 px-5 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-yellow-500/20 uppercase tracking-wider"
+          className="flex items-center justify-center gap-2 bg-zinc-900 text-white px-5 py-2.5 rounded-2xl font-bold text-xs uppercase hover:bg-black transition-all shadow-lg shadow-zinc-200"
         >
-          <Plus size={16} strokeWidth={3} /> Nuevo Usuario
+          <Plus size={18} /> Nuevo Usuario
         </button>
       </div>
 
-      {/* Tabla */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-slate-50/50 border-b border-slate-100">
-            <tr>
-              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">Información</th>
-              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">Rol / Cargo</th>
-              {/* CORREGIDO: Cambié <td> por <th> y quité el botón de la cabecera */}
-              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Estado</th>
-              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {loading ? (
-              <tr>
-                <td colSpan="4" className="px-6 py-12 text-center text-slate-400 italic text-sm">
-                   Cargando base de datos...
-                </td>
-              </tr>
-            ) : (
-              users.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-slate-700 text-sm">{user.name}</span>
-                      <span className="text-xs text-slate-400">{user.email}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-zinc-600 bg-zinc-100 w-fit px-3 py-1 rounded-lg">
-                      <Shield size={12} className="text-zinc-400" />
-                      <span className="text-[10px] font-bold uppercase tracking-tight">{user.roles[0] || 'Sin Rol'}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={() => handleToggleStatus(user)}
-                      className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-full transition-all border mx-auto
-                        ${user.is_active 
-                        ? 'bg-green-50 text-green-600 border-green-100 hover:bg-green-100' 
-                        : 'bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200'}`}
-                    >
-                      {user.is_active ? <><UserCheck size={14} /> ACTIVO</> : <><UserX size={14} /> INACTIVO</>}
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-1">
-                      <button 
-                        onClick={() => handleEdit(user)}
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                        title="Editar"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(user.id)}
-                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                        title="Eliminar"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
+      {/* Tabla de Usuarios con diseño responsive */}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto custom-scrollbar-light">
+          {loading ? (
+            <div className="p-20 flex flex-col items-center justify-center text-slate-400 gap-3">
+              <Loader2 className="animate-spin" size={40} />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Consultando base de datos...</p>
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse min-w-[600px] md:min-w-full">
+              <thead>
+                <tr className="bg-slate-50/50">
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Información Personal</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rol / Cargo</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Estado</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Acciones</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {users.map((user) => (
+                  <tr key={user.id} className="hover:bg-slate-50/30 transition-colors group">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                          <UserCircle size={20} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-slate-700 text-xs uppercase">{user.name}</span>
+                          <span className="text-[10px] text-slate-400 lowercase">{user.email}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2 text-zinc-600 bg-zinc-50 w-fit px-3 py-1 rounded-lg border border-zinc-100">
+                        <Shield size={12} className="text-zinc-400" />
+                        <span className="text-[10px] font-bold uppercase tracking-tight">
+                          {user.roles && user.roles[0] ? user.roles[0] : 'Sin Rol'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-4 text-center">
+                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${
+                        user.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
+                      }`}>
+                        {user.is_active ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center justify-center gap-1 md:gap-2">
+                        <button 
+                          onClick={() => handleEdit(user)}
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                          title="Editar"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleToggleStatus(user)}
+                          className={`p-2 rounded-xl transition-all ${
+                            user.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
+                          }`}
+                          title={user.is_active ? "Desactivar" : "Activar"}
+                        >
+                          <Power size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteClick(user)}
+                          className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
 
       <UserModal 
@@ -156,6 +189,15 @@ export const UserListPage = () => {
         onClose={() => setIsModalOpen(false)} 
         onSave={loadUsers} 
         userToEdit={currentUser} 
+      />
+
+      <ConfirmModal 
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar Usuario"
+        message={`¿Estás seguro de eliminar a "${userToDelete?.name}"? Esta acción no se puede deshacer.`}
+        loading={deleting}
       />
     </div>
   );
