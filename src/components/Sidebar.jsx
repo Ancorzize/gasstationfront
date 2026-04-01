@@ -45,6 +45,7 @@ const menuGroups = [
       { icon: Settings, label: 'Administración', permission: 'ver_usuarios' },
       { icon: Shield, label: 'Roles y Permisos', permission: 'ver_roles' },
       { icon: UserCircle, label: 'Perfil', permission: null },
+      { icon: Settings, label: 'Configuración', permission: 'ver_configuracion_empresa' }
     ]
   }
 ];

@@ -12,6 +12,8 @@ import { CategoryListPage } from './features/categories/pages/CategoryListPage';
 import { UnitListPage } from './features/units/pages/UnitListPage';
 import { ProductListPage } from './features/products/pages/ProductListPage';
 import { ServiceListPage } from './features/services/pages/ServiceListPage';
+import { CompanySettingsPage } from './features/settings/pages/CompanySettingsPage';
+
 
 function App() {
   return (
@@ -104,6 +106,15 @@ function App() {
               </MainLayout>
             } 
           />
+
+          <Route path="/configuracion" 
+            element={
+            <MainLayout>
+              <CompanySettingsPage />
+              </MainLayout>
+            } 
+            
+            />
 
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
