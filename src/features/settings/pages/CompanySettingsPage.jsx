@@ -38,11 +38,18 @@ export const CompanySettingsPage = () => {
         companyService.getCountries()
       ]);
       setCountries(countriesRes.data || []);
+
       if (configRes.data) {
-        setFormData(prev => ({ ...prev, ...configRes.data }));
-        if (configRes.data.logo_url) setPreviewUrl(configRes.data.logo_url);
-        if (configRes.data.pais_id) loadDepartments(configRes.data.pais_id);
-        if (configRes.data.departamento_id) loadCities(configRes.data.departamento_id);
+        const config = configRes.data;
+        setFormData(prev => ({ ...prev, ...config }));
+        
+        // CAMBIO: Ahora el logo viene en config.logo.src
+        if (config.logo?.src) {
+          setPreviewUrl(config.logo.src);
+        }
+        
+        if (config.pais_id) loadDepartments(config.pais_id);
+        if (config.departamento_id) loadCities(config.departamento_id);
       }
     } catch (error) { showToast("Error al cargar datos", "error"); }
     finally { setLoading(false); }
@@ -87,34 +94,46 @@ export const CompanySettingsPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    try {
-      let currentLogoUrl = formData.logo_url;
 
-      // PASO 1 y 2: Si hay un archivo nuevo, subirlo primero
-      if (selectedFile) {
-        const uploadRes = await companyService.uploadLogo(selectedFile);
-        if (uploadRes.status) {
-          currentLogoUrl = uploadRes.data.url;
+    const dataToSend = new FormData();
+    
+
+    dataToSend.append('_method', 'PUT');
+
+    Object.keys(formData).forEach(key => {
+
+      if (['logo', 'pais', 'departamento', 'ciudad', 'id', 'created_at', 'updated_at'].includes(key)) return;
+
+      const value = formData[key];
+
+      if (value !== null && value !== '') {
+     
+        if (typeof value === 'boolean') {
+          dataToSend.append(key, value ? '1' : '0');
         } else {
-          showToast("Error al subir el logo", "error");
-          setSaving(false);
-          return;
+          dataToSend.append(key, value);
         }
       }
+    });
 
-      // PASO 3: Guardar toda la configuración mediante JSON
-      const finalData = { ...formData, logo_url: currentLogoUrl };
-      const res = await companyService.updateConfig(finalData);
-      
+    if (selectedFile) {
+      dataToSend.append('logo', selectedFile);
+    }
+
+    try {
+      const res = await companyService.updateConfig(dataToSend);
       if (res.status) {
         showToast(res.message, "success");
-        setFormData(finalData);
+        
+        if (res.data.logo?.src) {
+          setPreviewUrl(res.data.logo.src);
+        }
         setSelectedFile(null);
       } else {
-        showToast(res.message, "error");
+        showToast(res.message || "Error al actualizar", "error");
       }
     } catch (error) {
-      showToast("Error al procesar la solicitud", "error");
+      showToast("Error de comunicación con el servidor", "error");
     } finally {
       setSaving(false);
     }

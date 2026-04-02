@@ -27,7 +27,7 @@ export const LoginPage = () => {
         const response = await companyService.getConfig();
         if (response.status && response.data) {
           setCompanyConfig({
-            logo_url: response.data.logo_url,
+            logo_url: response.data.logo?.src || null, 
             nombre_empresa: response.data.nombre_empresa
           });
         }
