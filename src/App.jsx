@@ -13,7 +13,7 @@ import { UnitListPage } from './features/units/pages/UnitListPage';
 import { ProductListPage } from './features/products/pages/ProductListPage';
 import { ServiceListPage } from './features/services/pages/ServiceListPage';
 import { CompanySettingsPage } from './features/settings/pages/CompanySettingsPage';
-
+import { ProfilePage } from './features/profile/pages/ProfilePage';
 
 function App() {
   return (
@@ -113,8 +113,15 @@ function App() {
               <CompanySettingsPage />
               </MainLayout>
             } 
-            
             />
+
+          <Route path="/perfil" 
+            element={
+            <MainLayout>
+              <ProfilePage />
+              </MainLayout>
+            } 
+          />
 
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers,
-  Wrench, Users, Wallet, Truck, Fuel, BarChart3, Ruler,
+  Wrench, Users, Wallet, Truck, Fuel, BarChart3, Ruler, UserRoundPlus,
   Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X 
 } from 'lucide-react';
 import logoEmpresa from '../images/logoGranjas.png';
@@ -42,7 +42,7 @@ const menuGroups = [
   {
     title: "Configuración",
     items: [
-      { icon: Settings, label: 'Administración', permission: 'ver_usuarios' },
+      { icon: UserRoundPlus, label: 'Administración', permission: 'ver_usuarios' },
       { icon: Shield, label: 'Roles y Permisos', permission: 'ver_roles' },
       { icon: UserCircle, label: 'Perfil', permission: null },
       { icon: Settings, label: 'Configuración', permission: 'ver_configuracion_empresa' }
