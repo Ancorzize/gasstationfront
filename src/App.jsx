@@ -17,6 +17,9 @@ import { ProfilePage } from "./features/profile/pages/ProfilePage";
 import { WarehouseListPage } from "./features/warehouses/pages/WarehouseListPage";
 import { InventoryMovementsPage } from "./features/inventory/pages/InventoryMovementsPage";
 import { StockStatusPage } from "./features/inventory/pages/StockStatusPage";
+import { PurchaseListPage } from "./features/purchases/pages/PurchaseListPage";
+import { PurchaseFormPage } from "./features/purchases/pages/PurchaseFormPage";
+import { PurchaseDetailPage } from "./features/purchases/pages/PurchaseDetailPage";
 
 function App() {
   return (
@@ -156,6 +159,39 @@ function App() {
             element={
               <MainLayout>
                 <StockStatusPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/compras"
+            element={
+              <MainLayout>
+                <PurchaseListPage />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/compras/nueva"
+            element={
+              <MainLayout>
+                <PurchaseFormPage />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/compras/editar/:id"
+            element={
+              <MainLayout>
+                <PurchaseFormPage />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/compras/:id"
+            element={
+              <MainLayout>
+                <PurchaseDetailPage />
               </MainLayout>
             }
           />

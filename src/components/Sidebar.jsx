@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,
+  LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,ShoppingBag,
   Wrench, Users, Wallet, Truck, Fuel, BarChart3, Ruler, UserRoundPlus,
   Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X 
 } from 'lucide-react';
@@ -30,7 +30,8 @@ const menuGroups = [
       { icon: Truck, label: 'Proveedores', permission: 'ver_proveedores' },
       { icon: Layers, label: 'Categorías', permission: 'ver_categorias_producto' },
       { icon: Ruler, label: 'Unidades de Medida', permission: 'ver_unidades_medida' },
-      { icon: Warehouse, label: 'Bodegas', permission: 'ver_bodegas' }
+      { icon: Warehouse, label: 'Bodegas', permission: 'ver_bodegas' },
+      { icon: ShoppingBag, label: 'Compras', permission: 'ver_compras' }
     ]
   },
   {
@@ -100,6 +101,7 @@ export const Sidebar = () => {
       case 'Movimientos': path = '/inventario/movimientos';  break;
       case 'Configuración':path = '/configuracion'; break;
       case 'Existencias': path = '/inventario/existencias'; break;
+      case 'Movimientos': path = '/inventario/movimientos'; break;
       default:
         path = `/${label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-')}`;
         break;
