@@ -1,126 +1,163 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { LoginPage } from './features/auth/LoginPage';
-import { MainLayout } from './layouts/MainLayout';
-import { DashboardPage } from './features/dashboard/DashboardPage';
-import { UserListPage } from './features/users/UserListPage';
-import { RolePage } from './features/admin/RolePage';
-import { ToastProvider } from './context/ToastContext'; 
-import { ClientListPage } from './features/clients/pages/ClientListPage';
-import { SupplierListPage } from './features/suppliers/pages/SupplierListPage';
-import { BrandListPage } from './features/brands/pages/BrandListPage';
-import { CategoryListPage } from './features/categories/pages/CategoryListPage';
-import { UnitListPage } from './features/units/pages/UnitListPage';
-import { ProductListPage } from './features/products/pages/ProductListPage';
-import { ServiceListPage } from './features/services/pages/ServiceListPage';
-import { CompanySettingsPage } from './features/settings/pages/CompanySettingsPage';
-import { ProfilePage } from './features/profile/pages/ProfilePage';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { LoginPage } from "./features/auth/LoginPage";
+import { MainLayout } from "./layouts/MainLayout";
+import { DashboardPage } from "./features/dashboard/DashboardPage";
+import { UserListPage } from "./features/users/UserListPage";
+import { RolePage } from "./features/admin/RolePage";
+import { ToastProvider } from "./context/ToastContext";
+import { ClientListPage } from "./features/clients/pages/ClientListPage";
+import { SupplierListPage } from "./features/suppliers/pages/SupplierListPage";
+import { BrandListPage } from "./features/brands/pages/BrandListPage";
+import { CategoryListPage } from "./features/categories/pages/CategoryListPage";
+import { UnitListPage } from "./features/units/pages/UnitListPage";
+import { ProductListPage } from "./features/products/pages/ProductListPage";
+import { ServiceListPage } from "./features/services/pages/ServiceListPage";
+import { CompanySettingsPage } from "./features/settings/pages/CompanySettingsPage";
+import { ProfilePage } from "./features/profile/pages/ProfilePage";
+import { WarehouseListPage } from "./features/warehouses/pages/WarehouseListPage";
+import { InventoryMovementsPage } from "./features/inventory/pages/InventoryMovementsPage";
+import { StockStatusPage } from "./features/inventory/pages/StockStatusPage";
 
 function App() {
   return (
-
     <ToastProvider>
       <BrowserRouter>
         <Routes>
-   
           <Route path="/login" element={<LoginPage />} />
 
-          <Route 
-            path="/dashboard" 
+          <Route
+            path="/dashboard"
             element={
               <MainLayout>
                 <DashboardPage />
               </MainLayout>
-            } 
+            }
           />
-          
-          <Route 
-            path="/usuarios" 
+
+          <Route
+            path="/usuarios"
             element={
               <MainLayout>
                 <UserListPage />
               </MainLayout>
-            } 
+            }
           />
 
-          <Route 
-            path="/roles" 
+          <Route
+            path="/roles"
             element={
               <MainLayout>
                 <RolePage />
               </MainLayout>
-            } 
+            }
           />
 
-          <Route 
-            path="/clientes" 
+          <Route
+            path="/clientes"
             element={
               <MainLayout>
                 <ClientListPage />
               </MainLayout>
-            } 
+            }
           />
 
-          <Route path="/proveedores" 
+          <Route
+            path="/proveedores"
             element={
               <MainLayout>
                 <SupplierListPage />
               </MainLayout>
-            } 
+            }
           />
 
-          <Route path="/marcas" 
+          <Route
+            path="/marcas"
             element={
-            <MainLayout>
-              <BrandListPage />
-            </MainLayout>
-          } 
-          />
-
-          <Route path="/categorias" 
-            element={
-            <MainLayout>
-              <CategoryListPage />
-            </MainLayout>
-          } 
-          />
-
-          <Route path="/unidades-medida" 
-            element={
-            <MainLayout>
-              <UnitListPage />
-            </MainLayout>
-          } />
-
-          <Route path="/productos" 
-            element={
-            <MainLayout>
-              <ProductListPage />
+              <MainLayout>
+                <BrandListPage />
               </MainLayout>
-            } 
+            }
           />
 
-          <Route path="/servicios" 
+          <Route
+            path="/categorias"
             element={
-            <MainLayout>
-              <ServiceListPage />
+              <MainLayout>
+                <CategoryListPage />
               </MainLayout>
-            } 
+            }
           />
 
-          <Route path="/configuracion" 
+          <Route
+            path="/unidades-medida"
             element={
-            <MainLayout>
-              <CompanySettingsPage />
+              <MainLayout>
+                <UnitListPage />
               </MainLayout>
-            } 
-            />
+            }
+          />
 
-          <Route path="/perfil" 
+          <Route
+            path="/productos"
             element={
-            <MainLayout>
-              <ProfilePage />
+              <MainLayout>
+                <ProductListPage />
               </MainLayout>
-            } 
+            }
+          />
+
+          <Route
+            path="/servicios"
+            element={
+              <MainLayout>
+                <ServiceListPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/configuracion"
+            element={
+              <MainLayout>
+                <CompanySettingsPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/perfil"
+            element={
+              <MainLayout>
+                <ProfilePage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/bodegas"
+            element={
+              <MainLayout>
+                <WarehouseListPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/inventario/movimientos"
+            element={
+              <MainLayout>
+                <InventoryMovementsPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/inventario/existencias"
+            element={
+              <MainLayout>
+                <StockStatusPage />
+              </MainLayout>
+            }
           />
 
           <Route path="/" element={<Navigate to="/login" replace />} />

@@ -3,6 +3,7 @@ import { User, Mail, Lock, ShieldCheck, Save, Loader2, Eye, EyeOff, AlertCircle 
 import { profileService } from '../services/profileService';
 import { useToast } from '../../../context/ToastContext';
 
+
 export const ProfilePage = () => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -138,7 +139,8 @@ export const ProfilePage = () => {
         <div className="space-y-6">
           <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl text-white space-y-6 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10">
-              <Lock size={80} />
+              <Lock size={80} />ñ087
+
             </div>
 
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">

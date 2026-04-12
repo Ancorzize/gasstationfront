@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers,
+  LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,
   Wrench, Users, Wallet, Truck, Fuel, BarChart3, Ruler, UserRoundPlus,
   Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X 
 } from 'lucide-react';
@@ -16,7 +16,8 @@ const menuGroups = [
     items: [
       { icon: LayoutDashboard, label: 'Dashboard', permission: null },
       { icon: ReceiptText, label: 'Facturación', permission: 'ver_facturas' },
-      { icon: ArrowLeftRight, label: 'Movimientos', permission: 'ver_movimientos' },
+      { icon: ArrowLeftRight, label: 'Movimientos', permission: 'ver_movimientos_inventario' },
+      { icon: Box, label: 'Existencias', permission: 'ver_movimientos_inventario' }
     ]
   },
   {
@@ -28,7 +29,8 @@ const menuGroups = [
       { icon: Users, label: 'Clientes', permission: 'ver_clientes' },
       { icon: Truck, label: 'Proveedores', permission: 'ver_proveedores' },
       { icon: Layers, label: 'Categorías', permission: 'ver_categorias_producto' },
-      { icon: Ruler, label: 'Unidades de Medida', permission: 'ver_unidades_medida' }
+      { icon: Ruler, label: 'Unidades de Medida', permission: 'ver_unidades_medida' },
+      { icon: Warehouse, label: 'Bodegas', permission: 'ver_bodegas' }
     ]
   },
   {
@@ -94,6 +96,10 @@ export const Sidebar = () => {
       case 'Unidades de Medida': path = '/unidades-medida'; break;
       case 'Productos': path = '/productos'; break;
       case 'Servicios': path = '/servicios'; break;
+      case 'Bodegas':  path = '/bodegas'; break;
+      case 'Movimientos': path = '/inventario/movimientos';  break;
+      case 'Configuración':path = '/configuracion'; break;
+      case 'Existencias': path = '/inventario/existencias'; break;
       default:
         path = `/${label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-')}`;
         break;
