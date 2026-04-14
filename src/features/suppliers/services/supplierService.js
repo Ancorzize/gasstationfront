@@ -7,9 +7,19 @@ const getHeaders = () => ({
 });
 
 export const supplierService = {
-  getSuppliers: async (search = '', is_active = '') => {
-    const params = new URLSearchParams({ search, is_active });
-    const res = await fetch(`${API_URL}/proveedores?${params}`, { headers: getHeaders() });
+  getSuppliers: async (params = {}) => {
+    const cleanParams = {};
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined) {
+        cleanParams[key] = typeof params[key] === 'object' ? '' : params[key];
+      }
+    });
+
+    const query = new URLSearchParams(cleanParams).toString();
+    const res = await fetch(`${API_URL}/proveedores?${query}`, { 
+      method: 'GET',
+      headers: getHeaders() 
+    });
     return res.json();
   },
 
