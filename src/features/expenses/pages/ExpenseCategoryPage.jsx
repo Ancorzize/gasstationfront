@@ -6,6 +6,7 @@ import {
 import { expenseService } from '../services/expenseService';
 import { useToast } from '../../../context/ToastContext';
 import { usePermissions } from '../../../hooks/usePermissions';
+import { CategoryFormModal } from '../components/CategoryFormModal';
 
 export const ExpenseCategoryPage = () => {
   const [categories, setCategories] = useState([]);
