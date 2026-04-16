@@ -28,7 +28,7 @@ export const CashSessionPage = () => {
     try {
 
       const res = await cashService.getCurrentCash();
-
+        console.log(res);
       if (res.status === true && res.data) {
         setCashSession(res.data);
       
@@ -37,8 +37,8 @@ export const CashSessionPage = () => {
           cashService.getMovements({ per_page: 10 })
         ]);
         
-        if (sumRes.success) setSummary(sumRes.data);
-        if (movRes.success) setMovements(movRes.data.items || []);
+        if (sumRes.status) setSummary(sumRes.data);
+        if (movRes.status) setMovements(movRes.data.items || []);
       } else {
         setCashSession(null);
         setSummary(null);
@@ -135,12 +135,12 @@ export const CashSessionPage = () => {
                     <ArrowUpCircle size={20} className="text-emerald-300" />
                   </div>
                   <p className="text-4xl font-black tracking-tighter mb-2">
-                    $ {parseFloat(summary?.saldo_efectivo_sistema || 0).toLocaleString('es-CO')}
-                  </p>
-                  <div className="flex gap-4 mt-6 pt-4 border-t border-white/10 text-[10px] font-black uppercase">
-                    <span className="text-emerald-200">Entradas: ${parseFloat(summary?.ingresos_efectivo || 0).toLocaleString()}</span>
-                    <span className="text-emerald-200">Salidas: ${parseFloat(summary?.egresos_efectivo || 0).toLocaleString()}</span>
-                  </div>
+                    $ {Number(summary?.saldo_efectivo_sistema || 0).toLocaleString('es-CO')}
+                    </p>
+                    <div className="flex gap-4 mt-6 pt-4 border-t border-white/10 text-[10px] font-black uppercase">
+                    <span className="text-emerald-200">Entradas: ${Number(summary?.ingresos_efectivo || 0).toLocaleString()}</span>
+                    <span className="text-emerald-200">Salidas: ${Number(summary?.egresos_efectivo || 0).toLocaleString()}</span>
+                    </div>
                 </div>
               </div>
 
