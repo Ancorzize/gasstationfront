@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,ShoppingBag,
+  LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,ShoppingBag,ArrowDownCircle,
   Wrench, Users, Wallet, Truck, Fuel, BarChart3, Ruler, UserRoundPlus,
   Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X 
 } from 'lucide-react';
@@ -37,9 +37,9 @@ const menuGroups = [
   {
     title: "Finanzas",
     items: [
-      { icon: Wallet, label: 'Cartera', permission: 'ver_cartera' },
-      { icon: Fuel, label: 'Estación', permission: 'ver_estacion' },
-      { icon: BarChart3, label: 'Reportes', permission: 'ver_reportes' },
+      { icon: Wallet, label: 'Caja', permission: 'ver_caja' },
+      { icon: ArrowDownCircle, label: 'Gastos', permission: 'ver_gastos' },
+      { icon: Layers, label: 'Categorías Gasto', permission: 'ver_categorias_gasto' },
     ]
   },
   {
@@ -102,6 +102,9 @@ export const Sidebar = () => {
       case 'Configuración':path = '/configuracion'; break;
       case 'Existencias': path = '/inventario/existencias'; break;
       case 'Movimientos': path = '/inventario/movimientos'; break;
+      case 'Caja': path = '/caja'; break;
+      case 'Gastos': path = '/gastos'; break;
+      case 'Categorías Gasto': path = '/gastos/categorias'; break;
       default:
         path = `/${label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-')}`;
         break;

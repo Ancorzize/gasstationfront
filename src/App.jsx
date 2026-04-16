@@ -20,6 +20,9 @@ import { StockStatusPage } from "./features/inventory/pages/StockStatusPage";
 import { PurchaseListPage } from "./features/purchases/pages/PurchaseListPage";
 import { PurchaseFormPage } from "./features/purchases/pages/PurchaseFormPage";
 import { PurchaseDetailPage } from "./features/purchases/pages/PurchaseDetailPage";
+import { CashSessionPage } from './features/cash/pages/CashSessionPage';
+import { ExpenseListPage } from './features/expenses/pages/ExpenseListPage';
+import { ExpenseCategoryPage } from './features/expenses/pages/ExpenseCategoryPage';
 
 function App() {
   return (
@@ -192,6 +195,31 @@ function App() {
             element={
               <MainLayout>
                 <PurchaseDetailPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/caja"
+            element={
+              <MainLayout>
+                <CashSessionPage />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/gastos"
+            element={
+              <MainLayout>
+                <ExpenseListPage />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/gastos/categorias"
+            element={
+              <MainLayout>
+                <ExpenseCategoryPage />
               </MainLayout>
             }
           />

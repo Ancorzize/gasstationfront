@@ -1,0 +1,39 @@
+const API_URL = import.meta.env.VITE_API_URL;
+
+const getHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  'Authorization': `Bearer ${localStorage.getItem('token')}`
+});
+
+export const cashService = {
+  getCurrentCash: async () => {
+    const res = await fetch(`${API_URL}/caja/actual`, { headers: getHeaders() });
+    return res.json();
+  },
+  openCash: async (data) => {
+    const res = await fetch(`${API_URL}/caja/abrir`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  },
+  closeCash: async (data) => {
+    const res = await fetch(`${API_URL}/caja/cerrar`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  },
+  getMovements: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_URL}/caja/movimientos?${query}`, { headers: getHeaders() });
+    return res.json();
+  },
+  getSummary: async () => {
+    const res = await fetch(`${API_URL}/caja/resumen`, { headers: getHeaders() });
+    return res.json();
+  }
+};
