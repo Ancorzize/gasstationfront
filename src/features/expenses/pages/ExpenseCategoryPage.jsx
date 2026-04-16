@@ -11,7 +11,7 @@ export const ExpenseCategoryPage = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { hasPermission } = usePermissions();
   const { showToast } = useToast();
 
@@ -73,7 +73,7 @@ export const ExpenseCategoryPage = () => {
           </div>
 
           {hasPermission('crear_categorias_gasto') && (
-            <button className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black shadow-xl shadow-zinc-200 transition-all">
+            <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black shadow-xl shadow-zinc-200 transition-all">
               <Plus size={16} /> Nueva Categoría
             </button>
           )}
@@ -152,6 +152,12 @@ export const ExpenseCategoryPage = () => {
           Las categorías inactivas <strong className="text-slate-600">no aparecerán</strong> al momento de registrar nuevos gastos, pero se mantendrán en el historial de reportes antiguos.
         </p>
       </div>
+
+      <CategoryFormModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSave={fetchCategories} 
+      />
     </div>
   );
 };

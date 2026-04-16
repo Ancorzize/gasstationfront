@@ -8,13 +8,14 @@ import { expenseService } from '../services/expenseService';
 import { cashService } from '../../cash/services/cashService';
 import { useToast } from '../../../context/ToastContext';
 import { usePermissions } from '../../../hooks/usePermissions';
+import { ExpenseFormModal } from '../components/ExpenseFormModal';
 
 export const ExpenseListPage = () => {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isCashOpen, setIsCashOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { hasPermission } = usePermissions();
   const { showToast } = useToast();
 
@@ -27,11 +28,11 @@ export const ExpenseListPage = () => {
         cashService.getCurrentCash()
       ]);
 
-      if (expRes.success === true) setExpenses(expRes.data.items || []);
-      setIsCashOpen(!!cashRes.data); // true si hay data (caja abierta)
+      if (expRes.status === true) setExpenses(expRes.data.items || []);
+      setIsCashOpen(cashRes.status === true && !!cashRes.data);
       
     } catch (e) {
-   ;
+   
       showToast("Error al sincronizar datos", "error");
     } finally {
       setLoading(false);
@@ -70,6 +71,7 @@ export const ExpenseListPage = () => {
 
           {hasPermission('crear_gastos') && (
             <button 
+              onClick={() => setIsModalOpen(true)}
               disabled={!isCashOpen}
               className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-[10px] uppercase transition-all shadow-xl ${
                 isCashOpen 
@@ -179,6 +181,8 @@ export const ExpenseListPage = () => {
           </table>
         </div>
       </div>
+
+      <ExpenseFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={loadData} />
     </div>
   );
 };
