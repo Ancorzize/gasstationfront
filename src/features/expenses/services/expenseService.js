@@ -7,12 +7,13 @@ const getHeaders = () => ({
 });
 
 export const expenseService = {
-  // Categorías
+
   getCategories: async (params = {}) => {
     const query = new URLSearchParams(params).toString();
     const res = await fetch(`${API_URL}/categorias-gasto?${query}`, { headers: getHeaders() });
     return res.json();
   },
+
   createCategory: async (data) => {
     const res = await fetch(`${API_URL}/categorias-gasto`, {
       method: 'POST',
@@ -21,6 +22,16 @@ export const expenseService = {
     });
     return res.json();
   },
+
+  updateCategory: async (id, data) => {
+    const res = await fetch(`${API_URL}/categorias-gasto/${id}`, {
+      method: 'PUT', // O 'PATCH' según lo espere tu API
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  },
+
   updateCategoryStatus: async (id, isActive) => {
     const res = await fetch(`${API_URL}/categorias-gasto/${id}/status`, {
       method: 'PATCH',
@@ -30,12 +41,12 @@ export const expenseService = {
     return res.json();
   },
 
-  // Gastos
   getExpenses: async (params = {}) => {
     const query = new URLSearchParams(params).toString();
     const res = await fetch(`${API_URL}/gastos?${query}`, { headers: getHeaders() });
     return res.json();
   },
+
   createExpense: async (data) => {
     const res = await fetch(`${API_URL}/gastos`, {
       method: 'POST',
