@@ -68,7 +68,6 @@ export const PurchaseFormPage = () => {
       if (compRes.status) {
         const iva = parseFloat(compRes.data.porcentaje_iva) || 0;
         setDefaultIva(iva);
-        // Solo aplicar defaultIva si es una compra nueva
         if (!id) {
             setFormData(prev => ({
                 ...prev,
@@ -227,7 +226,7 @@ export const PurchaseFormPage = () => {
           </button>
           <div>
             <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{id ? 'Editar' : 'Nueva'} Compra</h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Surtigas - Inventarios</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gestión de adquisiciones</p>
           </div>
         </div>
 
@@ -288,7 +287,7 @@ export const PurchaseFormPage = () => {
         <div className="lg:col-span-3 overflow-visible">
           <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-6 overflow-visible">
             <div className="flex justify-between items-center mb-8 px-2">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Detalle</h3>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Detalle de Mercancía</h3>
               <button type="button" onClick={addDetail} className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl font-black text-[9px] uppercase hover:bg-black transition-all"><Plus size={14} /> Nuevo Ítem</button>
             </div>
             <div className="overflow-visible">
@@ -384,6 +383,16 @@ export const PurchaseFormPage = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            <div className="mt-8 p-2 space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Observaciones Internas</label>
+              <textarea 
+                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-[1.5rem] text-[11px] outline-none focus:bg-white focus:border-zinc-900 h-24 resize-none transition-all uppercase font-medium"
+                placeholder="Escriba aquí alguna observación sobre la compra..." 
+                value={formData.observacion} 
+                onChange={e => setFormData({...formData, observacion: e.target.value})} 
+              />
             </div>
           </div>
         </div>
