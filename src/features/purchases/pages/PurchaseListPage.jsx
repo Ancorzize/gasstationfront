@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ShoppingBag, Search, Plus, Loader2, Filter, 
-  FileText, Calendar, Eye, Edit3, MoreVertical,
-  CheckCircle2, Clock, AlertCircle, CreditCard, Wallet
+  ShoppingBag, Search, Plus, Loader2, 
+  Calendar, Eye, Edit3, CheckCircle2, 
+  Clock, Wallet
 } from 'lucide-react';
 import { purchaseService } from '../services/purchaseService';
 import { useToast } from '../../../context/ToastContext';
@@ -29,7 +29,6 @@ export const PurchaseListPage = () => {
 
   useEffect(() => { fetchPurchases(); }, []);
 
-  // Badge de Estado de la Compra (Inventario)
   const StatusBadge = ({ status }) => {
     const styles = {
       borrador: "bg-slate-100 text-slate-500 border-slate-200",
@@ -42,7 +41,6 @@ export const PurchaseListPage = () => {
     );
   };
 
-  // Badge de Estado de Pago (Finanzas)
   const PaymentBadge = ({ status }) => {
     const styles = {
       pendiente: "bg-orange-50 text-orange-600 border-orange-100",
@@ -89,7 +87,6 @@ export const PurchaseListPage = () => {
         </div>
       </header>
 
-      {/* Tabla de Compras */}
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -139,9 +136,13 @@ export const PurchaseListPage = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <p className="text-sm font-black text-zinc-900 tracking-tighter">$ {parseFloat(purchase.total).toLocaleString('es-CO')}</p>
+                      <p className="text-sm font-black text-zinc-900 tracking-tighter">
+                        $ {purchase.detalles?.reduce((acc, d) => acc + parseFloat(d.total || 0), 0).toLocaleString('es-CO')}
+                      </p>
                       {purchase.saldo_pendiente > 0 && (
-                        <p className="text-[9px] font-bold text-red-500 uppercase tracking-tighter">Saldo: $ {parseFloat(purchase.saldo_pendiente).toLocaleString('es-CO')}</p>
+                        <p className="text-[9px] font-bold text-red-500 uppercase tracking-tighter">
+                          Saldo: $ {parseFloat(purchase.saldo_pendiente).toLocaleString('es-CO')}
+                        </p>
                       )}
                     </td>
                     <td className="px-6 py-4">
