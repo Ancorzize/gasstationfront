@@ -58,5 +58,21 @@ export const purchaseService = {
       body: JSON.stringify(data)
     });
     return res.json();
-  }
+  },
+
+  async downloadPurchasePDF(id, download = false) {
+    const token = localStorage.getItem('token'); // O donde guardes tu token
+    const url = `${import.meta.env.VITE_API_URL}/compras/${id}/pdf${download ? '?download=1' : ''}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/pdf'
+      }
+    });
+
+    if (!response.ok) throw new Error('Error al generar el PDF');
+    
+    return await response.blob();
+  },
 };

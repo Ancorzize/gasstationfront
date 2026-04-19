@@ -3,11 +3,52 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, ShoppingBag, Calendar, Truck, Warehouse, 
   CheckCircle2, Printer, Loader2, Edit3, Plus, Info, 
-  Package, User
+  Package, User, AlertTriangle, X, FileText
 } from 'lucide-react';
 import { purchaseService } from '../services/purchaseService';
 import { useToast } from '../../../context/ToastContext';
 import { PaymentModal } from '../components/PaymentModal';
+
+const ConfirmModal = ({ isOpen, onClose, onConfirm, loading }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="p-8 text-center space-y-6">
+          <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto shadow-sm">
+            <AlertTriangle size={40} />
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">¿Confirmar Compra?</h3>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+              Esta acción cargará el inventario inmediatamente y no podrá revertirse fácilmente.
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button 
+              onClick={onClose}
+              className="flex-1 px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-[10px] uppercase hover:bg-slate-200 transition-all"
+            >
+              Cancelar
+            </button>
+            <button 
+              onClick={onConfirm}
+              disabled={loading}
+              className="flex-1 px-6 py-4 bg-zinc-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200 flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
+              Confirmar Ingreso
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const PurchaseDetailPage = () => {
   const { id } = useParams();
@@ -17,7 +58,10 @@ export const PurchaseDetailPage = () => {
   const [purchase, setPurchase] = useState(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false); // Estado para el loader de impresión
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const fetchPurchase = async () => {
     setLoading(true);
@@ -33,13 +77,38 @@ export const PurchaseDetailPage = () => {
 
   useEffect(() => { fetchPurchase(); }, [id]);
 
+  // --- Lógica del botón de imprimir ---
+  const handlePrint = async () => {
+    setIsPrinting(true);
+    try {
+      // Inyectamos el token manualmente para el fetch del PDF
+      const token = localStorage.getItem('token'); 
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/compras/${id}/pdf`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/pdf'
+        }
+      });
+
+      if (!response.ok) throw new Error('Error al generar PDF');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (e) {
+      showToast("No se pudo generar el PDF", "error");
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
   const handleConfirm = async () => {
-    if (!window.confirm("¿Confirmar compra? Esto cargará el inventario inmediatamente.")) return;
     setConfirming(true);
     try {
       const res = await purchaseService.confirmPurchase(id);
       if (res.status) {
         showToast("Compra confirmada e inventario actualizado", "success");
+        setIsConfirmOpen(false);
         fetchPurchase();
       } else { 
         showToast(res.message, "error"); 
@@ -88,14 +157,23 @@ export const PurchaseDetailPage = () => {
               <button onClick={() => navigate(`/compras/editar/${id}`)} className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl font-black text-[10px] uppercase hover:bg-slate-50 transition-all">
                 <Edit3 size={16} /> Editar
               </button>
-              <button onClick={handleConfirm} disabled={confirming} className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black shadow-xl transition-all">
-                {confirming ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
+              
+              <button 
+                onClick={() => setIsConfirmOpen(true)} 
+                className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black shadow-xl transition-all"
+              >
+                <CheckCircle2 size={16} />
                 Confirmar e Ingresar
               </button>
             </>
           )}
-          <button className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-zinc-900 transition-all shadow-sm">
-            <Printer size={20} />
+          
+          <button 
+            onClick={handlePrint}
+            disabled={isPrinting}
+            className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-zinc-900 transition-all shadow-sm flex items-center justify-center disabled:opacity-50"
+          >
+            {isPrinting ? <Loader2 className="animate-spin" size={20} /> : <Printer size={20} />}
           </button>
         </div>
       </header>
@@ -164,9 +242,12 @@ export const PurchaseDetailPage = () => {
 
           <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <Info size={14} /> Observaciones Internas
+              <span className="w-6 h-6 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center">
+                <Info size={14} />
+              </span> 
+              Observaciones Internas
             </h3>
-            <p className="text-xs font-medium text-slate-600 italic leading-relaxed">
+            <p className="text-xs font-medium text-slate-600 italic leading-relaxed uppercase">
               {purchase.observacion || 'Sin observaciones registradas para esta compra.'}
             </p>
           </div>
@@ -265,6 +346,13 @@ export const PurchaseDetailPage = () => {
           </div>
         </div>
       </div>
+
+      <ConfirmModal 
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleConfirm}
+        loading={confirming}
+      />
 
       <PaymentModal 
         isOpen={isPaymentOpen} 

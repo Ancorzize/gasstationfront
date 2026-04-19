@@ -181,7 +181,7 @@ export const PurchaseFormPage = () => {
 
     const payload = {
       ...formData,
-      iva: formData.detalles.reduce((acc, d) => acc + (parseFloat(d.iva_valor) || 0), 0),
+      impuesto: formData.detalles.reduce((acc, d) => acc + (parseFloat(d.iva_valor) || 0), 0),
       soldicom: formData.detalles.reduce((acc, d) => acc + (parseFloat(d.soldicom) || 0), 0),
       total: totalPagar,
       detalles: formData.detalles.map(d => ({
