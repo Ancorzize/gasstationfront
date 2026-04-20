@@ -83,7 +83,7 @@ export const ServiceListPage = () => {
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
           <button onClick={() => exportToExcel(filteredServices, 'Servicios_LasGranjas')}
             className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-2xl font-bold text-xs uppercase shadow-md">
-            <Download size={16} /> <span className="hidden sm:inline">Excel</span>
+            <Download size={16} /> <span className="hidden sm:inline">Exportar</span>
           </button>
 
           <div className="relative flex-1 md:flex-none min-w-[160px]">

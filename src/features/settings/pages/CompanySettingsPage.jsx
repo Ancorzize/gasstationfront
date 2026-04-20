@@ -152,7 +152,7 @@ export const CompanySettingsPage = () => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Configuración de Empresa</h2>
-          <p className="text-slate-500 text-sm italic">Parámetros corporativos Las Granjas S.A.S.</p>
+          <p className="text-slate-500 text-sm italic">Parámetros corporativos</p>
         </div>
         <button 
           form="config-form" disabled={saving}

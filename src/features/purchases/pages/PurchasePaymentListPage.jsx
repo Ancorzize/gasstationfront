@@ -7,18 +7,19 @@ import {
 import { purchasePaymentService } from '../services/purchasePaymentService';
 import { useToast } from '../../../context/ToastContext';
 import { exportToExcel } from '../../../shared/utils/exportExcel';
+import { getTodayStr } from '../../../shared/utils/dateUtils';
+
+
 
 export const PurchasePaymentListPage = () => {
-  const today = new Date().toISOString().split('T')[0];
   
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [pagination, setPagination] = useState({});
   
-  // Filtros de fecha (Servidor)
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(today);
+  const [startDate, setStartDate] = useState(getTodayStr());
+  const [endDate, setEndDate] = useState(getTodayStr())
 
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -61,7 +62,7 @@ export const PurchasePaymentListPage = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase flex items-center gap-3">
-             <Wallet className="text-zinc-400" size={28} /> Pagos de Compra
+              Pagos de Compra
           </h2>
           <p className="text-slate-500 text-xs md:text-sm">Historial de abonos realizados a proveedores.</p>
         </div>

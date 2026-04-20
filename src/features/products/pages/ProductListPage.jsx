@@ -95,7 +95,7 @@ export const ProductListPage = () => {
             onClick={() => exportToExcel(filteredProducts, 'Inventario_LasGranjas')}
             className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-2xl font-bold text-xs uppercase hover:bg-emerald-700 transition-all shadow-md"
           >
-            <Download size={16} /> <span className="hidden sm:inline">Excel</span>
+            <Download size={16} /> <span className="hidden sm:inline">Exportar</span>
           </button>
 
           <div className="relative flex-1 md:flex-none min-w-[160px]">

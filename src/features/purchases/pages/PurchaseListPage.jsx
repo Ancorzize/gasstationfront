@@ -8,14 +8,15 @@ import {
 } from 'lucide-react';
 import { purchaseService } from '../services/purchaseService';
 import { useToast } from '../../../context/ToastContext';
+import { getTodayStr } from '../../../shared/utils/dateUtils';
 
 export const PurchaseListPage = () => {
-  const today = new Date().toISOString().split('T')[0];
+
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(today);
+  const [startDate, setStartDate] = useState(getTodayStr());
+  const [endDate, setEndDate] = useState(getTodayStr());
 
   const navigate = useNavigate();
   const { showToast } = useToast();

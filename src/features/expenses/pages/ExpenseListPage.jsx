@@ -10,6 +10,7 @@ import { cashService } from '../../cash/services/cashService';
 import { useToast } from '../../../context/ToastContext';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { ExpenseFormModal } from '../components/ExpenseFormModal';
+import { getTodayStr } from '../../../shared/utils/dateUtils';
 
 export const ExpenseListPage = () => {
   const [expenses, setExpenses] = useState([]);
@@ -18,10 +19,9 @@ export const ExpenseListPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Estados para Filtros de Fecha
   const [dateRange, setDateRange] = useState({
-    inicio: new Date().toISOString().split('T')[0],
-    fin: new Date().toISOString().split('T')[0]
+    inicio: getTodayStr(),
+    fin: getTodayStr()
   });
 
   const { hasPermission } = usePermissions();
@@ -83,7 +83,7 @@ export const ExpenseListPage = () => {
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <h2 className="text-2xl font-black text-slate-800 uppercase flex items-center gap-3">
-            <ArrowDownCircle className="text-red-500" size={28} /> Gastos Administrativos
+             Gastos Administrativos
           </h2>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
             Control financiero de egresos
@@ -107,7 +107,7 @@ export const ExpenseListPage = () => {
 
           <button 
             onClick={exportToExcel}
-            className="flex items-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-600 rounded-2xl font-black text-[10px] uppercase hover:bg-emerald-600 hover:text-white transition-all"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-emerald-700 transition-all shadow-md"
           >
             <FileSpreadsheet size={16} /> Exportar
           </button>
