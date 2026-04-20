@@ -20,9 +20,11 @@ import { StockStatusPage } from "./features/inventory/pages/StockStatusPage";
 import { PurchaseListPage } from "./features/purchases/pages/PurchaseListPage";
 import { PurchaseFormPage } from "./features/purchases/pages/PurchaseFormPage";
 import { PurchaseDetailPage } from "./features/purchases/pages/PurchaseDetailPage";
-import { CashSessionPage } from './features/cash/pages/CashSessionPage';
-import { ExpenseListPage } from './features/expenses/pages/ExpenseListPage';
-import { ExpenseCategoryPage } from './features/expenses/pages/ExpenseCategoryPage';
+import { CashSessionPage } from "./features/cash/pages/CashSessionPage";
+import { ExpenseListPage } from "./features/expenses/pages/ExpenseListPage";
+import { ExpenseCategoryPage } from "./features/expenses/pages/ExpenseCategoryPage";
+import { PurchasePaymentListPage } from "./features/purchases/pages/PurchasePaymentListPage";
+import { PurchasePaymentDetailPage } from "./features/purchases/pages/PurchasePaymentDetailPage";
 
 function App() {
   return (
@@ -220,6 +222,24 @@ function App() {
             element={
               <MainLayout>
                 <ExpenseCategoryPage />
+              </MainLayout>
+            }
+          />
+
+          <Route 
+            path="/pagos-compra" 
+            element={
+              <MainLayout>
+                <PurchasePaymentListPage />
+              </MainLayout>
+            } 
+          />
+          
+          <Route
+            path="/pagos-compra/:id"
+            element={
+              <MainLayout>
+                <PurchasePaymentDetailPage />
               </MainLayout>
             }
           />

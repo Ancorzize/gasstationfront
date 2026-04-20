@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,ShoppingBag,ArrowDownCircle,
-  Wrench, Users, Wallet, Truck, Fuel, BarChart3, Ruler, UserRoundPlus,
+  Wrench, Users, Wallet, Truck, Fuel, BarChart3, Ruler, UserRoundPlus,Receipt,
   Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X 
 } from 'lucide-react';
 import logoEmpresa from '../images/logoGranjas.png';
@@ -14,41 +14,42 @@ const menuGroups = [
   {
     title: "Principal",
     items: [
-      { icon: LayoutDashboard, label: 'Dashboard', permission: null },
-      { icon: ReceiptText, label: 'Facturación', permission: 'ver_facturas' },
-      { icon: ArrowLeftRight, label: 'Movimientos', permission: 'ver_movimientos_inventario' },
-      { icon: Box, label: 'Existencias', permission: 'ver_movimientos_inventario' }
+      { icon: LayoutDashboard, label: 'Dashboard', permission: null, path: '/dashboard' },
+      { icon: ReceiptText, label: 'Facturación', permission: 'ver_facturas', path: '/facturacion' },
+      { icon: ArrowLeftRight, label: 'Movimientos', permission: 'ver_movimientos_inventario', path: '/movimientos' },
+      { icon: Box, label: 'Existencias', permission: 'ver_movimientos_inventario', path: '/existencias' }
     ]
   },
   {
     title: "Gestión",
     items: [
-      { icon: Package, label: 'Productos', permission: 'ver_productos' },
-      { icon: Tag, label: 'Marcas', permission: 'ver_marcas' },
-      { icon: Wrench, label: 'Servicios', permission: 'ver_servicios' },
-      { icon: Users, label: 'Clientes', permission: 'ver_clientes' },
-      { icon: Truck, label: 'Proveedores', permission: 'ver_proveedores' },
-      { icon: Layers, label: 'Categorías', permission: 'ver_categorias_producto' },
-      { icon: Ruler, label: 'Unidades de Medida', permission: 'ver_unidades_medida' },
-      { icon: Warehouse, label: 'Bodegas', permission: 'ver_bodegas' },
-      { icon: ShoppingBag, label: 'Compras', permission: 'ver_compras' }
+      { icon: Package, label: 'Productos', permission: 'ver_productos', path: '/productos' },
+      { icon: Tag, label: 'Marcas', permission: 'ver_marcas', path: '/marcas' },
+      { icon: Wrench, label: 'Servicios', permission: 'ver_servicios', path: '/servicios' },
+      { icon: Users, label: 'Clientes', permission: 'ver_clientes', path: '/clientes' },
+      { icon: Truck, label: 'Proveedores', permission: 'ver_proveedores', path: '/proveedores' },
+      { icon: Layers, label: 'Categorías', permission: 'ver_categorias_producto', path: '/categorias' },
+      { icon: Ruler, label: 'Unidades de Medida', permission: 'ver_unidades_medida', path: '/unidades' },
+      { icon: Warehouse, label: 'Bodegas', permission: 'ver_bodegas', path: '/bodegas' },
+      { icon: ShoppingBag, label: 'Compras', permission: 'ver_compras', path: '/compras' },
     ]
   },
   {
     title: "Finanzas",
     items: [
-      { icon: Wallet, label: 'Caja', permission: 'ver_caja' },
-      { icon: ArrowDownCircle, label: 'Gastos', permission: 'ver_gastos' },
-      { icon: Layers, label: 'Categorías Gasto', permission: 'ver_categorias_gasto' },
+      { icon: Wallet, label: 'Caja', permission: 'ver_caja', path: '/caja' },
+      { icon: Receipt, label: 'Pagos de Compra', permission: 'ver_pagos_compra', path: '/pagos-compra' },
+      { icon: ArrowDownCircle, label: 'Gastos', permission: 'ver_gastos', path: '/gastos' },
+      { icon: Layers, label: 'Categorías Gasto', permission: 'ver_categorias_gasto', path: '/categorias-gasto' },
     ]
   },
   {
     title: "Configuración",
     items: [
-      { icon: UserRoundPlus, label: 'Administración', permission: 'ver_usuarios' },
-      { icon: Shield, label: 'Roles y Permisos', permission: 'ver_roles' },
-      { icon: UserCircle, label: 'Perfil', permission: null },
-      { icon: Settings, label: 'Configuración', permission: 'ver_configuracion_empresa' }
+      { icon: UserRoundPlus, label: 'Administración', permission: 'ver_usuarios', path: '/usuarios' },
+      { icon: Shield, label: 'Roles y Permisos', permission: 'ver_roles', path: '/roles' },
+      { icon: UserCircle, label: 'Perfil', permission: null, path: '/perfil' },
+      { icon: Settings, label: 'Configuración', permission: 'ver_configuracion_empresa', path: '/configuracion' }
     ]
   }
 ];
@@ -105,6 +106,7 @@ export const Sidebar = () => {
       case 'Caja': path = '/caja'; break;
       case 'Gastos': path = '/gastos'; break;
       case 'Categorías Gasto': path = '/gastos/categorias'; break;
+      case 'Pagos de Compra': path = '/pagos-compra'; break;
       default:
         path = `/${label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-')}`;
         break;
