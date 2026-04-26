@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, LockOpen, Banknote, Save, Loader2, AlignLeft } from 'lucide-react';
+import { X, LockOpen, Banknote, Save, Loader2, AlignLeft, CreditCard } from 'lucide-react';
 import { cashService } from '../services/cashService';
 import { useToast } from '../../../context/ToastContext';
 
@@ -8,55 +8,77 @@ export const CashOpenModal = ({ isOpen, onClose, onSave }) => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   
-  // displayValue es lo que el usuario ve con comas, monto_apertura es lo que enviamos al back
-  const [displayValue, setDisplayValue] = useState('');
+  const [displayEfectivo, setDisplayEfectivo] = useState('');
+  const [displayDigital, setDisplayDigital] = useState('');
+  
   const [formData, setFormData] = useState({
-    monto_apertura: '',
+    monto_apertura_efectivo: '',
+    monto_apertura_digital: '',
     observacion_apertura: ''
   });
 
   useEffect(() => {
     if (isOpen) {
-      setFormData({ monto_apertura: '', observacion_apertura: '' });
-      setDisplayValue('');
+      setFormData({ 
+        monto_apertura_efectivo: '', 
+        monto_apertura_digital: '', 
+        observacion_apertura: '' 
+      });
+      setDisplayEfectivo('');
+      setDisplayDigital('');
     }
   }, [isOpen]);
 
-  // Función para formatear mientras escribe
-  const handleMoneyChange = (e) => {
-    const rawValue = e.target.value.replace(/\D/g, ''); // Elimina todo lo que no sea número
+  const handleMoneyChange = (e, field) => {
+    const rawValue = e.target.value.replace(/\D/g, '');
     
     if (rawValue === '') {
-      setDisplayValue('');
-      setFormData({ ...formData, monto_apertura: '' });
+      field === 'efectivo' ? setDisplayEfectivo('') : setDisplayDigital('');
+      setFormData(prev => ({ 
+        ...prev, 
+        [field === 'efectivo' ? 'monto_apertura_efectivo' : 'monto_apertura_digital']: '' 
+      }));
       return;
     }
 
-    // Formatear para la vista (puntos de miles para estándar local)
     const formatted = new Intl.NumberFormat('es-CO').format(rawValue);
     
-    setDisplayValue(formatted);
-    setFormData({ ...formData, monto_apertura: rawValue });
+    if (field === 'efectivo') {
+      setDisplayEfectivo(formatted);
+      setFormData(prev => ({ ...prev, monto_apertura_efectivo: rawValue }));
+    } else {
+      setDisplayDigital(formatted);
+      setFormData(prev => ({ ...prev, monto_apertura_digital: rawValue }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.monto_apertura === '' || parseFloat(formData.monto_apertura) < 0) {
-      return showToast("El monto de apertura debe ser 0 o superior", "error");
+    
+    const efectivo = parseFloat(formData.monto_apertura_efectivo || 0);
+    const digital = parseFloat(formData.monto_apertura_digital || 0);
+
+    if (efectivo < 0 || digital < 0) {
+      return showToast("Los montos de apertura deben ser 0 o superiores", "error");
     }
 
     setLoading(true);
     try {
-      const res = await cashService.openCash(formData);
+      const res = await cashService.openCash({
+        efectivo: efectivo,
+        digital: digital,
+        observacion: formData.observacion_apertura
+      });
+
       if (res.status) {
-        showToast(res.message || "Caja abierta correctamente", "success");
+        showToast(res.message || "Cajas abiertas correctamente", "success");
         onSave(); 
         onClose();
       } else {
-        showToast(res.message || "Error al abrir caja", "error");
+        showToast(res.message || "Error al abrir cajas", "error");
       }
     } catch (e) {
-      showToast("Error de conexión al abrir caja", "error");
+      showToast("Error de conexión al abrir cajas", "error");
     } finally {
       setLoading(false);
     }
@@ -80,7 +102,7 @@ export const CashOpenModal = ({ isOpen, onClose, onSave }) => {
                 <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600">
                   <LockOpen size={18} />
                 </div>
-                <h3 className="font-black text-slate-800 text-xs md:text-sm uppercase tracking-tight">Apertura de Caja</h3>
+                <h3 className="font-black text-slate-800 text-xs md:text-sm uppercase tracking-tight">Apertura de Cajas</h3>
               </div>
               <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-all">
                 <X size={20} />
@@ -88,25 +110,40 @@ export const CashOpenModal = ({ isOpen, onClose, onSave }) => {
             </div>
 
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 custom-scrollbar-light">
+              
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">
-                  Monto Inicial en Efectivo
+                  Monto Inicial Efectivo
                 </label>
                 <div className="relative">
                   <Banknote className="absolute left-4 top-3.5 text-slate-300" size={18} />
                   <input 
                     required 
-                    type="text" // Cambiado a text para permitir el formato
+                    type="text"
                     autoFocus
                     className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-lg font-black outline-none focus:border-emerald-500 focus:bg-white transition-all"
                     placeholder="0"
-                    value={displayValue}
-                    onChange={handleMoneyChange}
+                    value={displayEfectivo}
+                    onChange={(e) => handleMoneyChange(e, 'efectivo')}
                   />
                 </div>
-                {formData.monto_apertura && (
-                    <p className="text-[9px] font-bold text-slate-300 ml-1 uppercase">Valor numérico: {formData.monto_apertura}</p>
-                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">
+                  Monto Inicial Digital
+                </label>
+                <div className="relative">
+                  <CreditCard className="absolute left-4 top-3.5 text-slate-300" size={18} />
+                  <input 
+                    required 
+                    type="text"
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-lg font-black outline-none focus:border-blue-500 focus:bg-white transition-all"
+                    placeholder="0"
+                    value={displayDigital}
+                    onChange={(e) => handleMoneyChange(e, 'digital')}
+                  />
+                </div>
               </div>
 
               <div className="space-y-1">
@@ -116,8 +153,8 @@ export const CashOpenModal = ({ isOpen, onClose, onSave }) => {
                 <div className="relative">
                   <AlignLeft className="absolute left-4 top-4 text-slate-300" size={18} />
                   <textarea 
-                    className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs outline-none focus:border-emerald-500 focus:bg-white transition-all h-32 resize-none"
-                    placeholder="Ej: Base de caja para cambio..."
+                    className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs outline-none focus:border-emerald-500 focus:bg-white transition-all h-24 resize-none"
+                    placeholder="Ej: Inicio de jornada..."
                     value={formData.observacion_apertura}
                     onChange={e => setFormData({...formData, observacion_apertura: e.target.value})}
                   />
@@ -137,7 +174,7 @@ export const CashOpenModal = ({ isOpen, onClose, onSave }) => {
                   disabled={loading} 
                   className="flex-1 py-4 rounded-2xl bg-zinc-900 text-white font-black text-[10px] uppercase hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200"
                 >
-                  {loading ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18}/> Abrir Caja</>}
+                  {loading ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18}/> Abrir Cajas</>}
                 </button>
               </div>
             </form>

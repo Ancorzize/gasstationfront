@@ -54,19 +54,28 @@ export const UnitListPage = () => {
   };
 
   const handleConfirmDelete = async () => {
+    if (!unitToDelete) return;
+
     setDeleting(true);
     try {
       const result = await unitService.deleteUnit(unitToDelete.id);
+      
       if (result.status) {
-        showToast(result.message, "success");
-        fetchUnits();
+        showToast(result.message || "Registro eliminado", "success");
         setIsConfirmOpen(false);
+        setUnitToDelete(null);    
+        fetchUnits();            
+      } else {
+
+        showToast(result.message || "No se pudo eliminar la unidad", "error");
       }
     } catch (error) {
-      showToast("Error al eliminar registro", "error");
+
+      showToast("Error de conexión con el servidor", "error");
     } finally {
+     
       setDeleting(false);
-      setUnitToDelete(null);
+      
     }
   };
 

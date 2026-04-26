@@ -38,7 +38,6 @@ const menuGroups = [
     title: "Finanzas",
     items: [
       { icon: Wallet, label: 'Caja', permission: 'ver_caja', path: '/caja' },
-      { icon: Receipt, label: 'Pagos de Compra', permission: 'ver_pagos_compra', path: '/pagos-compra' },
       { icon: ArrowDownCircle, label: 'Gastos', permission: 'ver_gastos', path: '/gastos' },
       { icon: Layers, label: 'Categorías Gasto', permission: 'ver_categorias_gasto', path: '/categorias-gasto' },
     ]

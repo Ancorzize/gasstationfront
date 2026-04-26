@@ -35,29 +35,28 @@ export const PurchasePaymentDetailPage = () => {
 
   useEffect(() => { fetchPaymentDetail(); }, [id]);
 
-    const handlePrint = async () => {
-        setIsPrinting(true);
-        try {
-        const token = localStorage.getItem('token'); 
-        // Apuntamos al endpoint de PDF dentro del módulo de PAGOS
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/pagos-compra/${id}/pdf`, {
-            headers: { 
-            'Authorization': `Bearer ${token}`, 
-            'Accept': 'application/pdf' 
-            }
-        });
-
-        if (!response.ok) throw new Error('Error al generar PDF del pago');
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        window.open(url, '_blank');
-        } catch (e) {
-        showToast("No se pudo generar el recibo de pago", "error");
-        } finally {
-        setIsPrinting(false);
+  const handlePrint = async () => {
+    setIsPrinting(true);
+    try {
+      const token = localStorage.getItem('token'); 
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/pagos-compra/${id}/pdf`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`, 
+          'Accept': 'application/pdf' 
         }
-    };
+      });
+
+      if (!response.ok) throw new Error('Error al generar PDF del pago');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (e) {
+      showToast("No se pudo generar el recibo de pago", "error");
+    } finally {
+      setIsPrinting(false);
+    }
+  };
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-4">
@@ -68,9 +67,8 @@ export const PurchasePaymentDetailPage = () => {
 
   if (!payment) return <div className="p-20 text-center uppercase font-black text-slate-400">Comprobante no encontrado</div>;
 
-  // Acceso directo a los datos según tu JSON
   const purchase = payment.compra;
-  const detalles = payment.detalles || []; // Están en data.detalles
+  const detalles = payment.detalles || [];
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 pb-20">
@@ -91,7 +89,6 @@ export const PurchasePaymentDetailPage = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* BOTÓN DE IMPRESIÓN DEL PAGO */}
           <button 
             onClick={handlePrint}
             disabled={isPrinting}
@@ -108,7 +105,7 @@ export const PurchasePaymentDetailPage = () => {
           <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
             <div className="p-6 border-b bg-slate-50/50 flex justify-between items-center">
               <h3 className="text-xs font-black text-slate-500 uppercase flex items-center gap-2">
-                <ShoppingBag size={16} /> Detalle de Mercancía
+                <ShoppingBag size={16} /> Detalle de Mercancía1
               </h3>
               <div className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase text-slate-400">
                 {detalles.length} Productos
@@ -125,6 +122,7 @@ export const PurchasePaymentDetailPage = () => {
                     <th className="px-4 py-4 text-[9px] font-black text-slate-400 uppercase text-center">IVA %</th>
                     <th className="px-4 py-4 text-[9px] font-black text-slate-400 uppercase text-right">IVA Valor</th>
                     <th className="px-4 py-4 text-[9px] font-black text-slate-400 uppercase text-right">Soldicom</th>
+                    <th className="px-4 py-4 text-[9px] font-black text-slate-400 uppercase text-right">Sobre Tasa</th>
                     <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase text-right">Total</th>
                   </tr>
                 </thead>
@@ -153,7 +151,10 @@ export const PurchasePaymentDetailPage = () => {
                         ${parseFloat(det.iva_valor || 0).toLocaleString('es-CO')}
                       </td>
                       <td className="px-4 py-4 text-right font-black text-xs text-blue-600">
-                        ${parseFloat(det.soldicom || 0).toLocaleString('es-CO')}
+                        ${(parseFloat(det.soldicom || 0) * parseFloat(det.cantidad)).toLocaleString('es-CO')}
+                      </td>
+                      <td className="px-4 py-4 text-right font-black text-xs text-orange-600">
+                        ${(parseFloat(det.sobre_tasa || 0) * parseFloat(det.cantidad)).toLocaleString('es-CO')}
                       </td>
                       <td className="px-6 py-4 text-right font-black text-xs text-zinc-900 tracking-tighter">
                         ${parseFloat(det.total || 0).toLocaleString('es-CO')}
@@ -170,7 +171,7 @@ export const PurchasePaymentDetailPage = () => {
               <span className="w-6 h-6 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center">
                 <Info size={14} />
               </span> 
-              Nota del Comprobante
+              Nota del Pago
             </h3>
             <p className="text-xs font-medium text-slate-600 italic leading-relaxed uppercase">
               {payment.observacion || 'Sin observaciones registradas para este abono.'}
