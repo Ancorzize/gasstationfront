@@ -188,6 +188,7 @@ export const PurchaseDetailPage = () => {
                     <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase">Producto</th>
                     <th className="px-4 py-4 text-[9px] font-black text-slate-400 uppercase text-center">Cant.</th>
                     <th className="px-4 py-4 text-[9px] font-black text-slate-400 uppercase text-right">Costo U.</th>
+                    <th className="px-4 py-4 text-[9px] font-black text-slate-400 uppercase text-right">Iva valor</th>
                     <th className="px-4 py-4 text-[9px] font-black text-slate-400 uppercase text-right">Soldicom</th>
                     <th className="px-4 py-4 text-[9px] font-black text-slate-400 uppercase text-right">Sobre Tasa</th>
                     <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase text-right">Total</th>
@@ -202,6 +203,7 @@ export const PurchaseDetailPage = () => {
                       </td>
                       <td className="px-4 py-4 text-center font-black text-xs text-slate-600">{parseFloat(det.cantidad).toLocaleString()}</td>
                       <td className="px-4 py-4 text-right font-bold text-xs text-slate-500">${parseFloat(det.costo_unitario).toLocaleString('es-CO')}</td>
+                      <td className="px-4 py-4 text-right font-bold text-xs text-slate-500">${parseFloat(det.iva_valor).toLocaleString('es-CO')}</td>
                       <td className="px-4 py-4 text-right font-black text-xs text-blue-600">${(parseFloat(det.soldicom || 0) * parseFloat(det.cantidad)).toLocaleString('es-CO')}</td>
                       <td className="px-4 py-4 text-right font-black text-xs text-orange-600">${(parseFloat(det.sobre_tasa || 0) * parseFloat(det.cantidad)).toLocaleString('es-CO')}</td>
                       <td className="px-6 py-4 text-right font-black text-xs text-zinc-900">${parseFloat(det.total || 0).toLocaleString('es-CO')}</td>
@@ -284,6 +286,10 @@ export const PurchaseDetailPage = () => {
           <div className="bg-zinc-900 rounded-[2.5rem] p-8 text-white shadow-xl shadow-zinc-200">
             <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-8">Resumen Financiero</h3>
             <div className="space-y-5">
+              <div className="flex justify-between items-center text-xs font-bold border-b border-zinc-800 pb-4">
+                <span className="text-zinc-500 uppercase">Total Iva</span>
+                <span className="text-blue-400 font-black">$ {purchase.detalles?.reduce((acc, d) => acc + (parseFloat(d.iva_valor || 0) * parseFloat(d.cantidad)), 0).toLocaleString('es-CO')}</span>
+              </div>
               <div className="flex justify-between items-center text-xs font-bold border-b border-zinc-800 pb-4">
                 <span className="text-zinc-500 uppercase">Total Soldicom</span>
                 <span className="text-blue-400 font-black">$ {purchase.detalles?.reduce((acc, d) => acc + (parseFloat(d.soldicom || 0) * parseFloat(d.cantidad)), 0).toLocaleString('es-CO')}</span>

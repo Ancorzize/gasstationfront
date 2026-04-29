@@ -101,7 +101,6 @@ export const Sidebar = () => {
       case 'Movimientos': path = '/inventario/movimientos';  break;
       case 'Configuración':path = '/configuracion'; break;
       case 'Existencias': path = '/inventario/existencias'; break;
-      case 'Movimientos': path = '/inventario/movimientos'; break;
       case 'Caja': path = '/caja'; break;
       case 'Gastos': path = '/gastos'; break;
       case 'Categorías Gasto': path = '/gastos/categorias'; break;
