@@ -48,5 +48,14 @@ export const cashService = {
     const query = new URLSearchParams(params).toString();
     const res = await fetch(`${API_URL}/caja/movimientos?${query}`, { headers: getHeaders() });
     return res.json();
-  }
+  },
+
+  getHistory: async (params = {}) => {
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+    );
+    const query = new URLSearchParams(cleanParams).toString();
+    const res = await fetch(`${API_URL}/caja/historico?${query}`, { headers: getHeaders() });
+    return res.json();
+  },
 };

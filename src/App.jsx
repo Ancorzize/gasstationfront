@@ -25,6 +25,7 @@ import { ExpenseListPage } from "./features/expenses/pages/ExpenseListPage";
 import { ExpenseCategoryPage } from "./features/expenses/pages/ExpenseCategoryPage";
 import { PurchasePaymentListPage } from "./features/purchases/pages/PurchasePaymentListPage";
 import { PurchasePaymentDetailPage } from "./features/purchases/pages/PurchasePaymentDetailPage";
+import { CashHistoryPage } from "./features/cash/components/CashHistoryPage";
 
 function App() {
   return (
@@ -226,20 +227,29 @@ function App() {
             }
           />
 
-          <Route 
-            path="/pagos-compra" 
+          <Route
+            path="/pagos-compra"
             element={
               <MainLayout>
                 <PurchasePaymentListPage />
               </MainLayout>
-            } 
+            }
           />
-          
+
           <Route
             path="/pagos-compra/:id"
             element={
               <MainLayout>
                 <PurchasePaymentDetailPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/caja/historico"
+            element={
+              <MainLayout>
+                <CashHistoryPage />
               </MainLayout>
             }
           />

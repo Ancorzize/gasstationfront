@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Wallet, Plus, Lock, ArrowUpCircle, ArrowDownCircle, 
   Banknote, CreditCard, History, Loader2, Info, 
@@ -11,6 +12,7 @@ import { CashOpenModal } from '../components/CashOpenModal';
 import { CashCloseModal } from '../components/CashCloseModal';
 
 export const CashSessionPage = () => {
+  const navigate = useNavigate();
   const [cashSessions, setCashSessions] = useState([]);
   const [summary, setSummary] = useState(null);
   const [movements, setMovements] = useState([]);
@@ -80,14 +82,25 @@ export const CashSessionPage = () => {
           </p>
         </div>
 
-        {isCashOpen && hasPermission('cerrar_caja') && (
-          <button 
-            onClick={() => setIsCloseModalOpen(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-red-50 text-red-600 border border-red-100 rounded-2xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all shadow-sm"
-          >
-            <Power size={16} /> Cerrar Cajas
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+            {hasPermission('ver_caja') && (
+              <button 
+                onClick={() => navigate('/caja/historico')}
+                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-[10px] uppercase hover:bg-slate-50 transition-all shadow-sm"
+              >
+                <History size={16} /> Histórico de cajas
+              </button>
+            )}
+
+            {isCashOpen && hasPermission('cerrar_caja') && (
+              <button 
+                onClick={() => setIsCloseModalOpen(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-red-50 text-red-600 border border-red-100 rounded-2xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all shadow-sm"
+              >
+                <Power size={16} /> Cerrar Cajas
+              </button>
+            )}
+        </div>
       </header>
 
       {!isCashOpen ? (
