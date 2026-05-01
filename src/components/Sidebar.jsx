@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse, Box, ShoppingBag, ArrowDownCircle,
-  Wrench, Users, Wallet, Truck, LogOut, ChevronLeft, Menu, X, Settings, Shield, UserCircle, UserRoundPlus
+  LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,ShoppingBag,ArrowDownCircle,
+  Wrench, Users, Wallet, Truck, Fuel, BarChart3, Ruler, UserRoundPlus,Receipt,
+  Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X 
 } from 'lucide-react';
 import logoEmpresa from '../images/logoGranjas.png';
 import { authService } from '../features/auth/services/authService';
@@ -28,7 +29,7 @@ const menuGroups = [
       { icon: Users, label: 'Clientes', permission: 'ver_clientes', path: '/clientes' },
       { icon: Truck, label: 'Proveedores', permission: 'ver_proveedores', path: '/proveedores' },
       { icon: Layers, label: 'Categorías', permission: 'ver_categorias_producto', path: '/categorias' },
-      { icon: ArrowLeftRight, label: 'Unidades de Medida', permission: 'ver_unidades_medida', path: '/unidades-medida' },
+      { icon: Ruler, label: 'Unidades de Medida', permission: 'ver_unidades_medida', path: '/unidades' },
       { icon: Warehouse, label: 'Bodegas', permission: 'ver_bodegas', path: '/bodegas' },
       { icon: ShoppingBag, label: 'Compras', permission: 'ver_compras', path: '/compras' },
     ]
@@ -38,7 +39,7 @@ const menuGroups = [
     items: [
       { icon: Wallet, label: 'Caja', permission: 'ver_caja', path: '/caja' },
       { icon: ArrowDownCircle, label: 'Gastos', permission: 'ver_gastos', path: '/gastos' },
-      { icon: Layers, label: 'Categorías Gasto', permission: 'ver_categorias_gasto', path: '/gastos/categorias' },
+      { icon: Layers, label: 'Categorías Gasto', permission: 'ver_categorias_gasto', path: '/categorias-gasto' },
     ]
   },
   {
@@ -81,9 +82,33 @@ export const Sidebar = () => {
     loadUser();
   }, []);
 
-  const handleItemClick = (label, path) => {
+  const handleItemClick = (label) => {
     setActiveItem(label);
     if (window.innerWidth <= 768) setIsMobileOpen(false); 
+    
+    let path = "";
+    switch (label) {
+      case 'Dashboard': path = '/dashboard'; break;
+      case 'Administración': path = '/usuarios'; break;
+      case 'Roles y Permisos': path = '/roles'; break;
+      case 'Perfil': path = '/perfil'; break;
+      case 'Clientes': path = '/clientes'; break;
+      case 'Marcas': path = '/marcas'; break;
+      case 'Unidades de Medida': path = '/unidades-medida'; break;
+      case 'Productos': path = '/productos'; break;
+      case 'Servicios': path = '/servicios'; break;
+      case 'Bodegas':  path = '/bodegas'; break;
+      case 'Movimientos': path = '/inventario/movimientos';  break;
+      case 'Configuración':path = '/configuracion'; break;
+      case 'Existencias': path = '/inventario/existencias'; break;
+      case 'Caja': path = '/caja'; break;
+      case 'Gastos': path = '/gastos'; break;
+      case 'Categorías Gasto': path = '/gastos/categorias'; break;
+      case 'Pagos de Compra': path = '/pagos-compra'; break;
+      default:
+        path = `/${label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-')}`;
+        break;
+    }
     navigate(path);
   };
 
