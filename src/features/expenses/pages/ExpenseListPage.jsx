@@ -57,13 +57,18 @@ export const ExpenseListPage = () => {
 
     const dataToExport = expenses.map(exp => ({
       ID: exp.id,
-      Fecha: exp.fecha_gasto,
+      'Fecha gasto': exp.fecha_gasto,
       Descripción: exp.descripcion,
       Categoría: exp.categoria_gasto?.nombre,
       Proveedor: exp.proveedor?.nombre || 'Gasto General',
       'Medio Pago': exp.medio_pago,
       Valor: parseFloat(exp.valor),
-      Usuario: exp.usuario?.name
+      'Usuario registro': exp.usuario?.name,
+      Estado: exp.estado,
+      'Motivo anulación':exp.motivo_anulacion,
+      'Usuario anulación': exp.usuario_anulacion?.name,
+      'Fecha anulación':exp.fecha_anulacion,
+   
     }));
 
     const ws = XLSX.utils.json_to_sheet(dataToExport);

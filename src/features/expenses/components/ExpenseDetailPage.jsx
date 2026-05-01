@@ -109,6 +109,7 @@ export const ExpenseDetailPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><p className="text-[9px] font-black text-red-400 uppercase">Motivo</p><p className="text-xs font-bold text-red-900">{expense.motivo_anulacion}</p></div>
                 <div><p className="text-[9px] font-black text-red-400 uppercase">Fecha Anulación</p><p className="text-xs font-bold text-red-900">{new Date(expense.fecha_anulacion).toLocaleString()}</p></div>
+                <div><p className="text-[9px] font-black text-red-400 uppercase">Usuario Anulación</p><p className="text-xs font-bold text-red-900">{expense.usuario_anulacion?.name}</p></div>
               </div>
             </div>
           )}

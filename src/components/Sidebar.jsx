@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,ShoppingBag,ArrowDownCircle,
-  Wrench, Users, Wallet, Truck, Fuel, BarChart3, Ruler, UserRoundPlus,Receipt,
-  Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X 
+  LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse, Box, ShoppingBag, ArrowDownCircle,
+  Wrench, Users, Wallet, Truck, LogOut, ChevronLeft, Menu, X, Settings, Shield, UserCircle, UserRoundPlus
 } from 'lucide-react';
 import logoEmpresa from '../images/logoGranjas.png';
 import { authService } from '../features/auth/services/authService';
@@ -29,7 +28,7 @@ const menuGroups = [
       { icon: Users, label: 'Clientes', permission: 'ver_clientes', path: '/clientes' },
       { icon: Truck, label: 'Proveedores', permission: 'ver_proveedores', path: '/proveedores' },
       { icon: Layers, label: 'Categorías', permission: 'ver_categorias_producto', path: '/categorias' },
-      { icon: Ruler, label: 'Unidades de Medida', permission: 'ver_unidades_medida', path: '/unidades' },
+      { icon: ArrowLeftRight, label: 'Unidades de Medida', permission: 'ver_unidades_medida', path: '/unidades-medida' },
       { icon: Warehouse, label: 'Bodegas', permission: 'ver_bodegas', path: '/bodegas' },
       { icon: ShoppingBag, label: 'Compras', permission: 'ver_compras', path: '/compras' },
     ]
@@ -39,7 +38,7 @@ const menuGroups = [
     items: [
       { icon: Wallet, label: 'Caja', permission: 'ver_caja', path: '/caja' },
       { icon: ArrowDownCircle, label: 'Gastos', permission: 'ver_gastos', path: '/gastos' },
-      { icon: Layers, label: 'Categorías Gasto', permission: 'ver_categorias_gasto', path: '/categorias-gasto' },
+      { icon: Layers, label: 'Categorías Gasto', permission: 'ver_categorias_gasto', path: '/gastos/categorias' },
     ]
   },
   {
@@ -82,33 +81,9 @@ export const Sidebar = () => {
     loadUser();
   }, []);
 
-  const handleItemClick = (label) => {
+  const handleItemClick = (label, path) => {
     setActiveItem(label);
     if (window.innerWidth <= 768) setIsMobileOpen(false); 
-    
-    let path = "";
-    switch (label) {
-      case 'Dashboard': path = '/dashboard'; break;
-      case 'Administración': path = '/usuarios'; break;
-      case 'Roles y Permisos': path = '/roles'; break;
-      case 'Perfil': path = '/perfil'; break;
-      case 'Clientes': path = '/clientes'; break;
-      case 'Marcas': path = '/marcas'; break;
-      case 'Unidades de Medida': path = '/unidades-medida'; break;
-      case 'Productos': path = '/productos'; break;
-      case 'Servicios': path = '/servicios'; break;
-      case 'Bodegas':  path = '/bodegas'; break;
-      case 'Movimientos': path = '/inventario/movimientos';  break;
-      case 'Configuración':path = '/configuracion'; break;
-      case 'Existencias': path = '/inventario/existencias'; break;
-      case 'Caja': path = '/caja'; break;
-      case 'Gastos': path = '/gastos'; break;
-      case 'Categorías Gasto': path = '/gastos/categorias'; break;
-      case 'Pagos de Compra': path = '/pagos-compra'; break;
-      default:
-        path = `/${label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-')}`;
-        break;
-    }
     navigate(path);
   };
 
@@ -116,15 +91,13 @@ export const Sidebar = () => {
 
   return (
     <>
-      {/* BOTÓN HAMBURGUESA */}
       <button 
         onClick={() => setIsMobileOpen(true)}
-        className="fixed top-4 left-4 z-40 p-2 bg-zinc-900 text-white rounded-xl md:hidden border border-zinc-800 shadow-lg"
+        className="fixed top-4 left-4 z-40 p-2 bg-zinc-900 text-white rounded-xl md:hidden border border-zinc-800 shadow-lg print:hidden"
       >
         <Menu size={24} />
       </button>
 
-      {/* OVERLAY */}
       <AnimatePresence>
         {isMobileOpen && (
           <motion.div 
@@ -132,24 +105,20 @@ export const Sidebar = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsMobileOpen(false)}
-            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[45] md:hidden"
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[45] md:hidden print:hidden"
           />
         )}
       </AnimatePresence>
 
-      {/* SIDEBAR PRINCIPAL */}
       <motion.div 
         initial={false}
         animate={{ 
-          // En móvil el ancho es fijo (280), en PC depende de isExpanded
           width: window.innerWidth <= 768 ? 280 : (isExpanded ? 280 : 80),
-          // En móvil se desliza, en PC siempre está en 0
           x: window.innerWidth <= 768 ? (isMobileOpen ? 0 : -280) : 0 
         }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="fixed md:relative h-screen bg-[#09090b] text-zinc-400 flex flex-col border-r border-zinc-800 shadow-2xl z-50"
+        className="fixed md:relative h-screen bg-[#09090b] text-zinc-400 flex flex-col border-r border-zinc-800 shadow-2xl z-50 print:hidden"
       >
-        {/* BOTÓN COLAPSAR (Solo PC) */}
         <button 
           onClick={() => setIsExpanded(!isExpanded)}
           className="hidden md:flex absolute -right-3 top-12 bg-zinc-900 border border-zinc-700 rounded-full p-1 text-zinc-400 hover:text-yellow-500 transition-colors shadow-md z-[60]"
@@ -159,11 +128,9 @@ export const Sidebar = () => {
           </motion.div>
         </button>
 
-        {/* LOGO Y CIERRE MÓVIL */}
         <div className="p-6 h-24 flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <img src={logoEmpresa} alt="Logo" className="w-10 h-10 object-contain" />
-            {/* CORRECCIÓN: Eliminado group.title que causaba error */}
             {(isExpanded || isMobileOpen) && (
               <span className="font-bold text-white tracking-tight text-lg">Las Granjas</span>
             )}
@@ -173,10 +140,9 @@ export const Sidebar = () => {
           </button>
         </div>
 
-        {/* CUERPO DEL MENÚ */}
         <div className="flex-1 overflow-y-auto px-4 custom-scrollbar">
           {menuGroups.map((group, idx) => {
-            const visibleItems = group.items.filter(item => hasPermission(item.permission));
+            const visibleItems = group.items.filter(item => !item.permission || hasPermission(item.permission));
             if (visibleItems.length === 0) return null;
 
             return (
@@ -192,7 +158,7 @@ export const Sidebar = () => {
                     return (
                       <button
                         key={item.label}
-                        onClick={() => handleItemClick(item.label)} 
+                        onClick={() => handleItemClick(item.label, item.path)} 
                         className={`w-full flex items-center relative group px-3 py-2.5 rounded-xl transition-all duration-200
                           ${isActive ? 'bg-zinc-800/50 text-white' : 'hover:bg-zinc-800/30 hover:text-zinc-200'}`}
                       >
@@ -212,7 +178,6 @@ export const Sidebar = () => {
           })}
         </div>
 
-        {/* FOOTER - PERFIL */}
         <div className="p-4 border-t border-zinc-800 bg-[#09090b]">
            <div className="flex items-center gap-3 p-2 rounded-2xl bg-zinc-900/50 border border-white/5">
              <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-black font-bold text-xs uppercase flex-shrink-0">
