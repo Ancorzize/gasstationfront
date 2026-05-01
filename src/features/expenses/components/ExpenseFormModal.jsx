@@ -119,17 +119,17 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
                       value={formData.fecha_gasto} onChange={e => setFormData({...formData, fecha_gasto: e.target.value})} />
                   </div>
                 </div>
+                
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Medio de Pago</label>
-                  <div className="flex bg-slate-100 p-1 rounded-2xl h-[46px]">
-                    <button type="button" onClick={() => setFormData({...formData, medio_pago: 'efectivo'})}
-                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl text-[9px] font-black uppercase transition-all ${formData.medio_pago === 'efectivo' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>
-                      <Banknote size={14} /> Efectivo
-                    </button>
-                    <button type="button" onClick={() => setFormData({...formData, medio_pago: 'electronico'})}
-                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl text-[9px] font-black uppercase transition-all ${formData.medio_pago === 'electronico' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>
-                      <CreditCard size={14} /> Virtual
-                    </button>
+                  <div className="relative">
+                    <CreditCard className="absolute left-4 top-3.5 text-slate-300" size={16} />
+                    <select required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:border-zinc-900 focus:bg-white appearance-none transition-all"
+                      value={formData.medio_pago} onChange={e => setFormData({...formData, medio_pago: e.target.value})}>
+                      <option value="efectivo">Efectivo</option>
+                      <option value="transferencia">Transferencia</option>
+                      <option value="consignacion">Consignación</option>
+                    </select>
                   </div>
                 </div>
               </div>

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // <--- 1. Importar esto
 import { 
   ArrowDownCircle, Plus, Search, Loader2, 
-  Calendar, Truck, Tag, CreditCard, Banknote,
-  ExternalLink, AlertCircle, FileSpreadsheet, Filter
+  Calendar, Truck, Tag, Banknote, 
+  ExternalLink, AlertCircle, FileSpreadsheet, Eye
 } from 'lucide-react';
-import * as XLSX from 'xlsx'; // Importar librería para Excel
+import * as XLSX from 'xlsx';
 import { expenseService } from '../services/expenseService';
 import { cashService } from '../../cash/services/cashService';
 import { useToast } from '../../../context/ToastContext';
@@ -13,6 +14,7 @@ import { ExpenseFormModal } from '../components/ExpenseFormModal';
 import { getTodayStr } from '../../../shared/utils/dateUtils';
 
 export const ExpenseListPage = () => {
+  const navigate = useNavigate(); // <--- 2. Inicializar esto
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isCashOpen, setIsCashOpen] = useState(false);
@@ -30,7 +32,6 @@ export const ExpenseListPage = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Enviamos el rango de fechas al backend para que la consulta sea eficiente
       const [expRes, cashRes] = await Promise.all([
         expenseService.getExpenses({ 
           fecha_desde: dateRange.inicio, 
@@ -49,9 +50,8 @@ export const ExpenseListPage = () => {
     }
   };
 
-  useEffect(() => { loadData(); }, [dateRange]); // Recargar cada vez que cambien las fechas
+  useEffect(() => { loadData(); }, [dateRange]);
 
-  // Exportar a Excel
   const exportToExcel = () => {
     if (expenses.length === 0) return showToast("No hay datos para exportar", "warning");
 
@@ -75,7 +75,8 @@ export const ExpenseListPage = () => {
   const filteredExpenses = expenses.filter(exp => 
     exp.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     exp.proveedor?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    exp.categoria_gasto?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
+    exp.categoria_gasto?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    exp.medio_pago.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -83,7 +84,7 @@ export const ExpenseListPage = () => {
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <h2 className="text-2xl font-black text-slate-800 uppercase flex items-center gap-3">
-             Gastos Administrativos
+              Gastos Administrativos
           </h2>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
             Control financiero de egresos
@@ -91,7 +92,6 @@ export const ExpenseListPage = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Filtros de Fecha */}
           <div className="flex items-center bg-white border border-slate-100 p-1.5 rounded-2xl shadow-sm">
              <div className="flex items-center gap-2 px-3">
                 <Calendar size={14} className="text-slate-400" />
@@ -142,18 +142,18 @@ export const ExpenseListPage = () => {
         </div>
       )}
 
-      {/* TABLA DE GASTOS REFORMADA: Cada dato en su columna */}
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Fecha</th>
-                <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Concepto / Descripción</th>
+                
                 <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Categoría</th>
                 <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Proveedor</th>
-                <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Medio</th>
-                <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Monto</th>
+                <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Medio</th>
+                <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Monto</th>
+                <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Estado</th>
                 <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Acción</th>
               </tr>
             </thead>
@@ -162,33 +162,20 @@ export const ExpenseListPage = () => {
                 <tr><td colSpan="7" className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-200" size={32} /></td></tr>
               ) : filteredExpenses.map((exp) => (
                 <tr key={exp.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-6 py-4">
-                    <span className="text-[10px] font-bold text-slate-500">{exp.fecha_gasto}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-xs font-black text-slate-700 uppercase tracking-tight line-clamp-1">{exp.descripcion}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black text-slate-500 uppercase">{exp.categoria_gasto?.nombre}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">{exp.proveedor?.nombre || 'Gasto General'}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex justify-center">
-                      {exp.medio_pago === 'efectivo' ? 
-                        <Banknote size={16} className="text-emerald-500" title="Efectivo" /> : 
-                        <CreditCard size={16} className="text-blue-500" title="Transferencia" />
-                      }
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="text-xs font-black text-red-500 tracking-tighter">
-                      - ${parseFloat(exp.valor).toLocaleString('es-CO')}
-                    </span>
-                  </td>
+                  <td className="px-6 py-4"><span className="text-[10px] font-bold text-slate-500">{exp.fecha_gasto}</span></td>
+                 
+                  <td className="px-6 py-4"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black text-slate-500 uppercase">{exp.categoria_gasto?.nombre}</span></td>
+                  <td className="px-6 py-4"><span className="text-[10px] font-bold text-slate-400 uppercase">{exp.proveedor?.nombre || 'Gasto General'}</span></td>
+                  <td className="px-6 py-4"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black text-slate-500 uppercase">{exp.medio_pago}</span></td>
+                  <td className="px-6 py-4"><span className="text-xs font-black text-red-500 tracking-tighter">- ${parseFloat(exp.valor).toLocaleString('es-CO')}</span></td>
+                  <td className="px-6 py-4"><span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${exp.estado === 'anulado'? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>{exp.estado}</span></td>
                   <td className="px-6 py-4 text-center">
-                    <button className="p-2 text-slate-300 hover:text-zinc-900 transition-colors"><ExternalLink size={16} /></button>
+                    <button 
+                      onClick={() => navigate(`/gastos/${exp.id}`)} 
+                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                    >
+                      <Eye size={16} />
+                    </button>
                   </td>
                 </tr>
               ))}

@@ -54,5 +54,19 @@ export const expenseService = {
       body: JSON.stringify(data)
     });
     return res.json();
+  },
+
+  getExpenseById: async (id) => {
+    const res = await fetch(`${API_URL}/gastos/${id}`, { headers: getHeaders() });
+    return res.json();
+  },
+
+  voidExpense: async (id, motivo) => {
+    const res = await fetch(`${API_URL}/gastos/${id}/anular`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ motivo_anulacion: motivo })
+    });
+    return res.json();
   }
 };

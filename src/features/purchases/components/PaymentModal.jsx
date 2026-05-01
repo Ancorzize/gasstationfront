@@ -81,8 +81,8 @@ export const PaymentModal = ({ isOpen, onClose, purchase, onSave }) => {
                   <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Método</label>
                   <select className="w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black uppercase outline-none focus:border-zinc-900"
                     value={formData.metodo_pago} onChange={e => setFormData({...formData, metodo_pago: e.target.value})}>
-                    <option value="transferencia">Transferencia</option>
                     <option value="efectivo">Efectivo</option>
+                    <option value="transferencia">Transferencia</option>
                     <option value="consignacion">Consignación</option>
                   </select>
                 </div>

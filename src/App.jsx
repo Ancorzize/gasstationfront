@@ -26,6 +26,7 @@ import { ExpenseCategoryPage } from "./features/expenses/pages/ExpenseCategoryPa
 import { PurchasePaymentListPage } from "./features/purchases/pages/PurchasePaymentListPage";
 import { PurchasePaymentDetailPage } from "./features/purchases/pages/PurchasePaymentDetailPage";
 import { CashHistoryPage } from "./features/cash/components/CashHistoryPage";
+import { ExpenseDetailPage } from "./features/expenses/components/ExpenseDetailPage";
 
 function App() {
   return (
@@ -250,6 +251,15 @@ function App() {
             element={
               <MainLayout>
                 <CashHistoryPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/gastos/:id"
+            element={
+              <MainLayout>
+                <ExpenseDetailPage />
               </MainLayout>
             }
           />
