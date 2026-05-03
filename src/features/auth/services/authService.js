@@ -17,6 +17,9 @@ export const authService = {
       if (result.status === true) {
         localStorage.setItem('token', result.data.token);
         localStorage.setItem('user', JSON.stringify(result.data.user));
+        
+        localStorage.setItem('permissions', JSON.stringify(result.data.permissions || []));
+        
         return result; 
       } else {
         throw new Error(result.message || 'Error en la autenticación');
@@ -29,6 +32,7 @@ export const authService = {
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('permissions');
     window.location.href = '/login';
   },
 
