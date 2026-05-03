@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx'; 
 import { 
-  ArrowLeft, Loader2, Search, History, Download 
+  ArrowLeft, Loader2, Search, History, Download, Eye 
 } from 'lucide-react';
 import { cashService } from '../services/cashService';
 import { useToast } from '../../../context/ToastContext';
@@ -131,6 +131,7 @@ export const CashHistoryPage = () => {
                   <th className="p-4 text-right">Cierre Real</th><th className="p-4 text-right">Diferencia</th>
                   <th className="p-4">Usuario Ap.</th><th className="p-4">Usuario Cie.</th>
                   <th className="p-4">Obs. Ap.</th><th className="p-4">Obs. Cie.</th>
+                  <th className="p-4">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -151,6 +152,7 @@ export const CashHistoryPage = () => {
                     <td className="p-4">{c.usuario_cierre?.name || '---'}</td>
                     <td className="p-4 max-w-[150px] truncate">{c.observacion_apertura || '-'}</td>
                     <td className="p-4 max-w-[150px] truncate">{c.observacion_cierre || '-'}</td>
+                    <td className="p-4"><button onClick={() => navigate(`/caja/historico/${c.id}`)} className="p-2 text-slate-400 hover:text-zinc-900 hover:bg-slate-100 rounded-xl transition-all"><Eye size={16} /> </button>  </td>
                   </tr>
                 ))}
               </tbody>

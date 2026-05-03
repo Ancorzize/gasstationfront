@@ -10,6 +10,7 @@ import { useToast } from '../../../context/ToastContext';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { CashOpenModal } from '../components/CashOpenModal';
 import { CashCloseModal } from '../components/CashCloseModal';
+import { getTodayStr } from '../../../shared/utils/dateUtils';
 
 export const CashSessionPage = () => {
   const navigate = useNavigate();
@@ -18,10 +19,8 @@ export const CashSessionPage = () => {
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('');
-  
   const [isOpenModalOpen, setIsOpenModalOpen] = useState(false);
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
-
   const { hasPermission } = usePermissions();
   const { showToast } = useToast();
 
@@ -34,7 +33,10 @@ export const CashSessionPage = () => {
       
         const [sumRes, movRes] = await Promise.all([
           cashService.getSummary(),
-          cashService.getMovements({ tipo_caja: filterType, per_page: 20 })
+          cashService.getMovements({ 
+            per_page: 100, 
+            fecha: getTodayStr() 
+          })
         ]);
         
         if (sumRes.status) setSummary(sumRes.data);
@@ -53,7 +55,12 @@ export const CashSessionPage = () => {
 
   useEffect(() => {
     loadCashData();
-  }, [filterType]);
+  }, []);
+
+ const displayedMovements = React.useMemo(() => {
+  if (filterType === '') return movements;
+  return movements.filter(mov => mov.caja?.tipo_caja === filterType);
+}, [movements, filterType]);
 
   const isCashOpen = cashSessions.length > 0;
   const mainSession = cashSessions[0];
@@ -188,11 +195,11 @@ export const CashSessionPage = () => {
                    >Digital</button>
                 </div>
               </div>
-              <div className="overflow-x-auto">
+               <div className="max-h-[450px] overflow-y-auto overflow-x-auto custom-scrollbar-light">
                 <table className="w-full text-left">
                   <tbody className="divide-y divide-slate-50">
-                    {movements.length > 0 ? (
-                      movements.map((mov) => (
+                    {displayedMovements.length > 0 ? (
+                      displayedMovements.map((mov) => (
                         <tr key={mov.id} className="group hover:bg-slate-50 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-4">
@@ -204,9 +211,13 @@ export const CashSessionPage = () => {
                               <div>
                                 <p className="text-xs font-black text-slate-700 uppercase leading-tight">{mov.descripcion}</p>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded border ${mov.tipo_caja === 'efectivo' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                                        {mov.tipo_caja}
-                                    </span>
+                                    <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded border 
+                                    ${mov.caja?.tipo_caja === 'efectivo' 
+                                      ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                                      : 'bg-blue-50 text-blue-600 border-blue-100'
+                                    }`}>
+                                      {mov.caja?.tipo_caja}
+                                  </span>
                                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
                                         {mov.categoria_movimiento} • {new Date(mov.created_at).toLocaleTimeString()}
                                     </p>

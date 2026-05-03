@@ -27,11 +27,13 @@ import { PurchasePaymentListPage } from "./features/purchases/pages/PurchasePaym
 import { PurchasePaymentDetailPage } from "./features/purchases/pages/PurchasePaymentDetailPage";
 import { CashHistoryPage } from "./features/cash/components/CashHistoryPage";
 import { ExpenseDetailPage } from "./features/expenses/components/ExpenseDetailPage";
-import { useInactivityTimeout } from './hooks/useInactivityTimeout';
+import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
+import { CashSessionDetailPage } from "./features/cash/pages/CashSessionDetailPage";
+
 
 function App() {
   useInactivityTimeout(30);
-  
+
   return (
     <ToastProvider>
       <BrowserRouter>
@@ -263,6 +265,15 @@ function App() {
             element={
               <MainLayout>
                 <ExpenseDetailPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/caja/historico/:id"
+            element={
+              <MainLayout>
+                <CashSessionDetailPage />
               </MainLayout>
             }
           />
