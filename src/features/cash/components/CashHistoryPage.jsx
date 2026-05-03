@@ -130,7 +130,6 @@ export const CashHistoryPage = () => {
                   <th className="p-4 text-right">Monto Ap.</th><th className="p-4 text-right">Cierre Sist.</th>
                   <th className="p-4 text-right">Cierre Real</th><th className="p-4 text-right">Diferencia</th>
                   <th className="p-4">Usuario Ap.</th><th className="p-4">Usuario Cie.</th>
-                  <th className="p-4">Obs. Ap.</th><th className="p-4">Obs. Cie.</th>
                   <th className="p-4">Acción</th>
                 </tr>
               </thead>
@@ -150,8 +149,6 @@ export const CashHistoryPage = () => {
                     </td>
                     <td className="p-4">{c.usuario_apertura?.name}</td>
                     <td className="p-4">{c.usuario_cierre?.name || '---'}</td>
-                    <td className="p-4 max-w-[150px] truncate">{c.observacion_apertura || '-'}</td>
-                    <td className="p-4 max-w-[150px] truncate">{c.observacion_cierre || '-'}</td>
                     <td className="p-4"><button onClick={() => navigate(`/caja/historico/${c.id}`)} className="p-2 text-slate-400 hover:text-zinc-900 hover:bg-slate-100 rounded-xl transition-all"><Eye size={16} /> </button>  </td>
                   </tr>
                 ))}
