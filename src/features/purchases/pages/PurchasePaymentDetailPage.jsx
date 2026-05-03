@@ -74,7 +74,10 @@ export const PurchasePaymentDetailPage = () => {
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/pagos-compra')} className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-zinc-900 shadow-sm transition-all">
+          <button 
+            onClick={() => navigate(purchase?.id ? `/compras/${purchase.id}` : '/pagos-compra')} 
+            className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-zinc-900 shadow-sm transition-all"
+          >
             <ArrowLeft size={20} />
           </button>
           <div>

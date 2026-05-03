@@ -220,7 +220,8 @@ export const PurchaseFormPage = () => {
 
       if (res.status) {
         showToast(id ? "Compra actualizada" : "Compra registrada", "success");
-        navigate('/compras');
+        const targetId = id || res.data.id;
+        navigate(`/compras/${targetId}`);
       }
     } catch (e) { showToast("Error de conexión", "error"); }
     finally { setIsSaving(false); }
