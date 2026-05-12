@@ -4,6 +4,7 @@ import { warehouseService } from '../services/warehouseService';
 import { WarehouseModal } from '../components/WarehouseModal';
 import { ConfirmModal } from '../../../shared/components/ConfirmModal';
 import { useToast } from '../../../context/ToastContext';
+import { useParams, useNavigate } from 'react-router-dom';
 
 export const WarehouseListPage = () => {
   const [warehouses, setWarehouses] = useState([]);
@@ -13,7 +14,7 @@ export const WarehouseListPage = () => {
   const [selectedWarehouse, setSelectedWarehouse] = useState(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [warehouseToDelete, setWarehouseToDelete] = useState(null);
-  
+  const navigate = useNavigate();
   const { showToast } = useToast();
 
   const fetchWarehouses = async () => {
@@ -64,7 +65,7 @@ export const WarehouseListPage = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">Bodegas y Almacenes</h2>
-          <p className="text-slate-500 text-xs md:text-sm font-medium">Gestión física de inventario en Las Granjas S.A.S.</p>
+          <p className="text-slate-500 text-xs md:text-sm font-medium">Gestión física de inventario</p>
         </div>
         
         <div className="flex items-center gap-3">
@@ -90,10 +91,18 @@ export const WarehouseListPage = () => {
           </div>
         ) : filteredWarehouses.length > 0 ? (
           filteredWarehouses.map((w) => (
-            <div key={w.id} className={`group relative bg-white rounded-[2.5rem] border transition-all duration-500 p-6 space-y-5 overflow-hidden
-              ${w.is_principal ? 'border-yellow-200 shadow-xl shadow-yellow-500/5' : 'border-slate-100 hover:border-zinc-200 hover:shadow-xl hover:shadow-slate-200/50'}`}>
-              
-              {/* Badge Principal */}
+            <div 
+              key={w.id} 
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/inventario/existencias', { state: { bodega_id: w.id } });
+              }}
+              className={`group relative bg-white rounded-[2.5rem] border transition-all duration-300 p-6 space-y-5 overflow-hidden cursor-pointer hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] active:duration-100
+                ${w.is_principal 
+                  ? 'border-yellow-200 shadow-xl shadow-yellow-500/5' 
+                  : 'border-slate-100 hover:border-zinc-200 hover:shadow-2xl hover:shadow-slate-200/50'
+                }`}
+            >
               {w.is_principal && (
                 <div className="absolute top-0 right-0 bg-yellow-400 text-black px-4 py-1.5 rounded-bl-3xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm">
                   <Star size={10} fill="black" /> Principal
@@ -133,13 +142,38 @@ export const WarehouseListPage = () => {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <button onClick={() => { setSelectedWarehouse(w); setIsModalOpen(true); }} 
-                    className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"><Edit2 size={16} /></button>
-                  <button onClick={() => handleToggleStatus(w)} 
-                    className={`p-2.5 rounded-xl transition-all ${w.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'}`}><Power size={16} /></button>
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setSelectedWarehouse(w); 
+                      setIsModalOpen(true); 
+                    }} 
+                    className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      handleToggleStatus(w); 
+                    }} 
+                    className={`p-2.5 rounded-xl transition-all ${w.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'}`}
+                  >
+                    <Power size={16} />
+                  </button>
+
                   {!w.is_principal && (
-                    <button onClick={() => { setWarehouseToDelete(w); setIsConfirmOpen(true); }} 
-                      className="p-2.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all"><Trash2 size={16} /></button>
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setWarehouseToDelete(w); 
+                        setIsConfirmOpen(true); 
+                      }} 
+                      className="p-2.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   )}
                 </div>
               </div>

@@ -3,11 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,ShoppingBag,ArrowDownCircle,
   Wrench, Users, Wallet, Truck, Fuel, BarChart3, Ruler, UserRoundPlus,Receipt,
-  Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X 
+  Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X, Landmark, ClipboardList, Crosshair as Pump, Droplets, Play
 } from 'lucide-react';
 import logoEmpresa from '../images/logoGranjas.png';
 import { authService } from '../features/auth/services/authService';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { usePermissions } from '../hooks/usePermissions';
 
 const menuGroups = [
@@ -16,8 +16,16 @@ const menuGroups = [
     items: [
       { icon: LayoutDashboard, label: 'Dashboard', permission: null, path: '/dashboard' },
       { icon: ReceiptText, label: 'Facturación', permission: 'ver_facturas', path: '/facturacion' },
-      { icon: ArrowLeftRight, label: 'Movimientos', permission: 'ver_movimientos_inventario', path: '/movimientos' },
-      { icon: Box, label: 'Existencias', permission: 'ver_movimientos_inventario', path: '/existencias' }
+      { icon: ArrowLeftRight, label: 'Movimientos', permission: 'ver_movimientos_inventario', path: '/inventario/movimientos' },
+      { icon: Box, label: 'Existencias', permission: 'ver_movimientos_inventario', path: '/inventario/existencias' }
+    ]
+  },
+  {
+    title: "Operación EDS",
+    items: [
+      { icon: Play, label: 'Turnos Islero', permission: 'ver_turnos_islero', path: '/operacion/turnos' },
+      { icon: Fuel, label: 'Ventas Combustible', permission: 'crear_ventas', path: '/ventas/nueva' },
+      { icon: Package, label: 'Ventas Lubricantes', permission: 'crear_ventas', path: '/ventas/lubricantes' },
     ]
   },
   {
@@ -29,7 +37,7 @@ const menuGroups = [
       { icon: Users, label: 'Clientes', permission: 'ver_clientes', path: '/clientes' },
       { icon: Truck, label: 'Proveedores', permission: 'ver_proveedores', path: '/proveedores' },
       { icon: Layers, label: 'Categorías', permission: 'ver_categorias_producto', path: '/categorias' },
-      { icon: Ruler, label: 'Unidades de Medida', permission: 'ver_unidades_medida', path: '/unidades' },
+      { icon: Ruler, label: 'Unidades de Medida', permission: 'ver_unidades_medida', path: '/unidades-medida' },
       { icon: Warehouse, label: 'Bodegas', permission: 'ver_bodegas', path: '/bodegas' },
       { icon: ShoppingBag, label: 'Compras', permission: 'ver_compras', path: '/compras' },
     ]
@@ -37,9 +45,21 @@ const menuGroups = [
   {
     title: "Finanzas",
     items: [
+      { icon: Landmark, label: 'Cartera', permission: 'ver_cartera', path: '/cartera' },
+      { icon: ClipboardList, label: 'Mov. Cartera', permission: 'ver_movimientos_cartera', path: '/cartera/movimientos' },
       { icon: Wallet, label: 'Caja', permission: 'ver_caja', path: '/caja' },
+      { icon: BarChart3, label: 'Histórico Turnos', permission: 'ver_reportes_turnos_islero', path: '/turnos/historico' },
       { icon: ArrowDownCircle, label: 'Gastos', permission: 'ver_gastos', path: '/gastos' },
-      { icon: Layers, label: 'Categorías Gasto', permission: 'ver_categorias_gasto', path: '/categorias-gasto' },
+      { icon: Layers, label: 'Categorías Gasto', permission: 'ver_categorias_gasto', path: '/gastos/categorias' },
+    ]
+  },
+  {
+    title: "Infraestructura",
+    items: [
+      { icon: Fuel, label: 'Estaciones', permission: 'ver_estaciones', path: '/estaciones' },
+      { icon: Pump, label: 'Bombas', permission: 'ver_bombas', path: '/bombas' },
+      { icon: Droplets, label: 'Mangueras', permission: 'ver_mangueras', path: '/mangueras' },
+      { icon: Receipt, label: 'Precios Combustible', permission: 'ver_precios_combustible',  path: '/precios-combustible' }
     ]
   },
   {
@@ -60,6 +80,7 @@ export const Sidebar = () => {
   const [user, setUser] = useState({ name: 'Usuario', email: '' });
   const { hasPermission, loading } = usePermissions();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const handleResize = () => {
@@ -82,7 +103,13 @@ export const Sidebar = () => {
     loadUser();
   }, []);
 
-  const handleItemClick = (label) => {
+  const handleItemClick = (item) => {
+    if (window.innerWidth <= 768) setIsMobileOpen(false); 
+    setActiveItem(item.label);
+    navigate(item.path);
+  };
+
+  /*const handleItemClick = (label) => {
     setActiveItem(label);
     if (window.innerWidth <= 768) setIsMobileOpen(false); 
     
@@ -105,12 +132,15 @@ export const Sidebar = () => {
       case 'Gastos': path = '/gastos'; break;
       case 'Categorías Gasto': path = '/gastos/categorias'; break;
       case 'Pagos de Compra': path = '/pagos-compra'; break;
+      case 'Estaciones': path = '/estaciones'; break;
+      case 'Bombas': path = '/bombas'; break;
+      case 'Mangueras': path = '/mangueras'; break;
       default:
         path = `/${label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-')}`;
         break;
     }
     navigate(path);
-  };
+  };*/
 
   if (loading) return null;
 
@@ -126,9 +156,7 @@ export const Sidebar = () => {
       <AnimatePresence>
         {isMobileOpen && (
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setIsMobileOpen(false)}
             className="fixed inset-0 bg-black/70 backdrop-blur-md z-[45] md:hidden print:hidden"
           />
@@ -179,14 +207,15 @@ export const Sidebar = () => {
                 )}
                 <div className="space-y-1">
                   {visibleItems.map((item) => {
-                    const isActive = activeItem === item.label;
-                    return (
-                      <button
-                        key={item.label}
-                        onClick={() => handleItemClick(item.label, item.path)} 
-                        className={`w-full flex items-center relative group px-3 py-2.5 rounded-xl transition-all duration-200
-                          ${isActive ? 'bg-zinc-800/50 text-white' : 'hover:bg-zinc-800/30 hover:text-zinc-200'}`}
-                      >
+                    const isActive = location.pathname === item.path;
+                      return (
+                        <button
+                          key={item.label}
+                   
+                          onClick={() => handleItemClick(item)} 
+                          className={`w-full flex items-center relative group px-3 py-2.5 rounded-xl transition-all duration-200
+                            ${isActive ? 'bg-zinc-800/50 text-white shadow-inner' : 'hover:bg-zinc-800/30 hover:text-zinc-200'}`}
+                        >
                         <item.icon size={20} className={`${isActive ? 'text-yellow-500' : 'text-zinc-500 group-hover:text-zinc-300'}`} />
                         {(isExpanded || isMobileOpen) && (
                           <span className="ml-3 text-sm font-medium whitespace-nowrap text-zinc-300">

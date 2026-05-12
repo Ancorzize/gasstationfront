@@ -29,7 +29,19 @@ import { CashHistoryPage } from "./features/cash/components/CashHistoryPage";
 import { ExpenseDetailPage } from "./features/expenses/components/ExpenseDetailPage";
 import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
 import { CashSessionDetailPage } from "./features/cash/pages/CashSessionDetailPage";
-
+import { CustomerStatementPage } from "./features/clients/pages/CustomerStatementPage";
+import { CustomerPortfolioPage } from "./features/portfolio/pages/CustomerPortfolioPage";
+import { PortfolioMovementsPage } from "./features/portfolio/pages/PortfolioMovementsPage";
+import { StationListPage } from "./features/stations/pages/StationListPage";
+import { PumpListPage } from "./features/stations/pages/PumpListPage";
+import { HoseListPage } from "./features/stations/pages/HoseListPage";
+import { ShiftManagementPage } from "./features/shifts/pages/ShiftManagementPage";
+import { ShiftSummaryPage } from "./features/shifts/pages/ShiftSummaryPage";
+import { ShiftClosingPage } from "./features/shifts/pages/ShiftClosingPage";
+import { FuelSalesPage } from "./features/sales/pages/FuelSalesPage";
+import { LubricantSalesPage } from "./features/sales/pages/LubricantSalesPage";
+import { ShiftHistoryPage } from "./features/shifts/pages/ShiftHistoryPage";
+import { FuelPriceListPage } from "./features/stations/pages/FuelPriceListPage";
 
 function App() {
   useInactivityTimeout(30);
@@ -274,6 +286,123 @@ function App() {
             element={
               <MainLayout>
                 <CashSessionDetailPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/clientes/:id/estado-cuenta"
+            element={
+              <MainLayout>
+                <CustomerStatementPage />
+              </MainLayout>
+            }
+          />
+
+          <Route 
+            path="/cartera" 
+            element={
+              <MainLayout>
+                <CustomerPortfolioPage />
+              </MainLayout>
+            } 
+          />
+
+          <Route
+            path="/cartera/movimientos"
+            element={
+              <MainLayout>
+                <PortfolioMovementsPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/estaciones"
+            element={
+              <MainLayout>
+                <StationListPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/bombas"
+            element={
+              <MainLayout>
+                <PumpListPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/mangueras"
+            element={
+              <MainLayout>
+                <HoseListPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/operacion/turnos"
+            element={
+              <MainLayout>
+                <ShiftManagementPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/turnos-islero/:id/resumen"
+            element={
+              <MainLayout>
+                <ShiftSummaryPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/turnos-islero/:id/cerrar"
+            element={
+              <MainLayout>
+                <ShiftClosingPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/ventas/nueva"
+            element={
+              <MainLayout>
+                <FuelSalesPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/ventas/lubricantes"
+            element={
+              <MainLayout>
+                <LubricantSalesPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/turnos/historico"
+            element={
+              <MainLayout>
+                <ShiftHistoryPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/precios-combustible"
+            element={
+              <MainLayout>
+                <FuelPriceListPage />
               </MainLayout>
             }
           />

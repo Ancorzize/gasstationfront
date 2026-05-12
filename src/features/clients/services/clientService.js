@@ -43,5 +43,26 @@ export const clientService = {
       body: JSON.stringify({ is_active: status })
     });
     return res.json();
+  },
+
+  configureCredit: async (id, data) => {
+    const res = await fetch(`${API_URL}/clientes/${id}/credito`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        maneja_credito: data.maneja_credito,
+        cupo_credito: data.cupo_credito,
+        dias_credito: data.dias_credito
+      })
+    });
+    return res.json();
+  },
+
+  getStatement: async (id) => {
+    const res = await fetch(`${API_URL}/clientes/${id}/estado-cuenta`, { 
+      headers: getHeaders() 
+    });
+    return res.json();
   }
+
 };

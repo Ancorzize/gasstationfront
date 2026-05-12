@@ -4,8 +4,11 @@ import { Box, Search, Loader2, Download, Warehouse, AlertTriangle, RefreshCcw, L
 import { inventoryService } from '../services/inventoryService';
 import { warehouseService } from '../../warehouses/services/warehouseService';
 import { useToast } from '../../../context/ToastContext';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export const StockStatusPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [stock, setStock] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -32,6 +35,14 @@ export const StockStatusPage = () => {
     if (selectedWarehouse) fetchStock();
     else setStock([]);
   }, [selectedWarehouse]);
+
+  useEffect(() => {
+    if (location.state?.bodega_id) {
+      setSelectedWarehouse(location.state.bodega_id.toString());
+
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const fetchStock = async () => {
     setLoading(true);
@@ -75,7 +86,7 @@ export const StockStatusPage = () => {
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase flex items-center gap-3">
-            <Box className="text-yellow-500" size={28} /> Control de Inventario
+            Control de Inventario
           </h2>
           <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Saldos por bodega con desglose detallado</p>
         </div>

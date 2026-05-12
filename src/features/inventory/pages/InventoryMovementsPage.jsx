@@ -34,7 +34,7 @@ export const InventoryMovementsPage = () => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase flex items-center gap-2">
-            <History className="text-zinc-400" size={24} /> Movimientos de Stock
+            Movimientos de Stock
           </h2>
           <p className="text-slate-500 text-xs font-medium uppercase tracking-tighter">Control de traslados y entradas de inventario</p>
         </div>
