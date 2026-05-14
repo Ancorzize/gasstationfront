@@ -32,6 +32,9 @@ export const ShiftSummaryPage = () => {
     </div>
   );
 
+  // Extraemos totales para facilitar el acceso
+  const totales = summary?.totales_sistema || {};
+
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
@@ -41,21 +44,24 @@ export const ShiftSummaryPage = () => {
         </button>
         <div className="text-right">
           <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">Resumen de Control</h2>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pre-cierre de turno #{id}</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Pre-cierre: {summary?.turno?.estacion?.nombre} #{id}
+          </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Fuel} label="Combustible" value={summary?.totales?.combustible} color="bg-blue-600" />
-        <StatCard icon={Package} label="Lubricantes" value={summary?.totales?.lubricantes} color="bg-zinc-900" />
-        <StatCard icon={creditCard} label="Créditos" value={summary?.totales?.creditos} color="bg-red-500" />
-        <StatCard icon={Receipt} label="Abonos" value={summary?.totales?.abonos} color="bg-emerald-600" />
+    
+        <StatCard icon={Fuel} label="Combustible" value={totales.ventas_combustible} color="bg-blue-600" />
+        <StatCard icon={Package} label="Lubricantes" value={totales.ventas_lubricantes} color="bg-zinc-900" />
+        <StatCard icon={CreditCard} label="Créditos" value={totales.creditos} color="bg-red-500" />
+        <StatCard icon={Receipt} label="Abonos" value={totales.abonos} color="bg-emerald-600" />
       </div>
 
       <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
         <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
           <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight">Detalle de Mangueras</h3>
-          <span className="text-[9px] font-bold text-slate-400 uppercase">Lecturas Iniciales vs Sistema</span>
+          <span className="text-[9px] font-bold text-slate-400 uppercase">Lecturas Iniciales vs Precio</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -63,22 +69,24 @@ export const ShiftSummaryPage = () => {
               <tr className="text-left border-b border-slate-50">
                 <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Manguera</th>
                 <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Inicial</th>
-                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Sistema</th>
-                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Vendido</th>
+                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Precio Galón</th>
+                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Vendido (Gal)</th>
                 <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Subtotal</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {summary?.lecturas?.map((l) => (
                 <tr key={l.id} className="hover:bg-slate-50/50 transition-colors text-xs font-bold">
-                  <td className="p-5 uppercase">
-                    <p className="text-slate-800">{l.manguera}</p>
-                    <p className="text-[9px] text-slate-400 italic">{l.producto}</p>
+                  <td className="p-5 uppercase text-left">
+                    <p className="text-slate-800">{l.manguera?.nombre}</p>
+                    <p className="text-[9px] text-slate-400 italic">
+                        {l.manguera?.bomba?.nombre} | {l.manguera?.producto?.nombre}
+                    </p>
                   </td>
-                  <td className="p-5 text-slate-600">{Number(l.inicial).toLocaleString()}</td>
-                  <td className="p-5 text-slate-600">{Number(l.actual).toLocaleString()}</td>
-                  <td className="p-5 text-zinc-900 font-black">{Number(l.vendido).toLocaleString()} gal</td>
-                  <td className="p-5 text-right font-black text-slate-800">$ {Number(l.subtotal).toLocaleString()}</td>
+                  <td className="p-5 text-slate-600 text-left">{Number(l.lectura_inicial).toLocaleString()}</td>
+                  <td className="p-5 text-slate-600 text-left">$ {Number(l.precio_galon).toLocaleString()}</td>
+                  <td className="p-5 text-zinc-900 font-black text-left">{Number(l.galones_vendidos).toLocaleString()}</td>
+                  <td className="p-5 text-right font-black text-slate-800">$ {Number(l.total_venta).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -88,8 +96,9 @@ export const ShiftSummaryPage = () => {
 
       <div className="bg-zinc-900 rounded-[3rem] p-8 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl shadow-zinc-200">
         <div className="space-y-1 text-center md:text-left">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Total Esperado en Sistema</p>
-          <h4 className="text-4xl font-black tracking-tighter italic">$ {Number(summary?.totales?.total_sistema).toLocaleString()}</h4>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Total Sistema (Sin Combustible)</p>
+          <h4 className="text-4xl font-black tracking-tighter italic">$ {Number(totales.total_sistema_sin_combustible).toLocaleString()}</h4>
+          <p className="text-[9px] text-zinc-500 max-w-sm uppercase leading-tight mt-2">{summary?.nota}</p>
         </div>
         
         <button 
@@ -104,7 +113,7 @@ export const ShiftSummaryPage = () => {
 };
 
 const StatCard = ({ icon: Icon, label, value, color }) => (
-  <div className="bg-white rounded-[2rem] p-6 border border-slate-100 space-y-4">
+  <div className="bg-white rounded-[2rem] p-6 border border-slate-100 space-y-4 text-left">
     <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center text-white`}>
       <Icon size={20} />
     </div>

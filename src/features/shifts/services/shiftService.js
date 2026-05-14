@@ -38,5 +38,11 @@ export const shiftService = {
     const params = new URLSearchParams(filters).toString();
     const res = await fetch(`${API_URL}/turnos-islero?${params}`, { headers: getHeaders() });
     return res.json();
-  }
+  },
+  getAvailableHoses: async (estacionId) => {
+    const res = await fetch(`${API_URL}/turnos-islero/mangueras-disponibles?estacion_id=${estacionId}`, {
+      headers: getHeaders()
+    });
+    return res.json();
+  },
 };

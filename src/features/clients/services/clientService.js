@@ -6,15 +6,17 @@ const getHeaders = () => ({
 });
 
 export const clientService = {
-  // Listar con filtros y paginación
-  getClients: async (search = '', page = 1, is_active = '') => {
-    const params = new URLSearchParams({
-      search,
-      page,
-      per_page: 10,
-      ...(is_active !== '' && { is_active })
+  getClients: async ({ search = '', page = 1, is_active = '', per_page = 10 } = {}) => {
+    const params = new URLSearchParams();
+    
+    if (search) params.append('search', search);
+    if (page) params.append('page', page);
+    if (per_page) params.append('per_page', per_page);
+    if (is_active !== '') params.append('is_active', is_active);
+
+    const res = await fetch(`${API_URL}/clientes?${params.toString()}`, { 
+      headers: getHeaders() 
     });
-    const res = await fetch(`${API_URL}/clientes?${params}`, { headers: getHeaders() });
     return res.json();
   },
 
