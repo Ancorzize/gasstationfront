@@ -32,7 +32,7 @@ export const ShiftClosingPage = () => {
           ...prev,
           lecturas_finales: res.data.lecturas.map(l => ({
             manguera_id: l.manguera_id,
-            lectura_final: l.actual 
+            lectura_final: l.lectura_final || ''
           }))
         }));
       }
@@ -77,7 +77,8 @@ export const ShiftClosingPage = () => {
         </button>
         <div className="text-right">
           <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Arqueo y Cierre</h2>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estación: {summary.estacion}</p>
+          {/* Ajuste de ruta de la Estación */}
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estación: {summary.turno?.estacion?.nombre}</p>
         </div>
       </header>
 
@@ -91,8 +92,10 @@ export const ShiftClosingPage = () => {
               {summary.lecturas.map((l, index) => (
                 <div key={l.manguera_id} className="p-4 bg-slate-50 rounded-3xl flex items-center justify-between border border-slate-100">
                   <div>
-                    <p className="text-[10px] font-black text-slate-700 uppercase">{l.manguera}</p>
-                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Inicial: {Number(l.inicial).toLocaleString()}</p>
+                    {/* Manguera ahora apunta a .nombre */}
+                    <p className="text-[10px] font-black text-slate-700 uppercase">{l.manguera?.nombre}</p>
+                    {/* Ajustado a lectura_inicial */}
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Inicial: {Number(l.lectura_inicial).toLocaleString()}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <span className="text-[8px] font-black text-slate-400 uppercase mr-2">Lectura Actual</span>
@@ -135,7 +138,10 @@ export const ShiftClosingPage = () => {
             <div className="flex items-center justify-between mb-6">
                <div className="flex items-center gap-2 text-zinc-400">
                  <Info size={14} />
-                 <span className="text-[9px] font-black uppercase tracking-widest">Total en Sistema: $ {Number(summary.totales.total_sistema).toLocaleString()}</span>
+                 {/* Ajustado a totales_sistema.total_sistema con Optional Chaining */}
+                 <span className="text-[9px] font-black uppercase tracking-widest">
+                   Total en Sistema: $ {Number(summary.totales_sistema?.total_sistema || 0).toLocaleString()}
+                 </span>
                </div>
             </div>
             <button 
@@ -153,17 +159,35 @@ export const ShiftClosingPage = () => {
   );
 };
 
-const PaymentInput = ({ icon: Icon, label, value, onChange }) => (
-  <div className="space-y-1">
-    <label className="text-[9px] font-black text-slate-400 uppercase ml-2">{label}</label>
-    <div className="relative">
-      <Icon className="absolute left-4 top-3.5 text-slate-300" size={14} />
-      <input
-        type="number"
-        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black outline-none focus:border-zinc-900 transition-all text-right"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
+const PaymentInput = ({ icon: Icon, label, value, onChange }) => {
+  
+  // 1. Formatea el número puro (ej: 150000) a formato con puntos (ej: 150.000)
+  // Si el valor es 0, lo dejamos vacío para que el usuario no tenga que borrar ceros molestos.
+  const displayValue = value && value !== 0 
+    ? value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") 
+    : "";
+
+  const handleChange = (e) => {
+    const inputValue = e.target.value;
+    const rawNumberStr = inputValue.replace(/\D/g, "");
+    const numericValue = rawNumberStr ? parseInt(rawNumberStr, 10) : 0;
+    onChange(numericValue);
+  };
+
+  return (
+    <div className="space-y-1">
+      <label className="text-[9px] font-black text-slate-400 uppercase ml-2">{label}</label>
+      <div className="relative">
+        <Icon className="absolute left-4 top-3.5 text-slate-300" size={14} />
+        <input
+          type="text"
+          inputMode="numeric"
+          className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black outline-none focus:border-zinc-900 transition-all text-right"
+          placeholder="$ 0"
+          value={displayValue}
+          onChange={handleChange}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+};
