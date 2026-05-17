@@ -23,7 +23,7 @@ export const ClientListPage = () => {
   const fetchClients = async () => {
     setLoading(true);
     try {
-      const result = await clientService.getClients('');
+      const result = await clientService.getClients(); 
       if (result.status) setClients(result.data.items);
     } catch (error) {
       showToast("Error al cargar clientes", "error");

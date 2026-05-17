@@ -97,7 +97,7 @@ export const ShiftSummaryPage = () => {
       <div className="bg-zinc-900 rounded-[3rem] p-8 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl shadow-zinc-200">
         <div className="space-y-1 text-center md:text-left">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Total Sistema (Sin Combustible)</p>
-          <h4 className="text-4xl font-black tracking-tighter italic">$ {Number(totales.total_sistema_sin_combustible).toLocaleString()}</h4>
+          <h4 className="text-4xl font-black tracking-tighter italic">$ {Number(totales.total_sistema).toLocaleString()}</h4>
           <p className="text-[9px] text-zinc-500 max-w-sm uppercase leading-tight mt-2">{summary?.nota}</p>
         </div>
         
