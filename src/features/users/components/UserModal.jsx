@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, User, Mail, Lock, Shield } from 'lucide-react';
 import { userService } from '../services/userService';
 import { useToast } from '../../../context/ToastContext';
+import { warehouseService } from '../../warehouses/services/warehouseService';
 
 export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
   const [roles, setRoles] = useState([]);
@@ -10,11 +11,12 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { showToast } = useToast();
+  const [warehouses, setWarehouses] = useState([]);
 
   useEffect(() => {
     if (isOpen) {
-      // Cargar roles y resetear errores al abrir
       fetchRoles();
+      fetchWarehouses();
       setError(null);
       
       if (userToEdit) {
@@ -22,10 +24,11 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
           name: userToEdit.name,
           email: userToEdit.email,
           password: '', 
-          role: userToEdit.roles[0] || ''
+          role: userToEdit.roles[0] || '',
+          bodega_id: userToEdit.bodega_id || null 
         });
       } else {
-        setFormData({ name: '', email: '', password: '', role: '' });
+        setFormData({ name: '', email: '', password: '', role: '', bodega_id: null });
       }
     }
   }, [isOpen, userToEdit]);
@@ -33,11 +36,23 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
   const fetchRoles = async () => {
     try {
       const res = await userService.getRoles();
-      // Ajusta según tu API: res.data o res
       setRoles(res.data || res); 
     } catch (err) {
       console.error("Error al cargar roles");
     }
+  };
+
+  const fetchWarehouses = async () => {
+    const res = await warehouseService.getWarehouses();
+    setWarehouses(res.data?.items || []);
+  };
+
+  const handleRoleChange = (newRole) => {
+    setFormData(prev => ({
+      ...prev,
+      role: newRole,
+      bodega_id: newRole === 'ISLERO' ? prev.bodega_id : null
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -55,10 +70,10 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
 
       if (result.status) {
         showToast(userToEdit ? "Usuario actualizado" : "Usuario creado con éxito", "success");
-        onSave(); // Recarga la lista en el padre
-        onClose(); // Cierra el modal
+        onSave(); 
+        onClose(); 
       } else {
-        // Manejo de errores de validación de Laravel
+       
         const errorMsg = result.message || "Error en la operación";
         setError(errorMsg);
         showToast(errorMsg, "error");
@@ -75,7 +90,7 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          {/* Overlay con Blur */}
+         
           <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
@@ -84,14 +99,14 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
             className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
           />
 
-          {/* Contenedor del Modal */}
+       
           <motion.div 
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
             className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200"
           >
-            {/* Header dinámico */}
+         
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-tight">
                 <User size={18} className="text-yellow-500" /> 
@@ -102,7 +117,7 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
               </button>
             </div>
 
-            {/* Formulario */}
+          
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {error && (
                 <motion.div 
@@ -114,7 +129,7 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
                 </motion.div>
               )}
 
-              {/* Campo: Nombre */}
+            
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre Completo</label>
                 <div className="relative">
@@ -128,7 +143,7 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
                 </div>
               </div>
 
-              {/* Campo: Email */}
+           
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Correo Electrónico</label>
                 <div className="relative">
@@ -143,7 +158,7 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
                 </div>
               </div>
 
-              {/* Grid: Password y Rol */}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Contraseña</label>
@@ -160,6 +175,7 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
                   </div>
                 </div>
                 
+                {/* Rol */}
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Rol</label>
                   <div className="relative">
@@ -168,18 +184,38 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
                       required 
                       className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-yellow-500 transition-all appearance-none cursor-pointer" 
                       value={formData.role} 
-                      onChange={e => setFormData({...formData, role: e.target.value})}
+                      onChange={e => handleRoleChange(e.target.value)}
                     >
                       <option value="">Seleccionar...</option>
-                      {roles.map(r => (
-                        <option key={r.id} value={r.name}>{r.name.toUpperCase()}</option>
-                      ))}
+                      {roles.map(r => <option key={r.id} value={r.name}>{r.name.toUpperCase()}</option>)}
                     </select>
                   </div>
                 </div>
               </div>
 
-              {/* Botones de Acción */}
+           
+              {roles.find(r => r.name === 'islero' && r.name === formData.role) && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }} 
+                  animate={{ opacity: 1, height: 'auto' }} 
+                  className="space-y-1"
+                >
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Asignar Bodega *</label>
+                  <select 
+                    required
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-yellow-500 transition-all"
+                    value={formData.bodega_id || ""}
+                    onChange={e => setFormData({...formData, bodega_id: e.target.value})}
+                  >
+                    <option value="">Seleccionar bodega...</option>
+                    {warehouses.map(b => (
+                      <option key={b.id} value={b.id}>{b.nombre}</option>
+                    ))}
+                  </select>
+                </motion.div>
+              )}
+
+           
               <div className="pt-4 flex gap-3">
                 <button 
                   type="button" 
