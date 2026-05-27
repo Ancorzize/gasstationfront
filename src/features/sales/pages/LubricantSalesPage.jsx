@@ -34,15 +34,17 @@ export const LubricantSalesPage = () => {
   useEffect(() => {
     const loadProducts = async () => {
       const res = await productService.getProducts({ per_page: 50 });
-      if (res.status) {
-        const filtered = res.data.items.filter(p => p.categoria !== 'Combustibles');
+      if (res.status && res.data?.items) {
+        const filtered = res.data.items.filter(p => 
+          p.categoria_producto?.nombre !== 'Combustible' && 
+          p.is_active === true
+        );
         setProducts(filtered);
       }
     };
     loadProducts();
   }, []);
 
-  // Efecto para buscar clientes (Debounce de 400ms)
   useEffect(() => {
     const searchClients = async () => {
       if (clientSearchTerm.length < 3) {
@@ -67,7 +69,7 @@ export const LubricantSalesPage = () => {
     return () => clearTimeout(timeoutId);
   }, [clientSearchTerm, showClientList]);
 
-  // Efecto para cerrar la lista de clientes al hacer clic fuera
+  
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (clientListRef.current && !clientListRef.current.contains(e.target)) {
@@ -273,7 +275,7 @@ export const LubricantSalesPage = () => {
               </div>
             </div>
 
-            {/* Campo de búsqueda de Clientes (Condicional: Solo cuando tipo_venta es 'credito') */}
+         
             {saleData.tipo_venta === 'credito' && (
               <div className="space-y-1 relative" ref={clientListRef}>
                 <label className="text-[8px] font-black text-zinc-500 uppercase ml-1">Buscar Cliente (Nit/Nombre)</label>
