@@ -29,14 +29,14 @@ export const PumpListPage = () => {
     <div className="p-4 md:p-8 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">Bombas / Islas</h2>
+          <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">Dispensador / Islas</h2>
           <p className="text-slate-500 text-xs md:text-sm font-bold uppercase tracking-widest">Dispensadores por estación</p>
         </div>
         <button 
           onClick={() => { setSelectedPump(null); setIsModalOpen(true); }}
           className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-black shadow-xl shadow-zinc-200"
         >
-          <Plus size={16} /> Nueva Bomba
+          <Plus size={16} /> Nuevo Dispensador
         </button>
       </div>
 

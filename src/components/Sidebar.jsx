@@ -57,7 +57,7 @@ const menuGroups = [
     title: "Infraestructura",
     items: [
       { icon: Fuel, label: 'Estaciones', permission: 'ver_estaciones', path: '/estaciones' },
-      { icon: Pump, label: 'Bombas', permission: 'ver_bombas', path: '/bombas' },
+      { icon: Pump, label: 'Dispensadores', permission: 'ver_bombas', path: '/bombas' },
       { icon: Droplets, label: 'Mangueras', permission: 'ver_mangueras', path: '/mangueras' },
       { icon: Receipt, label: 'Precios Combustible', permission: 'ver_precios_combustible',  path: '/precios-combustible' }
     ]

@@ -116,7 +116,7 @@ export const HoseModal = ({ isOpen, onClose, onSave, hoseToEdit }) => {
             </div>
             <div>
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Configurar Manguera</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Asignación de producto y bomba</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Asignación de producto y dispensador</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:bg-white rounded-xl transition-colors"><X size={20} /></button>
@@ -152,14 +152,14 @@ export const HoseModal = ({ isOpen, onClose, onSave, hoseToEdit }) => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Bomba / Isla Asignada</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Dispensador / Isla Asignada</label>
             <select
               required
               className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-zinc-900 transition-all uppercase appearance-none"
               value={formData.bomba_id}
               onChange={(e) => setFormData({ ...formData, bomba_id: e.target.value })}
             >
-              <option value="">-- Seleccionar Bomba --</option>
+              <option value="">-- Seleccionar Dispensador --</option>
               {pumps.map(p => (
                 <option key={p.id} value={p.id}>{p.nombre} ({p.estacion?.nombre})</option>
               ))}

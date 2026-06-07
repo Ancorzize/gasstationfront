@@ -62,7 +62,7 @@ export const PumpModal = ({ isOpen, onClose, onSave, pumpToEdit }) => {
             <div className="w-10 h-10 bg-zinc-900 rounded-2xl flex items-center justify-center text-white">
               <Hash size={20} />
             </div>
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Configurar Bomba</h3>
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Configurar Dispensador</h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:bg-white p-2 rounded-xl transition-colors">
             <X size={20} />
@@ -100,7 +100,7 @@ export const PumpModal = ({ isOpen, onClose, onSave, pumpToEdit }) => {
             <input
               type="text" 
               required 
-              placeholder="Ej: Bomba 01 - Principal"
+              placeholder="Ej: Dispensador 01 - Principal"
               className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-zinc-900 uppercase"
               value={formData.nombre}
               onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
@@ -113,7 +113,7 @@ export const PumpModal = ({ isOpen, onClose, onSave, pumpToEdit }) => {
             className="w-full bg-zinc-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 shadow-xl shadow-zinc-200 hover:bg-black transition-all"
           >
             {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} 
-            Guardar Bomba
+            Guardar Dispensador
           </button>
         </form>
       </div>
