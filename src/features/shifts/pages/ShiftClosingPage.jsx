@@ -47,8 +47,7 @@ export const ShiftClosingPage = () => {
     if (!summary) return { totalEsperado: 0, totalReportado: 0, balance: 0 };
     
     const totalCombustible = summary.lecturas.reduce((acc, l) => {
-      const lecturaFinal = formData.lecturas_finales.find(f => f.manguera_id === l.manguera_id)?.lectura_final || l.lectura_inicial;
-      return acc + ((lecturaFinal - l.lectura_inicial) * l.precio_galon);
+      return acc + Number(l.total_venta_sistema);
     }, 0);
     
     const totalEsperado = totalCombustible + 
