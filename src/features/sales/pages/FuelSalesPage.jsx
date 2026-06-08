@@ -230,24 +230,29 @@ export const FuelSalesPage = () => {
         )}
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Monto a Despachar ($)</label>
-          <div className="relative">
-            <DollarSign className="absolute left-6 top-6 text-emerald-500" size={24} />
-            <input
-              type="number" required placeholder="0.00"
-              className="w-full pl-16 pr-8 py-6 bg-slate-50 border border-slate-100 rounded-[2rem] text-3xl font-black outline-none focus:border-zinc-900 transition-all text-slate-800"
-              value={formData.monto}
-              onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
-            />
-          </div>
-          {formData.manguera_id && (
-            <p className="text-[9px] font-bold text-slate-400 ml-6 uppercase">
-              Precio actual por galón: <span className="text-zinc-600">
-                ${Number(manguerasTurno.find(m => m.id === formData.manguera_id)?.precio_congelado).toLocaleString()}
-              </span>
-            </p>
-          )}
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Monto a Despachar ($)</label>
+        <div className="relative">
+          <DollarSign className="absolute left-6 top-6 text-emerald-500" size={24} />
+          <input
+            type="text" 
+            required 
+            placeholder="0"
+            className="w-full pl-16 pr-8 py-6 bg-slate-50 border border-slate-100 rounded-[2rem] text-3xl font-black outline-none focus:border-zinc-900 transition-all text-slate-800"
+            value={formData.monto ? Number(formData.monto).toLocaleString('es-ES') : ''}
+            onChange={(e) => {
+              const rawValue = e.target.value.replace(/\D/g, "");
+              setFormData({ ...formData, monto: rawValue });
+            }}
+          />
         </div>
+        {formData.manguera_id && (
+          <p className="text-[9px] font-bold text-slate-400 ml-6 uppercase">
+            Precio actual por galón: <span className="text-zinc-600">
+              ${Number(manguerasTurno.find(m => m.id === formData.manguera_id)?.precio_congelado).toLocaleString()}
+            </span>
+          </p>
+        )}
+      </div>
 
         <div className="space-y-2">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Observación</label>
