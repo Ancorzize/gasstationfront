@@ -47,14 +47,21 @@ export const ShiftClosingPage = () => {
     if (!summary) return { totalEsperado: 0, totalReportado: 0, balance: 0 };
     
     const totalCombustible = summary.lecturas.reduce((acc, l) => {
-      const lecturaFinal = formData.lecturas_finales.find(f => f.manguera_id === l.manguera_id)?.lectura_final || 0;
+      const lecturaFinal = formData.lecturas_finales.find(f => f.manguera_id === l.manguera_id)?.lectura_final || l.lectura_inicial;
       return acc + ((lecturaFinal - l.lectura_inicial) * l.precio_galon);
     }, 0);
     
-    const totalEsperado = totalCombustible + summary.totales_sistema.ventas_lubricantes + summary.totales_sistema.abonos + summary.totales_sistema.creditos;
-    
-    const totalReportado = formData.pagos_efectivo + formData.pagos_datafono + formData.pagos_qr + formData.pagos_transferencia + formData.pagos_consignacion + formData.abonos_islero;
-    
+    const totalEsperado = totalCombustible + 
+                          summary.totales_sistema.ventas_lubricantes + 
+                          summary.totales_sistema.abonos - 
+                          summary.totales_sistema.creditos;
+                          
+    const totalReportado = formData.pagos_efectivo + 
+                           formData.pagos_datafono + 
+                           formData.pagos_qr + 
+                           formData.pagos_transferencia + 
+                           formData.pagos_consignacion + 
+                           formData.abonos_islero;
     return {
       totalEsperado,
       totalReportado,

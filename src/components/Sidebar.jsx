@@ -21,7 +21,7 @@ const menuGroups = [
     ]
   },
   {
-    title: "Operación EDS",
+    title: "Operación",
     items: [
       { icon: Play, label: 'Turnos Islero', permission: 'ver_turnos_islero', path: '/operacion/turnos' },
       { icon: Fuel, label: 'Ventas Combustible', permission: 'crear_ventas', path: '/ventas/nueva' },
