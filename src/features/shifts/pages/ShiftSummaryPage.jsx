@@ -32,8 +32,8 @@ export const ShiftSummaryPage = () => {
     </div>
   );
 
-  // Extraemos totales para facilitar el acceso
   const totales = summary?.totales_sistema || {};
+  const totalEsperadoCaja = (totales.total_sistema || 0);
 
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto">
@@ -51,7 +51,6 @@ export const ShiftSummaryPage = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-    
         <StatCard icon={Fuel} label="Combustible" value={totales.ventas_combustible} color="bg-blue-600" />
         <StatCard icon={Package} label="Lubricantes" value={totales.ventas_lubricantes} color="bg-zinc-900" />
         <StatCard icon={CreditCard} label="Créditos" value={totales.creditos} color="bg-red-500" />
@@ -61,7 +60,6 @@ export const ShiftSummaryPage = () => {
       <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
         <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
           <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight">Detalle de Mangueras</h3>
-          <span className="text-[9px] font-bold text-slate-400 uppercase">Lecturas Iniciales vs Precio</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -79,14 +77,12 @@ export const ShiftSummaryPage = () => {
                 <tr key={l.id} className="hover:bg-slate-50/50 transition-colors text-xs font-bold">
                   <td className="p-5 uppercase text-left">
                     <p className="text-slate-800">{l.manguera?.nombre}</p>
-                    <p className="text-[9px] text-slate-400 italic">
-                        {l.manguera?.bomba?.nombre} | {l.manguera?.producto?.nombre}
-                    </p>
+                    <p className="text-[9px] text-slate-400 italic">{l.manguera?.bomba?.nombre} | {l.manguera?.producto?.nombre}</p>
                   </td>
                   <td className="p-5 text-slate-600 text-left">{Number(l.lectura_inicial).toLocaleString()}</td>
                   <td className="p-5 text-slate-600 text-left">$ {Number(l.precio_galon).toLocaleString()}</td>
-                  <td className="p-5 text-zinc-900 font-black text-left">{Number(l.galones_vendidos).toLocaleString()}</td>
-                  <td className="p-5 text-right font-black text-slate-800">$ {Number(l.total_venta).toLocaleString()}</td>
+                  <td className="p-5 text-zinc-900 font-black text-left">{Number(l.galones_vendidos_sistema).toLocaleString()}</td>
+                  <td className="p-5 text-right font-black text-slate-800">$ {Number(l.total_venta_sistema).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -94,11 +90,32 @@ export const ShiftSummaryPage = () => {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white rounded-[2rem] border border-slate-100 p-6 shadow-sm">
+          <h3 className="text-xs font-black text-slate-800 uppercase mb-4">Productos Vendidos</h3>
+          {summary?.ventas_productos?.map(p => (
+            <div key={p.id} className="flex justify-between text-xs py-2 border-b border-slate-50 font-bold">
+              <span>{p.nombre} (x{p.cantidad})</span>
+              <span>$ {Number(p.total).toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+        <div className="bg-white rounded-[2rem] border border-slate-100 p-6 shadow-sm">
+          <h3 className="text-xs font-black text-slate-800 uppercase mb-4">Abonos Recibidos</h3>
+          {summary?.abonos_recibidos?.map(a => (
+            <div key={a.id} className="flex justify-between text-xs py-2 border-b border-slate-50 font-bold">
+              <span>{a.cliente}</span>
+              <span>$ {Number(a.monto).toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="bg-zinc-900 rounded-[3rem] p-8 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl shadow-zinc-200">
         <div className="space-y-1 text-center md:text-left">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Total Sistema</p>
-          <h4 className="text-4xl font-black tracking-tighter italic">$ {Number(totales.total_sistema).toLocaleString()}</h4>
-          <p className="text-[9px] text-zinc-500 max-w-sm uppercase leading-tight mt-2">{summary?.nota}</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Total Esperado en Caja</p>
+          <h4 className="text-4xl font-black tracking-tighter italic">$ {totalEsperadoCaja.toLocaleString()}</h4>
+          <p className="text-[9px] text-zinc-500 max-w-sm uppercase leading-tight mt-2">El total excluye créditos pendientes. {summary?.nota}</p>
         </div>
         
         <button 

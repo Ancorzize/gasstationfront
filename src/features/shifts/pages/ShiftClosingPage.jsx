@@ -55,7 +55,7 @@ export const ShiftClosingPage = () => {
                           summary.totales_sistema.ventas_lubricantes + 
                           summary.totales_sistema.abonos - 
                           summary.totales_sistema.creditos;
-                          
+
     const totalReportado = formData.pagos_efectivo + 
                            formData.pagos_datafono + 
                            formData.pagos_qr + 
@@ -132,12 +132,7 @@ export const ShiftClosingPage = () => {
             ))}
           </div>
           
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-            <h3 className="text-xs font-black uppercase mb-4 flex items-center gap-2"><Package size={16} /> Productos Vendidos</h3>
-            {summary.ventas_productos.map(p => (
-                <div key={p.id} className="flex justify-between text-[10px] py-1 border-b"><span>{p.nombre} (x{p.cantidad})</span><span className="font-bold">${p.total.toLocaleString()}</span></div>
-            ))}
-          </div>
+         
         </div>
 
         <div className="space-y-6">
@@ -153,12 +148,6 @@ export const ShiftClosingPage = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-            <h3 className="text-xs font-black uppercase mb-4 flex items-center gap-2"><Receipt size={16} /> Abonos Recibidos</h3>
-            {summary.abonos_recibidos.map(a => (
-                <div key={a.id} className="flex justify-between text-[10px] py-1 border-b"><span>{a.cliente}</span><span className="font-bold">${a.monto.toLocaleString()}</span></div>
-            ))}
-          </div>
 
           <button type="submit" disabled={loading} className="w-full bg-zinc-900 text-white py-5 rounded-[2rem] font-black uppercase text-xs">
             {loading ? <Loader2 className="animate-spin mx-auto" /> : "Finalizar y Cerrar Turno"}

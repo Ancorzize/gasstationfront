@@ -44,9 +44,9 @@ export const FuelPriceListPage = () => {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight italic">Precios de Combustible</h2>
+            <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight italic">Precios de Combustible Isla</h2>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Historial y vigencias por producto</p>
-          </div>
+          </div>a
         </div>
 
         <div className="flex items-center gap-3">
