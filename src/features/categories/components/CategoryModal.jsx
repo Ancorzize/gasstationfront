@@ -1,23 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Layers, AlignLeft } from 'lucide-react';
+import { X, Layers, AlignLeft, MapPin } from 'lucide-react';
 import { categoryService } from '../services/categoryService';
+import { cashService } from '../../cash/services/cashService'
 import { useToast } from '../../../context/ToastContext';
 
 export const CategoryModal = ({ isOpen, onClose, onSave, categoryToEdit = null }) => {
-  const [formData, setFormData] = useState({ nombre: '', descripcion: '' });
+  const [formData, setFormData] = useState({ nombre: '', descripcion: '', destino_recaudo_id: '' });
+  const [destinos, setDestinos] = useState([]);
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
 
+  const loadDestinos = async () => {
+    try {
+      const res = await cashService.getDestinosRecaudo(true);
+      if (res.status) setDestinos(res.data.items);
+    } catch (e) {
+      console.error("Error al cargar destinos");
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
+      loadDestinos();
       if (categoryToEdit) {
         setFormData({
           nombre: categoryToEdit.nombre || '',
-          descripcion: categoryToEdit.descripcion || ''
+          descripcion: categoryToEdit.descripcion || '',
+          destino_recaudo_id: categoryToEdit.destino_recaudo_id || ''
         });
       } else {
-        setFormData({ nombre: '', descripcion: '' });
+        setFormData({ nombre: '', descripcion: '', destino_recaudo_id: '' });
       }
     }
   }, [isOpen, categoryToEdit]);
@@ -77,19 +90,38 @@ export const CategoryModal = ({ isOpen, onClose, onSave, categoryToEdit = null }
                 </div>
               </div>
 
+              {/* Nuevo campo Destino de Recaudo */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Destino de Recaudo</label>
+                <div className="relative">
+                  <MapPin className="absolute left-3.5 top-3 text-slate-400" size={16} />
+                  <select 
+                    required 
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-blue-500 transition-all outline-none appearance-none"
+                    value={formData.destino_recaudo_id} 
+                    onChange={e => setFormData({...formData, destino_recaudo_id: e.target.value})}
+                  >
+                    <option value="">Seleccione un destino...</option>
+                    {destinos.map(destino => (
+                      <option key={destino.id} value={destino.id}>{destino.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Descripción</label>
                 <div className="relative">
                   <AlignLeft className="absolute left-3.5 top-3 text-slate-400" size={16} />
                   <textarea 
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-blue-500 transition-all outline-none min-h-[120px] resize-none"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-blue-500 transition-all outline-none min-h-[100px] resize-none"
                     value={formData.descripcion} onChange={e => setFormData({...formData, descripcion: e.target.value})} 
                     placeholder="¿Qué productos incluye esta categoría?"
                   />
                 </div>
               </div>
 
-              <div className="pt-6 flex flex-col-reverse md:flex-row gap-3">
+              <div className="pt-2 flex flex-col-reverse md:flex-row gap-3">
                 <button type="button" onClick={onClose} className="flex-1 py-3.5 rounded-2xl border border-slate-200 text-slate-600 font-bold text-xs uppercase">Cancelar</button>
                 <button type="submit" disabled={loading} className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl uppercase">
                   {loading ? "Cargando..." : (categoryToEdit ? "Actualizar" : "Crear Categoría")}

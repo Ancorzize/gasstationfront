@@ -7,7 +7,6 @@ const getHeaders = () => ({
 });
 
 export const cashService = {
-
   getCurrentCash: async () => {
     const res = await fetch(`${API_URL}/caja/actual`, { headers: getHeaders() });
     return res.json();
@@ -18,9 +17,11 @@ export const cashService = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({
-        monto_apertura_efectivo: data.efectivo,
-        monto_apertura_digital: data.digital,
-        observacion_apertura: data.observacion
+        nombre: data.nombre,
+        tipo_caja: data.tipo_caja,
+        destino_recaudo_id: data.destino_recaudo_id,
+        monto_apertura: data.monto_apertura,
+        observacion_apertura: data.observacion_apertura
       })
     });
     return res.json();
@@ -31,9 +32,8 @@ export const cashService = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({
-        monto_cierre_real_efectivo: data.efectivo,
-        monto_cierre_real_digital: data.digital,
-        observacion_cierre: data.observacion
+        cierres: data.cierres,
+        observacion_cierre: data.observacion_cierre
       })
     });
     return res.json();
@@ -56,6 +56,12 @@ export const cashService = {
     );
     const query = new URLSearchParams(cleanParams).toString();
     const res = await fetch(`${API_URL}/caja/historico?${query}`, { headers: getHeaders() });
+    return res.json();
+  },
+  getDestinosRecaudo: async (isActive = true) => {
+    const res = await fetch(`${API_URL}/destinos-recaudo?is_active=${isActive}`, { 
+      headers: getHeaders() 
+    });
     return res.json();
   },
 };

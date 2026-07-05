@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,ShoppingBag,ArrowDownCircle,
-  Wrench, Users, Wallet, Truck, Fuel, BarChart3, Ruler, UserRoundPlus,Receipt,
+  Wrench, Users, Wallet, Truck, Fuel, BarChart3, Ruler, UserRoundPlus,Receipt, Target,
   Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X, Landmark, ClipboardList, Crosshair as Pump, Droplets, Play
 } from 'lucide-react';
 import logoEmpresa from '../images/logoGranjas.png';
@@ -47,6 +47,7 @@ const menuGroups = [
     items: [
       { icon: Landmark, label: 'Cartera', permission: 'ver_cartera', path: '/cartera' },
       { icon: ClipboardList, label: 'Mov. Cartera', permission: 'ver_movimientos_cartera', path: '/cartera/movimientos' },
+      { icon: Target, label: 'Destinos Recaudo', permission: 'ver_destinos_recaudo', path: '/destinos-recaudo' }, 
       { icon: Wallet, label: 'Caja', permission: 'ver_caja', path: '/caja' },
       { icon: BarChart3, label: 'Histórico Turnos', permission: 'ver_reportes_turnos_islero', path: '/turnos/historico' },
       { icon: ArrowDownCircle, label: 'Gastos', permission: 'ver_gastos', path: '/gastos' },

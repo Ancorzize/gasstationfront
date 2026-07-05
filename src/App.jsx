@@ -42,6 +42,7 @@ import { FuelSalesPage } from "./features/sales/pages/FuelSalesPage";
 import { LubricantSalesPage } from "./features/sales/pages/LubricantSalesPage";
 import { ShiftHistoryPage } from "./features/shifts/pages/ShiftHistoryPage";
 import { FuelPriceListPage } from "./features/stations/pages/FuelPriceListPage";
+import { DestinationListPage } from "./features/destinations/pages/DestinationListPage";
 
 function App() {
   useInactivityTimeout(30);
@@ -403,6 +404,15 @@ function App() {
             element={
               <MainLayout>
                 <FuelPriceListPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/destinos-recaudo"
+            element={
+              <MainLayout>
+                <DestinationListPage />
               </MainLayout>
             }
           />
