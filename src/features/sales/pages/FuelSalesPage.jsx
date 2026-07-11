@@ -161,8 +161,7 @@ export const FuelSalesPage = () => {
               }}
             >
               <option value="contado">Venta Contado</option>
-              <option value="credito">Venta Crédito (Vale)</option>
-              <option value="mixta">Venta Mixta</option>
+              <option value="credito">Venta Crédito</option>
             </select>
           </div>
 

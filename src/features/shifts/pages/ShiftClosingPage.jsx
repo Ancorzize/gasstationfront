@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, ArrowLeft, Save, Droplets, Banknote, CreditCard, QrCode, Smartphone, Info, Landmark, AlertTriangle, CheckCircle, Package, Receipt } from 'lucide-react';
+import { Loader2, ArrowLeft, Banknote, Droplets } from 'lucide-react';
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
 
@@ -13,13 +13,7 @@ export const ShiftClosingPage = () => {
   
   const [formData, setFormData] = useState({
     lecturas_finales: [],
-    pagos_efectivo: 0,
-    pagos_datafono: 0,
-    pagos_qr: 0,
-    pagos_transferencia: 0,
-    pagos_consignacion: 0,
-    abonos_islero: 0,
-    observacion_cierre: ''
+    destinos_recaudo: []
   });
 
   useEffect(() => {
@@ -28,16 +22,19 @@ export const ShiftClosingPage = () => {
       if (res.status && res.data) {
         const data = res.data;
         setSummary(data);
-        setFormData(prev => ({
-          ...prev,
-          lecturas_finales: data.lecturas.map(l => ({ manguera_id: l.manguera_id, lectura_final: l.lectura_sugerida })),
-          pagos_efectivo: data.totales_pago_sugeridos?.efectivo || 0,
-          pagos_datafono: data.totales_pago_sugeridos?.datafono || 0,
-          pagos_qr: data.totales_pago_sugeridos?.qr || 0,
-          pagos_transferencia: data.totales_pago_sugeridos?.transferencia || 0,
-          pagos_consignacion: data.totales_pago_sugeridos?.consignacion || 0,
-          abonos_islero: data.totales_sistema?.abonos || 0
-        }));
+        setFormData({
+          lecturas_finales: data.lecturas.map(l => ({ 
+            manguera_id: l.manguera_id, 
+            lectura_final: l.lectura_sugerida,
+            lectura_inicial: l.lectura_inicial,
+            precio_galon: l.precio_galon 
+          })),
+          destinos_recaudo: data.destinos_recaudo.map(d => ({
+            destino_recaudo_id: d.destino_recaudo_id,
+            nombre: d.nombre,
+            pagos: { ...d.pagos }
+          }))
+        });
       }
     };
     loadSummary();
@@ -46,32 +43,37 @@ export const ShiftClosingPage = () => {
   const calculatedValues = useMemo(() => {
     if (!summary) return { totalEsperado: 0, totalReportado: 0, balance: 0 };
     
-    const totalCombustible = summary.lecturas.reduce((acc, l) => {
-      return acc + Number(l.total_venta_sistema);
+    const totalCombustible = formData.lecturas_finales.reduce((acc, l) => {
+      const galonesVendidos = Math.max(0, l.lectura_final - l.lectura_inicial);
+      return acc + (galonesVendidos * l.precio_galon);
     }, 0);
     
-    const totalEsperado = totalCombustible + 
-                          summary.totales_sistema.ventas_lubricantes + 
-                          summary.totales_sistema.abonos - 
-                          summary.totales_sistema.creditos;
+    const totalEsperado = totalCombustible + summary.totales_sistema.ventas_lubricantes + summary.totales_sistema.abonos - summary.totales_sistema.creditos;
 
-    const totalReportado = formData.pagos_efectivo + 
-                           formData.pagos_datafono + 
-                           formData.pagos_qr + 
-                           formData.pagos_transferencia + 
-                           formData.pagos_consignacion + 
-                           formData.abonos_islero;
-    return {
-      totalEsperado,
-      totalReportado,
-      balance: totalReportado - totalEsperado
-    };
+    const totalReportado = formData.destinos_recaudo.reduce((acc, d) => {
+      return acc + Object.values(d.pagos).reduce((sum, val) => sum + val, 0);
+    }, 0);
+                           
+    return { totalEsperado, totalReportado, balance: totalReportado - totalEsperado };
   }, [summary, formData]);
 
   const handleReadingChange = (mangueraId, value) => {
     setFormData(prev => ({
       ...prev,
-      lecturas_finales: prev.lecturas_finales.map(l => l.manguera_id === mangueraId ? { ...l, lectura_final: parseFloat(value) || 0 } : l)
+      lecturas_finales: prev.lecturas_finales.map(l => 
+        l.manguera_id === mangueraId ? { ...l, lectura_final: parseFloat(value) || 0 } : l
+      )
+    }));
+  };
+
+  const handlePaymentChange = (destinoId, medio, value) => {
+    setFormData(prev => ({
+      ...prev,
+      destinos_recaudo: prev.destinos_recaudo.map(d => 
+        d.destino_recaudo_id === destinoId 
+          ? { ...d, pagos: { ...d.pagos, [medio]: value } } 
+          : d
+      )
     }));
   };
 
@@ -79,7 +81,13 @@ export const ShiftClosingPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const payload = { ...formData, ...calculatedValues };
+      const payload = { 
+        lecturas_finales: formData.lecturas_finales.map(({manguera_id, lectura_final}) => ({manguera_id, lectura_final})),
+        destinos_recaudo: formData.destinos_recaudo,
+        otros_movimientos: 0,
+        otros_movimientos_detalle: null,
+        observacion_cierre: '' 
+      };
       const res = await shiftService.closeShift(id, payload);
       if (res.status) {
         showToast("Turno cerrado exitosamente", "success");
@@ -111,55 +119,45 @@ export const ShiftClosingPage = () => {
           <h4 className="text-xs font-black uppercase">Balance del Turno</h4>
           <p className="text-[10px] font-bold opacity-70">Esperado: ${calculatedValues.totalEsperado.toLocaleString()} | Reportado: ${calculatedValues.totalReportado.toLocaleString()}</p>
         </div>
-        <div className="text-right">
-            <p className="text-xl font-black">{calculatedValues.balance >= 0 ? 'Sobrante' : 'Faltante'}: ${Math.abs(calculatedValues.balance).toLocaleString()}</p>
-        </div>
+        <div className="text-right"><p className="text-xl font-black">{calculatedValues.balance >= 0 ? 'Sobrante' : 'Faltante'}: ${Math.abs(calculatedValues.balance).toLocaleString()}</p></div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
             <h3 className="text-xs font-black text-slate-800 uppercase mb-6 flex items-center gap-2"><Droplets size={16} /> Mangueras</h3>
             {summary.lecturas?.map((l, index) => (
-              <div key={l.manguera_id} className="mb-4 p-4 bg-slate-50 rounded-2xl grid grid-cols-2 gap-4">
+              <div key={l.manguera_id} className="mb-4 p-4 bg-slate-50 rounded-2xl grid grid-cols-2 gap-4 items-center">
                 <div>
                     <p className="text-[9px] font-bold uppercase">{l.manguera.nombre}</p>
                     <p className="text-[10px] font-black">${l.precio_galon.toLocaleString()}</p>
                 </div>
-                <input type="number" step="0.01" className="p-2 rounded-xl border text-right font-black" value={formData.lecturas_finales[index]?.lectura_final} onChange={(e) => handleReadingChange(l.manguera_id, e.target.value)} />
+                <input type="number" step="0.01" className="p-3 rounded-xl border text-right font-black outline-none focus:ring-2 focus:ring-zinc-900" value={formData.lecturas_finales[index]?.lectura_final || ''} onChange={(e) => handleReadingChange(l.manguera_id, e.target.value)} />
               </div>
             ))}
           </div>
-          
-         
-        </div>
 
-        <div className="space-y-6">
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-            <h3 className="text-xs font-black uppercase mb-6"><Banknote size={16} className="inline mr-2" /> Reporte de Dinero</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <PaymentInput label="Efectivo" value={formData.pagos_efectivo} onChange={(v) => setFormData({...formData, pagos_efectivo: v})} />
-              <PaymentInput label="Datafono" value={formData.pagos_datafono} onChange={(v) => setFormData({...formData, pagos_datafono: v})} />
-              <PaymentInput label="QR" value={formData.pagos_qr} onChange={(v) => setFormData({...formData, pagos_qr: v})} />
-              <PaymentInput label="Transferencia" value={formData.pagos_transferencia} onChange={(v) => setFormData({...formData, pagos_transferencia: v})} />
-              <PaymentInput label="Consignacion" value={formData.pagos_consignacion} onChange={(v) => setFormData({...formData, pagos_consignacion: v})} />
-              <PaymentInput label="Abonos" value={formData.abonos_islero} onChange={(v) => setFormData({...formData, abonos_islero: v})} />
-            </div>
+          <div className="space-y-6">
+            {formData.destinos_recaudo.map((destino) => (
+              <div key={destino.destino_recaudo_id} className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+                <h3 className="text-xs font-black uppercase mb-6 flex items-center gap-2"><Banknote size={16} /> {destino.nombre}</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {Object.keys(destino.pagos).map((medio) => (
+                    <div key={medio} className="space-y-1">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase">{medio}</label>
+                      <input type="text" className="w-full p-3 bg-slate-50 rounded-xl text-xs font-black text-right outline-none" value={destino.pagos[medio].toLocaleString()} onChange={(e) => handlePaymentChange(destino.destino_recaudo_id, medio, parseInt(e.target.value.replace(/\D/g, "") || 0))} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
-
-
-          <button type="submit" disabled={loading} className="w-full bg-zinc-900 text-white py-5 rounded-[2rem] font-black uppercase text-xs">
-            {loading ? <Loader2 className="animate-spin mx-auto" /> : "Finalizar y Cerrar Turno"}
-          </button>
         </div>
+
+        <button type="submit" disabled={loading} className="w-full bg-zinc-900 text-white py-5 rounded-[2rem] font-black uppercase text-xs hover:bg-black transition-all">
+          {loading ? <Loader2 className="animate-spin mx-auto" /> : "Finalizar y Cerrar Turno"}
+        </button>
       </form>
     </div>
   );
 };
-
-const PaymentInput = ({ label, value, onChange }) => (
-  <div className="space-y-1">
-    <label className="text-[9px] font-bold text-slate-400 uppercase">{label}</label>
-    <input type="text" className="w-full p-3 bg-slate-50 rounded-xl text-xs font-black text-right" value={value.toLocaleString()} onChange={(e) => onChange(parseInt(e.target.value.replace(/\D/g, "") || 0))} />
-  </div>
-);

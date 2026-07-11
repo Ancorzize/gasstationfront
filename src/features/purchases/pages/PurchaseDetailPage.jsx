@@ -3,14 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, ShoppingBag, Calendar, Truck, Warehouse, 
   CheckCircle2, Printer, Loader2, Edit3, Plus, Info, 
-  User, AlertTriangle, Eye, Wallet
+  AlertTriangle, Eye, Wallet
 } from 'lucide-react';
 import { purchaseService } from '../services/purchaseService';
-import { purchasePaymentService } from '../services/purchasePaymentService'; // Importamos el servicio de pagos
+import { purchasePaymentService } from '../services/purchasePaymentService';
+import { cashService } from '../../cash/services/cashService'; 
 import { useToast } from '../../../context/ToastContext';
 import { PaymentModal } from '../components/PaymentModal';
 
-const ConfirmModal = ({ isOpen, onClose, onConfirm, loading }) => {
+const ConfirmModal = ({ isOpen, onClose, onConfirm, loading, cajas, selectedCaja, setSelectedCaja }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -20,17 +21,33 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, loading }) => {
           <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto shadow-sm">
             <AlertTriangle size={40} />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-4">
             <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">¿Confirmar Compra?</h3>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-              Esta acción cargará el inventario inmediatamente y no podrá revertirse fácilmente.
-            </p>
+            <div className="text-left space-y-1">
+              <label className="text-[9px] font-black text-slate-400 uppercase ml-2">Seleccionar Caja de Origen</label>
+              <select 
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none uppercase"
+                value={selectedCaja}
+                onChange={(e) => setSelectedCaja(e.target.value)}
+              >
+                <option value="">Seleccione una caja...</option>
+                {cajas.map(caja => (
+                  <option key={caja.id} value={caja.id}>
+                    {caja.nombre} ({caja.tipo_caja})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-[10px] uppercase hover:bg-slate-200 transition-all">
               Cancelar
             </button>
-            <button onClick={onConfirm} disabled={loading} className="flex-1 px-6 py-4 bg-zinc-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200 flex items-center justify-center gap-2">
+            <button 
+              onClick={onConfirm} 
+              disabled={loading || !selectedCaja} 
+              className="flex-1 px-6 py-4 bg-zinc-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
+            >
               {loading ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
               Confirmar Ingreso
             </button>
@@ -45,8 +62,9 @@ export const PurchaseDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  
   const [purchase, setPurchase] = useState(null);
-  const [pagos, setPagos] = useState([]); // Estado para los abonos
+  const [pagos, setPagos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingPagos, setLoadingPagos] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -54,37 +72,64 @@ export const PurchaseDetailPage = () => {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
+  const [cajas, setCajas] = useState([]);
+  const [selectedCaja, setSelectedCaja] = useState('');
+
+  const fetchCajas = async () => {
+    try {
+      const res = await cashService.getCurrentCash();
+      if (res.status) {
+        const ordenadas = res.data.sort((a, b) => a.id - b.id);
+        setCajas(ordenadas);
+      }
+    } catch (e) { showToast("Error al cargar cajas", "error"); }
+  };
+
+  useEffect(() => {
+    if (isConfirmOpen) fetchCajas();
+  }, [isConfirmOpen]);
+
+  const handleConfirm = async () => {
+    if (!selectedCaja) {
+      showToast("Por favor selecciona una caja para continuar", "warning");
+      return;
+    }
+    setConfirming(true);
+    try {
+      const res = await purchaseService.confirmPurchase(id, selectedCaja);
+      if (res.status) {
+        showToast("Compra confirmada e inventario actualizado", "success");
+        setIsConfirmOpen(false);
+        fetchPurchase();
+      } else { 
+        showToast(res.message, "error"); 
+      }
+    } catch (e) { 
+      showToast("Error de conexión", "error"); 
+    } finally { 
+      setConfirming(false); 
+    }
+  };
+
   const fetchPurchase = async () => {
     setLoading(true);
     try {
       const res = await purchaseService.getPurchaseById(id);
       if (res.status) {
         setPurchase(res.data);
-        // Si la compra es crédito, buscamos sus abonos inmediatamente
-        if (res.data.tipo_pago === 'credito') {
-            fetchPagos();
-        }
+        if (res.data.tipo_pago === 'credito') fetchPagos();
       }
-    } catch (e) { 
-      showToast("Error al cargar detalle", "error"); 
-    } finally { 
-      setLoading(false); 
-    }
+    } catch (e) { showToast("Error al cargar detalle", "error"); }
+    finally { setLoading(false); }
   };
 
-  // Nueva función para traer abonos filtrados por compra_id
   const fetchPagos = async () => {
     setLoadingPagos(true);
     try {
       const res = await purchasePaymentService.getPayments({ compra_id: id });
-      if (res.status) {
-        setPagos(res.data.items || []);
-      }
-    } catch (e) {
-      console.error("Error cargando abonos:", e);
-    } finally {
-      setLoadingPagos(false);
-    }
+      if (res.status) setPagos(res.data.items || []);
+    } catch (e) { console.error("Error cargando abonos:", e); }
+    finally { setLoadingPagos(false); }
   };
 
   useEffect(() => { fetchPurchase(); }, [id]);
@@ -100,29 +145,8 @@ export const PurchaseDetailPage = () => {
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
-    } catch (e) {
-      showToast("No se pudo generar el PDF", "error");
-    } finally {
-      setIsPrinting(false);
-    }
-  };
-
-  const handleConfirm = async () => {
-    setConfirming(true);
-    try {
-      const res = await purchaseService.confirmPurchase(id);
-      if (res.status) {
-        showToast("Compra confirmada e inventario actualizado", "success");
-        setIsConfirmOpen(false);
-        fetchPurchase();
-      } else { 
-        showToast(res.message, "error"); 
-      }
-    } catch (e) { 
-      showToast("Error de conexión", "error"); 
-    } finally { 
-      setConfirming(false); 
-    }
+    } catch (e) { showToast("No se pudo generar el PDF", "error"); }
+    finally { setIsPrinting(false); }
   };
 
   if (loading) return (
@@ -222,7 +246,6 @@ export const PurchaseDetailPage = () => {
             <p className="text-xs font-medium text-slate-600 italic leading-relaxed uppercase">{purchase.observacion || 'Sin observaciones registradas.'}</p>
           </div>
 
-          {/* LISTADO DE ABONOS CENTRALIZADO */}
           {purchase.tipo_pago === 'credito' && (
             <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="p-6 border-b bg-slate-50/50 flex justify-between items-center">
@@ -278,8 +301,6 @@ export const PurchaseDetailPage = () => {
               </div>
             </div>
           )}
-
-          
         </div>
 
         <div className="lg:col-span-1 space-y-6">
@@ -352,7 +373,15 @@ export const PurchaseDetailPage = () => {
         </div>
       </div>
 
-      <ConfirmModal isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} onConfirm={handleConfirm} loading={confirming} />
+      <ConfirmModal 
+        isOpen={isConfirmOpen} 
+        onClose={() => setIsConfirmOpen(false)} 
+        onConfirm={handleConfirm} 
+        loading={confirming}
+        cajas={cajas}
+        selectedCaja={selectedCaja}
+        setSelectedCaja={setSelectedCaja}
+      />
       <PaymentModal isOpen={isPaymentOpen} onClose={() => setIsPaymentOpen(false)} purchase={purchase} onSave={fetchPurchase} />
     </div>
   );

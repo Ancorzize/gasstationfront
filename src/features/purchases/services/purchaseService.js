@@ -37,10 +37,11 @@ export const purchaseService = {
     return res.json();
   },
 
-  confirmPurchase: async (id) => {
+  confirmPurchase: async (id, cajaId) => {
     const res = await fetch(`${API_URL}/compras/${id}/confirmar`, {
       method: 'POST',
-      headers: getHeaders()
+      headers: getHeaders(),
+      body: JSON.stringify({ caja_id: cajaId })
     });
     return res.json();
   },
