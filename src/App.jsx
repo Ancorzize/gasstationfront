@@ -43,6 +43,8 @@ import { LubricantSalesPage } from "./features/sales/pages/LubricantSalesPage";
 import { ShiftHistoryPage } from "./features/shifts/pages/ShiftHistoryPage";
 import { FuelPriceListPage } from "./features/stations/pages/FuelPriceListPage";
 import { DestinationListPage } from "./features/destinations/pages/DestinationListPage";
+import { DashboardConfigPage } from "./features/dashboard/pages/DashboardConfigPage";
+
 
 function App() {
   useInactivityTimeout(30);
@@ -413,6 +415,15 @@ function App() {
             element={
               <MainLayout>
                 <DestinationListPage />
+              </MainLayout>
+            }
+          />
+
+           <Route
+            path="/dashboardconfiguracion"
+            element={
+              <MainLayout>
+                <DashboardConfigPage />
               </MainLayout>
             }
           />

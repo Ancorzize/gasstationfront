@@ -66,6 +66,7 @@ const menuGroups = [
   {
     title: "Configuración",
     items: [
+      { icon: LayoutDashboard, label: 'Dashboard Configuración',  permission: 'configurar_dashboard', path: '/dashboardconfiguracion'},
       { icon: UserRoundPlus, label: 'Administración', permission: 'ver_usuarios', path: '/usuarios' },
       { icon: Shield, label: 'Roles y Permisos', permission: 'ver_roles', path: '/roles' },
       { icon: UserCircle, label: 'Perfil', permission: null, path: '/perfil' },

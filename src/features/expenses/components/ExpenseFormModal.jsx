@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowDownCircle, Banknote, CreditCard, Tag, Truck, Loader2, Save, AlignLeft, Calendar } from 'lucide-react';
+import { X, ArrowDownCircle, CreditCard, Tag, Truck, Loader2, Save, AlignLeft, Calendar, Inbox } from 'lucide-react';
 import { expenseService } from '../services/expenseService';
 import { supplierService } from '../../suppliers/services/supplierService';
+import { cashService } from '../../cash/services/cashService';
 import { useToast } from '../../../context/ToastContext';
 
 export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
@@ -10,11 +11,13 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [cajasAbiertas, setCajasAbiertas] = useState([]);
   const [displayValor, setDisplayValor] = useState('');
   const [formData, setFormData] = useState({
     fecha_gasto: new Date().toISOString().split('T')[0],
     proveedor_id: '',
     categoria_gasto_id: '',
+    destino_recaudo_id: '',
     medio_pago: 'efectivo',
     valor: '',
     descripcion: ''
@@ -24,25 +27,38 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
     if (isOpen) {
       loadMasters();
       setDisplayValor('');
-      setFormData({
-        fecha_gasto: new Date().toISOString().split('T')[0],
-        proveedor_id: '',
-        categoria_gasto_id: '',
-        medio_pago: 'efectivo',
-        valor: '',
-        descripcion: ''
-      });
     }
   }, [isOpen]);
 
   const loadMasters = async () => {
     try {
-      const [catRes, suppRes] = await Promise.all([
+      const [catRes, suppRes, cashRes] = await Promise.all([
         expenseService.getCategories({ is_active: 1 }),
-        supplierService.getSuppliers()
+        supplierService.getSuppliers(),
+        cashService.getCurrentCash()
       ]);
-      if (catRes.status) setCategories(catRes.data.items || []);
-      if (suppRes.status) setSuppliers(suppRes.data.items || []);
+
+      const cats = catRes.status ? catRes.data.items : [];
+      const supps = suppRes.status ? suppRes.data.items : [];
+      const cajas = cashRes.status ? cashRes.data : [];
+
+      setCategories(cats);
+      setSuppliers(supps);
+      setCajasAbiertas(cajas);
+
+      const lastCajaId = localStorage.getItem('last_selected_caja_id');
+      
+      const cajaExiste = cajas.some(c => String(c.destino_recaudo_id) === String(lastCajaId));
+
+      setFormData({
+        fecha_gasto: new Date().toISOString().split('T')[0],
+        proveedor_id: '',
+        categoria_gasto_id: '',
+        destino_recaudo_id: cajaExiste ? lastCajaId : '', 
+        medio_pago: 'efectivo',
+        valor: '',
+        descripcion: ''
+      });
     } catch (e) { 
       showToast("Error al cargar opciones", "error"); 
     }
@@ -62,18 +78,24 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.valor || formData.valor <= 0) {
+    if (!formData.destino_recaudo_id) {
+      return showToast("Debes seleccionar una caja", "warning");
+    }
+    if (!formData.valor || Number(formData.valor) <= 0) {
         return showToast("El valor del gasto debe ser mayor a 0", "warning");
     }
     setLoading(true);
     try {
       const res = await expenseService.createExpense(formData);
       if (res.status) {
-        showToast("Gasto registrado y caja actualizada", "success");
+       
+        localStorage.setItem('last_selected_caja_id', formData.destino_recaudo_id);
+        
+        showToast("Gasto registrado correctamente", "success");
         onSave();
         onClose();
       } else { 
-        showToast(res.message, "error"); 
+        showToast(res.message || "Error al registrar", "error"); 
       }
     } catch (e) { 
       showToast("Error al registrar el gasto", "error"); 
@@ -131,6 +153,22 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
                       <option value="consignacion">Consignación</option>
                     </select>
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Caja / Destino</label>
+                <div className="relative">
+                  <Inbox className="absolute left-4 top-3.5 text-slate-300" size={16} />
+                  <select required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:border-zinc-900 focus:bg-white appearance-none transition-all"
+                    value={formData.destino_recaudo_id} onChange={e => setFormData({...formData, destino_recaudo_id: e.target.value})}>
+                    <option value="">Seleccionar caja disponible...</option>
+                    {cajasAbiertas.map(c => (
+                      <option key={c.id} value={c.destino_recaudo_id}>
+                        {c.nombre} ({c.destino_recaudo?.nombre})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

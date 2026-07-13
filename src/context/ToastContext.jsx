@@ -11,7 +11,6 @@ export const ToastProvider = ({ children }) => {
     const id = Math.random().toString(36).substr(2, 9);
     setToasts((prev) => [...prev, { id, message, type }]);
 
-    // Auto-eliminar después de 4 segundos
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
     }, 4000);

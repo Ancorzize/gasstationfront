@@ -1,29 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Power, Loader2, AlertTriangle, Banknote, CreditCard } from 'lucide-react';
+import { X, Power, Loader2, AlertTriangle } from 'lucide-react';
 import { cashService } from '../services/cashService';
 import { useToast } from '../../../context/ToastContext';
 
 export const CashCloseModal = ({ isOpen, onClose, summary, onSave }) => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [montos, setMontos] = useState({});
+  const [montos, setMontos] = useState({}); 
+  const [displayValues, setDisplayValues] = useState({}); 
   const [observacion, setObservacion] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
-
 
   const cajas = Array.isArray(summary) ? summary : [];
 
   useEffect(() => {
     if (isOpen) {
       setMontos({});
+      setDisplayValues({});
       setObservacion('');
       setShowConfirm(false);
     }
   }, [isOpen]);
 
-  const handleMontoChange = (id, valor) => {
-    setMontos(prev => ({ ...prev, [id]: valor }));
+  const formatDisplay = (val) => {
+    const clean = val.toString().replace(/\D/g, "");
+    if (!clean) return "";
+    return new Intl.NumberFormat('es-CO').format(parseInt(clean, 10));
+  };
+
+  const handleMontoChange = (id, val) => {
+    const numericValue = val.replace(/\./g, "");
+    
+    setMontos(prev => ({ ...prev, [id]: parseFloat(numericValue) || 0 }));
+    setDisplayValues(prev => ({ ...prev, [id]: formatDisplay(numericValue) }));
+  };
+
+  const getBorderColor = (cajaId, valorNumerico) => {
+    if (valorNumerico === undefined || valorNumerico === 0) return "border-slate-200";
+    const saldoSistema = parseFloat(cajas.find(c => c.id === cajaId)?.saldo_sistema || 0);
+    
+    return valorNumerico === saldoSistema 
+      ? "border-emerald-500 ring-1 ring-emerald-500 bg-emerald-50" 
+      : "border-rose-500 ring-1 ring-rose-500 bg-rose-50";
   };
 
   const executeClosing = async () => {
@@ -32,7 +51,7 @@ export const CashCloseModal = ({ isOpen, onClose, summary, onSave }) => {
       const payload = {
         cierres: cajas.map(c => ({
           caja_id: c.id,
-          monto_real: parseFloat(montos[c.id] || 0)
+          monto_real: montos[c.id] || 0
         })),
         observacion_cierre: observacion
       };
@@ -63,7 +82,6 @@ export const CashCloseModal = ({ isOpen, onClose, summary, onSave }) => {
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             className="relative bg-white w-full h-full md:h-auto md:max-w-xl md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden"
           >
-            {/* Header */}
             <div className="p-6 border-b flex justify-between items-center bg-white sticky top-0 z-10">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-red-500/10 text-red-600 flex items-center justify-center">
@@ -77,7 +95,6 @@ export const CashCloseModal = ({ isOpen, onClose, summary, onSave }) => {
               <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-all"><X size={20} /></button>
             </div>
 
-            {/* Content */}
             <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 custom-scrollbar-light">
               {cajas.map((caja) => (
                 <div key={caja.id} className="bg-slate-50 border border-slate-100 p-5 rounded-[2rem] space-y-3">
@@ -88,9 +105,11 @@ export const CashCloseModal = ({ isOpen, onClose, summary, onSave }) => {
                     </span>
                   </div>
                   <input 
-                    type="number" 
+                    type="text" 
+                    inputMode="numeric"
                     placeholder="Monto real contado" 
-                    className="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl text-md font-black outline-none focus:border-red-500 transition-all"
+                    className={`w-full px-5 py-4 bg-white border rounded-2xl text-md font-black outline-none transition-all ${getBorderColor(caja.id, montos[caja.id])}`}
+                    value={displayValues[caja.id] || ''}
                     onChange={(e) => handleMontoChange(caja.id, e.target.value)}
                   />
                 </div>
@@ -112,7 +131,6 @@ export const CashCloseModal = ({ isOpen, onClose, summary, onSave }) => {
             </div>
           </motion.div>
 
-          {/* Confirm Modal */}
           <AnimatePresence>
             {showConfirm && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">

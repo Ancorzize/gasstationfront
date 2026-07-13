@@ -64,4 +64,8 @@ export const cashService = {
     });
     return res.json();
   },
+  getSuggestedOpenings: async () => {
+    const res = await fetch(`${API_URL}/caja/sugerencias-apertura`, { headers: getHeaders() });
+    return res.json();
+  },
 };

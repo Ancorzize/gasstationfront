@@ -81,6 +81,14 @@ export const PurchaseDetailPage = () => {
       if (res.status) {
         const ordenadas = res.data.sort((a, b) => a.id - b.id);
         setCajas(ordenadas);
+        
+        const lastCaja = localStorage.getItem('last_selected_purchase_caja');
+        
+        const cajaExiste = ordenadas.some(c => String(c.id) === String(lastCaja));
+        
+        if (cajaExiste) {
+          setSelectedCaja(lastCaja);
+        }
       }
     } catch (e) { showToast("Error al cargar cajas", "error"); }
   };
@@ -98,6 +106,8 @@ export const PurchaseDetailPage = () => {
     try {
       const res = await purchaseService.confirmPurchase(id, selectedCaja);
       if (res.status) {
+        localStorage.setItem('last_selected_purchase_caja', selectedCaja);
+        
         showToast("Compra confirmada e inventario actualizado", "success");
         setIsConfirmOpen(false);
         fetchPurchase();
