@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,ShoppingBag,ArrowDownCircle,
-  Wrench, Users, Wallet, Truck, Fuel, BarChart3, Ruler, UserRoundPlus,Receipt, Target,
-  Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X, Landmark, ClipboardList, Crosshair as Pump, Droplets, Play
+  Wrench, Users, Wallet, Truck, Fuel, BarChart3, Ruler, UserRoundPlus,Receipt, Target, Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X, Landmark, ClipboardList, Crosshair as Pump, Droplets, Play
 } from 'lucide-react';
 import logoEmpresa from '../images/logoGranjas.png';
 import { authService } from '../features/auth/services/authService';

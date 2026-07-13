@@ -419,7 +419,7 @@ function App() {
             }
           />
 
-           <Route
+          <Route
             path="/dashboardconfiguracion"
             element={
               <MainLayout>
