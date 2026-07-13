@@ -43,7 +43,7 @@ import { LubricantSalesPage } from "./features/sales/pages/LubricantSalesPage";
 import { ShiftHistoryPage } from "./features/shifts/pages/ShiftHistoryPage";
 import { FuelPriceListPage } from "./features/stations/pages/FuelPriceListPage";
 import { DestinationListPage } from "./features/destinations/pages/DestinationListPage";
-import { DashboardConfigPage } from "./features/dashboard/pages/DashboardConfigPage";
+import { DashboardConfigPage } from "./features/dashboard/Pages/DashboardConfigPage";
 
 
 function App() {
