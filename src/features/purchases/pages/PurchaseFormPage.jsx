@@ -346,8 +346,6 @@ export const PurchaseFormPage = () => {
                   <th className="px-2 pb-2 text-right w-28">Costo U.</th>
                   <th className="px-2 pb-2 text-center w-14">IVA%</th>
                   <th className="px-2 pb-2 text-right w-28">IVA Valor</th>
-                  <th className="px-2 pb-2 text-right w-24">Soldicom</th>
-                  <th className="px-2 pb-2 text-right w-24">Sobre Tasa</th>
                   <th className="px-3 pb-2 text-right w-36">Total Línea</th>
                   <th className="px-2 pb-2 w-10 text-center"></th>
                 </tr>
@@ -417,14 +415,6 @@ export const PurchaseFormPage = () => {
                       <input type="number" step="any" className="w-full py-3 bg-slate-50 border border-slate-100 rounded-xl text-right text-[11px] font-black outline-none focus:bg-white focus:border-emerald-500 text-emerald-700 font-bold"
                         value={det.iva_valor || ''} onChange={e => updateDetail(idx, 'iva_valor', e.target.value)} />
                     </td>
-                    <td className="px-1">
-                      <input type="number" step="any" className="w-full py-3 bg-slate-50 border border-slate-100 rounded-xl text-right text-[11px] font-black outline-none focus:bg-white focus:border-blue-500 text-blue-600"
-                        placeholder="0" value={det.soldicom || ''} onChange={e => updateDetail(idx, 'soldicom', e.target.value)} />
-                    </td>
-                    <td className="px-1">
-                      <input type="number" step="any" className="w-full py-3 bg-slate-50 border border-slate-100 rounded-xl text-right text-[11px] font-black outline-none focus:bg-white focus:border-orange-500 text-orange-600"
-                        placeholder="0" value={det.sobre_tasa || ''} onChange={e => updateDetail(idx, 'sobre_tasa', e.target.value)} />
-                    </td>
                     <td className="px-3 text-right font-black text-slate-700 text-sm tracking-tighter">$ {det.total.toLocaleString('es-CO')}</td>
                     <td className="px-1 text-center">
                       <button type="button" onClick={() => removeDetail(idx)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
@@ -456,14 +446,6 @@ export const PurchaseFormPage = () => {
               <div className="flex justify-between text-[10px] font-black text-emerald-600 uppercase tracking-widest px-2">
                 <span>IVA Acumulado</span>
                 <span>$ {formData.detalles.reduce((acc, d) => acc + d.iva_valor, 0).toLocaleString('es-CO')}</span>
-              </div>
-              <div className="flex justify-between text-[10px] font-black text-blue-600 uppercase tracking-widest px-2">
-                <span>Total Soldicom</span>
-                <span>$ {formData.detalles.reduce((acc, d) => acc + (parseFloat(d.soldicom || 0) * d.cantidad), 0).toLocaleString('es-CO')}</span>
-              </div>
-              <div className="flex justify-between text-[10px] font-black text-orange-600 uppercase tracking-widest px-2">
-                <span>Total Sobre Tasa</span>
-                <span>$ {formData.detalles.reduce((acc, d) => acc + (parseFloat(d.sobre_tasa || 0) * d.cantidad), 0).toLocaleString('es-CO')}</span>
               </div>
             </div>
           </div>

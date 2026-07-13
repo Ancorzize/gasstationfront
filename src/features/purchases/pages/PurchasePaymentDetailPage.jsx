@@ -124,8 +124,6 @@ export const PurchasePaymentDetailPage = () => {
                     <th className="px-4 py-4 text-[9px] font-black text-slate-400 uppercase text-right">Costo U.</th>
                     <th className="px-4 py-4 text-[9px] font-black text-slate-400 uppercase text-center">IVA %</th>
                     <th className="px-4 py-4 text-[9px] font-black text-slate-400 uppercase text-right">IVA Valor</th>
-                    <th className="px-4 py-4 text-[9px] font-black text-slate-400 uppercase text-right">Soldicom</th>
-                    <th className="px-4 py-4 text-[9px] font-black text-slate-400 uppercase text-right">Sobre Tasa</th>
                     <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase text-right">Total</th>
                   </tr>
                 </thead>
@@ -152,12 +150,6 @@ export const PurchasePaymentDetailPage = () => {
                       </td>
                       <td className="px-4 py-4 text-right font-black text-xs text-emerald-700">
                         ${parseFloat(det.iva_valor || 0).toLocaleString('es-CO')}
-                      </td>
-                      <td className="px-4 py-4 text-right font-black text-xs text-blue-600">
-                        ${(parseFloat(det.soldicom || 0) * parseFloat(det.cantidad)).toLocaleString('es-CO')}
-                      </td>
-                      <td className="px-4 py-4 text-right font-black text-xs text-orange-600">
-                        ${(parseFloat(det.sobre_tasa || 0) * parseFloat(det.cantidad)).toLocaleString('es-CO')}
                       </td>
                       <td className="px-6 py-4 text-right font-black text-xs text-zinc-900 tracking-tighter">
                         ${parseFloat(det.total || 0).toLocaleString('es-CO')}
