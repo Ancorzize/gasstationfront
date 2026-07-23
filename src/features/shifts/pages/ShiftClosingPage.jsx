@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, ArrowLeft, Banknote, Droplets } from 'lucide-react';
+import { Loader2, ArrowLeft, Banknote, Droplets, Users } from 'lucide-react';
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
 
@@ -48,12 +48,12 @@ export const ShiftClosingPage = () => {
       return acc + (galonesVendidos * l.precio_galon);
     }, 0);
     
-    const totalEsperado = totalCombustible + summary.totales_sistema.ventas_lubricantes + summary.totales_sistema.abonos - summary.totales_sistema.creditos;
+    const totalEsperado = totalCombustible + summary.totales_sistema.ventas_lubricantes  - summary.totales_sistema.creditos;
 
     const totalReportado = formData.destinos_recaudo.reduce((acc, d) => {
       return acc + Object.values(d.pagos).reduce((sum, val) => sum + val, 0);
     }, 0);
-                           
+                        
     return { totalEsperado, totalReportado, balance: totalReportado - totalEsperado };
   }, [summary, formData]);
 
@@ -124,6 +124,8 @@ export const ShiftClosingPage = () => {
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* Mangueras */}
           <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
             <h3 className="text-xs font-black text-slate-800 uppercase mb-6 flex items-center gap-2"><Droplets size={16} /> Mangueras</h3>
             {summary.lecturas?.map((l, index) => (
@@ -138,6 +140,7 @@ export const ShiftClosingPage = () => {
           </div>
 
           <div className="space-y-6">
+            {/* Destinos de Recaudo */}
             {formData.destinos_recaudo.map((destino) => (
               <div key={destino.destino_recaudo_id} className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
                 <h3 className="text-xs font-black uppercase mb-6 flex items-center gap-2"><Banknote size={16} /> {destino.nombre}</h3>
@@ -151,7 +154,27 @@ export const ShiftClosingPage = () => {
                 </div>
               </div>
             ))}
+
+
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+              <h3 className="text-xs font-black uppercase mb-4 flex items-center gap-2 text-slate-800">
+                <Users size={16} /> Total Abonos de Cartera
+              </h3>
+              <div className="relative">
+                <input
+                  type="text"
+                  readOnly
+                  disabled
+                  className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-sm font-black text-slate-700 text-right outline-none cursor-not-allowed"
+                  value={`$ ${(summary.abonos_recibidos || []).reduce((acc, a) => acc + Number(a.monto || 0), 0).toLocaleString()}`}
+                />
+              </div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase mt-2 tracking-widest text-right">
+                {summary.abonos_recibidos?.length || 0} abono(s) registrado(s) en este turno
+              </p>
+            </div>
           </div>
+
         </div>
 
         <button type="submit" disabled={loading} className="w-full bg-zinc-900 text-white py-5 rounded-[2rem] font-black uppercase text-xs hover:bg-black transition-all">

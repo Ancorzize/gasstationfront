@@ -29,7 +29,8 @@ export const portfolioService = {
         fecha_abono: data.fecha_abono,
         valor: data.valor,
         medio_pago: data.medio_pago,
-        observacion: data.observacion
+        observacion: data.observacion,
+        caja_id: data.caja_id
       })
     });
     return res.json();

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Plus, Lock, ArrowUpCircle, ArrowDownCircle, Banknote, CreditCard, History, Loader2, Power, X } from 'lucide-react';
+import { Wallet, Plus, Lock, ArrowUpCircle, ArrowDownCircle, Banknote, CreditCard, History, Loader2, Power, X, Tag } from 'lucide-react';
 import { cashService } from '../services/cashService';
 import { useToast } from '../../../context/ToastContext';
 import { usePermissions } from '../../../hooks/usePermissions';
@@ -48,11 +48,9 @@ export const CashSessionPage = () => {
 
   const handleCajaClick = async (id) => {
     if (selectedCajaId === id) {
-      // Si ya estaba seleccionada, limpiar filtro y cargar auditoría general
       setSelectedCajaId(null);
       await loadInitialData();
     } else {
-      // Filtrar por caja específica
       setSelectedCajaId(id);
       setLoadingMovements(true);
       try {
@@ -108,12 +106,39 @@ export const CashSessionPage = () => {
             const data = Array.isArray(summary) ? summary.find(s => s.id === caja.id) : null;
             const isSelected = selectedCajaId === caja.id;
             return (
-              <div key={caja.id} onClick={() => handleCajaClick(caja.id)} className={`cursor-pointer p-6 rounded-[2rem] border-2 transition-all duration-300 ${isSelected ? 'border-zinc-900 bg-slate-50' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
-                <div className="flex justify-between mb-4">
-                  <span className="text-[10px] font-black uppercase text-slate-400">{caja.nombre}</span>
-                  {caja.tipo_caja === 'efectivo' ? <Banknote className="text-emerald-500" size={16} /> : <CreditCard className="text-blue-500" size={16} />}
+              <div 
+                key={caja.id} 
+                onClick={() => handleCajaClick(caja.id)} 
+                className={`cursor-pointer p-6 rounded-[2rem] border-2 transition-all duration-300 flex flex-col justify-between ${
+                  isSelected ? 'border-zinc-900 bg-slate-50 shadow-md' : 'border-slate-100 bg-white hover:border-slate-200 shadow-sm'
+                }`}
+              >
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{caja.nombre}</span>
+                    {caja.tipo_caja === 'efectivo' ? (
+                      <Banknote className="text-emerald-500 shrink-0" size={18} />
+                    ) : (
+                      <CreditCard className="text-blue-500 shrink-0" size={18} />
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    <span className="text-[8px] font-black uppercase px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">
+                      {caja.tipo_caja}
+                    </span>
+                    {caja.destino_recaudo && (
+                      <span className="text-[8px] font-black uppercase px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md flex items-center gap-1">
+                        <Tag size={10} /> {caja.destino_recaudo.codigo} - {caja.destino_recaudo.nombre}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <p className="text-2xl font-black text-slate-800">$ {Number(data?.saldo_sistema || 0).toLocaleString()}</p>
+
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Saldo Sistema</p>
+                  <p className="text-2xl font-black text-slate-800">$ {Number(data?.saldo_sistema || 0).toLocaleString()}</p>
+                </div>
               </div>
             );
           })}

@@ -80,9 +80,9 @@ export const CashCloseModal = ({ isOpen, onClose, summary, onSave }) => {
           
           <motion.div 
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-            className="relative bg-white w-full h-full md:h-auto md:max-w-xl md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden"
+            className="relative bg-white w-full h-full md:h-[90vh] md:max-h-[700px] md:max-w-xl md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden"
           >
-            <div className="p-6 border-b flex justify-between items-center bg-white sticky top-0 z-10">
+            <div className="p-6 border-b flex justify-between items-center bg-white sticky top-0 z-10 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-red-500/10 text-red-600 flex items-center justify-center">
                   <Power size={20} />
@@ -95,7 +95,7 @@ export const CashCloseModal = ({ isOpen, onClose, summary, onSave }) => {
               <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-all"><X size={20} /></button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 custom-scrollbar-light">
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 custom-scrollbar-light min-h-0">
               {cajas.map((caja) => (
                 <div key={caja.id} className="bg-slate-50 border border-slate-100 p-5 rounded-[2rem] space-y-3">
                   <div className="flex justify-between items-center">

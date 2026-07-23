@@ -82,12 +82,13 @@ export const PurchaseDetailPage = () => {
         const ordenadas = res.data.sort((a, b) => a.id - b.id);
         setCajas(ordenadas);
         
-        const lastCaja = localStorage.getItem('last_selected_purchase_caja');
+        const lastName = localStorage.getItem('last_selected_purchase_caja_nombre');
         
-        const cajaExiste = ordenadas.some(c => String(c.id) === String(lastCaja));
-        
-        if (cajaExiste) {
-          setSelectedCaja(lastCaja);
+        if (lastName) {
+          const cajaEncontrada = ordenadas.find(c => c.nombre === lastName);
+          if (cajaEncontrada) {
+            setSelectedCaja(cajaEncontrada.id);
+          }
         }
       }
     } catch (e) { showToast("Error al cargar cajas", "error"); }
@@ -104,10 +105,13 @@ export const PurchaseDetailPage = () => {
     }
     setConfirming(true);
     try {
+      const cajaSeleccionadaObj = cajas.find(c => String(c.id) === String(selectedCaja));
+      if (cajaSeleccionadaObj) {
+        localStorage.setItem('last_selected_purchase_caja_nombre', cajaSeleccionadaObj.nombre);
+      }
+
       const res = await purchaseService.confirmPurchase(id, selectedCaja);
       if (res.status) {
-        localStorage.setItem('last_selected_purchase_caja', selectedCaja);
-        
         showToast("Compra confirmada e inventario actualizado", "success");
         setIsConfirmOpen(false);
         fetchPurchase();
