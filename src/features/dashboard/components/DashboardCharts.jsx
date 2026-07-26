@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 
 export const DashboardCharts = ({ tipo, data }) => {
+
   if (!data.items && data.actual !== undefined) {
     return (
       <div className="flex flex-col items-center justify-center h-48">
@@ -20,15 +21,12 @@ export const DashboardCharts = ({ tipo, data }) => {
     return <div className="h-48 flex items-center justify-center text-slate-400 text-xs">Sin datos disponibles</div>;
   }
 
-  const barColor = "#3b82f6";
-  const lineColors = ["#10b981", "#f59e0b"];
-
   if (tipo === 'line') {
     return (
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={data.items}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="fecha" fontSize={10} />
+          <XAxis dataKey="label" fontSize={10} />
           <YAxis fontSize={10} />
           <Tooltip />
           <Legend wrapperStyle={{ fontSize: '10px' }} />
@@ -39,17 +37,14 @@ export const DashboardCharts = ({ tipo, data }) => {
     );
   }
 
-  const sampleItem = data.items[0];
-  const valueKey = Object.keys(sampleItem).find(key => key !== 'id' && key !== 'nombre' && key !== 'fecha') || 'total';
-
   return (
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={data.items}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="nombre" fontSize={10} interval={0} angle={-15} textAnchor="end" height={35} />
+        <XAxis dataKey="label" fontSize={10} interval={0} height={35} />
         <YAxis fontSize={10} />
         <Tooltip formatter={(value) => [`$ ${Number(value).toLocaleString('es-CO')}`, 'Valor']} />
-        <Bar dataKey={valueKey} fill={barColor} radius={[4, 4, 0, 0]} />
+        <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
