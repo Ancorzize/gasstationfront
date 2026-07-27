@@ -23,6 +23,14 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
     descripcion: ''
   });
 
+  const getLocalDateString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   useEffect(() => {
     if (isOpen) {
       loadMasters();
@@ -51,7 +59,7 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
       const cajaExiste = cajas.some(c => String(c.destino_recaudo_id) === String(lastCajaId));
 
       setFormData({
-        fecha_gasto: new Date().toISOString().split('T')[0],
+        fecha_gasto: getLocalDateString(),
         proveedor_id: '',
         categoria_gasto_id: '',
         destino_recaudo_id: cajaExiste ? lastCajaId : '', 
@@ -76,13 +84,7 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
     setFormData({ ...formData, valor: rawValue });
   };
 
-  const getLocalDateString = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+ 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
