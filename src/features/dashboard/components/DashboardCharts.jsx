@@ -23,10 +23,16 @@ export const DashboardCharts = ({ tipo, data }) => {
 
   if (tipo === 'line') {
     return (
-      <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={data.items}>
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={data.items} margin={{ bottom: 25, right: 10 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="label" fontSize={10} />
+          <XAxis 
+            dataKey="label" 
+            fontSize={10} 
+            angle={-35} 
+            textAnchor="end" 
+            height={45} 
+          />
           <YAxis fontSize={10} />
           <Tooltip />
           <Legend wrapperStyle={{ fontSize: '10px' }} />
@@ -38,10 +44,17 @@ export const DashboardCharts = ({ tipo, data }) => {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={200}>
-      <BarChart data={data.items}>
+    <ResponsiveContainer width="100%" height={220}>
+      <BarChart data={data.items} margin={{ bottom: 25, right: 10 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="label" fontSize={10} interval={0} height={35} />
+        <XAxis 
+          dataKey="label" 
+          fontSize={10} 
+          interval={0} 
+          angle={-35} 
+          textAnchor="end" 
+          height={50} 
+        />
         <YAxis fontSize={10} />
         <Tooltip formatter={(value) => [`$ ${Number(value).toLocaleString('es-CO')}`, 'Valor']} />
         <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
