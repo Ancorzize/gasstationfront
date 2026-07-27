@@ -14,7 +14,7 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
   const [cajasAbiertas, setCajasAbiertas] = useState([]);
   const [displayValor, setDisplayValor] = useState('');
   const [formData, setFormData] = useState({
-    fecha_gasto: new Date().toISOString().split('T')[0],
+    fecha_gasto: getLocalDateString(),
     proveedor_id: '',
     categoria_gasto_id: '',
     destino_recaudo_id: '',
@@ -74,6 +74,14 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
     const formatted = new Intl.NumberFormat('es-CO').format(rawValue);
     setDisplayValor(formatted);
     setFormData({ ...formData, valor: rawValue });
+  };
+
+  const getLocalDateString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const handleSubmit = async (e) => {
