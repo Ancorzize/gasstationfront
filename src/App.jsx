@@ -44,6 +44,7 @@ import { ShiftHistoryPage } from "./features/shifts/pages/ShiftHistoryPage";
 import { FuelPriceListPage } from "./features/stations/pages/FuelPriceListPage";
 import { DestinationListPage } from "./features/destinations/pages/DestinationListPage";
 import { DashboardConfigPage } from "./features/dashboard/Pages/DashboardConfigPage";
+import { SalesListPage } from "./features/sales/pages/SalesListPage";
 
 
 function App() {
@@ -424,6 +425,15 @@ function App() {
             element={
               <MainLayout>
                 <DashboardConfigPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/ventas"
+            element={
+              <MainLayout>
+                <SalesListPage />
               </MainLayout>
             }
           />
