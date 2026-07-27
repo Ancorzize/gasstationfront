@@ -45,6 +45,7 @@ import { FuelPriceListPage } from "./features/stations/pages/FuelPriceListPage";
 import { DestinationListPage } from "./features/destinations/pages/DestinationListPage";
 import { DashboardConfigPage } from "./features/dashboard/Pages/DashboardConfigPage";
 import { SalesListPage } from "./features/sales/pages/SalesListPage";
+import { SaleDetailPage } from "./features/sales/pages/SaleDetailPage";
 
 
 function App() {
@@ -434,6 +435,15 @@ function App() {
             element={
               <MainLayout>
                 <SalesListPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/ventas/:id"
+            element={
+              <MainLayout>
+                <SaleDetailPage />
               </MainLayout>
             }
           />
