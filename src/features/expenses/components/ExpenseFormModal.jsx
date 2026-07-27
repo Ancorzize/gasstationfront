@@ -13,6 +13,15 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
   const [suppliers, setSuppliers] = useState([]);
   const [cajasAbiertas, setCajasAbiertas] = useState([]);
   const [displayValor, setDisplayValor] = useState('');
+
+  const getLocalDateString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [formData, setFormData] = useState({
     fecha_gasto: getLocalDateString(),
     proveedor_id: '',
@@ -23,13 +32,6 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
     descripcion: ''
   });
 
-  const getLocalDateString = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
   useEffect(() => {
     if (isOpen) {
