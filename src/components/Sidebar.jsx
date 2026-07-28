@@ -48,7 +48,7 @@ const menuGroups = [
       { icon: Landmark, label: 'Cartera', permission: 'ver_cartera', path: '/cartera' },
       { icon: ClipboardList, label: 'Mov. Cartera', permission: 'ver_movimientos_cartera', path: '/cartera/movimientos' },
       { icon: Target, label: 'Destinos Recaudo', permission: 'ver_destinos_recaudo', path: '/destinos-recaudo' }, 
-      { icon: Wallet, label: 'Caja', permission: 'ver_caja', path: '/caja' },
+      { icon: Wallet, label: 'Caja', permission: 'ver_caja_menu', path: '/caja' },
       { icon: BarChart3, label: 'Histórico Turnos', permission: 'ver_reportes_turnos_islero', path: '/turnos/historico' },
       { icon: ArrowDownCircle, label: 'Gastos', permission: 'ver_gastos', path: '/gastos' },
       { icon: Layers, label: 'Categorías Gasto', permission: 'ver_categorias_gasto', path: '/gastos/categorias' },
