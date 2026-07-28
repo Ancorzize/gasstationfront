@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import { 
-  Search, Calendar, Filter, Loader2, ArrowLeft, 
-  AlertCircle, CheckCircle2, User, MapPin 
+  Search, Loader2, Calendar, Download, User, MapPin, 
+  CheckCircle2, AlertCircle 
 } from 'lucide-react';
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
@@ -11,118 +12,219 @@ import { getTodayStr } from '../../../shared/utils/dateUtils';
 export const ShiftHistoryPage = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const today = getTodayStr();
-
+  
   const [shifts, setShifts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    fecha_desde: today,
-    fecha_hasta: today,
-    estado: 'cerrado'
-  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [startDate, setStartDate] = useState(getTodayStr());
+  const [endDate, setEndDate] = useState(getTodayStr());
 
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      const res = await shiftService.getShiftHistory(filters);
+      const res = await shiftService.getShiftHistory({
+        fecha_desde: startDate,
+        fecha_hasta: endDate
+      });
       if (res.status) {
         setShifts(res.data.items || res.data || []);
       }
     } catch (e) {
-      showToast("Error al cargar historial", "error");
+      showToast("Error al cargar historial de turnos", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchHistory(); }, [filters.fecha_desde, filters.fecha_hasta, filters.estado]);
+  useEffect(() => { 
+    fetchHistory(); 
+  }, [startDate, endDate]);
+
+  const filteredShifts = shifts.filter(s => {
+    const term = searchTerm.toLowerCase();
+    return (
+      s.id?.toString().includes(term) ||
+      s.estacion?.nombre?.toLowerCase().includes(term) ||
+      s.usuario?.name?.toLowerCase().includes(term) ||
+      s.estado?.toLowerCase().includes(term) ||
+      s.fecha_apertura?.includes(term)
+    );
+  });
+
+ 
+  const handleExport = () => {
+    if (filteredShifts.length === 0) {
+      showToast("No hay datos para exportar", "info");
+      return;
+    }
+
+    const dataToExport = filteredShifts.map(s => ({
+      'ID Turno': s.id,
+      'Estación': s.estacion?.nombre || 'N/A',
+      'Código Estación': s.estacion?.codigo || 'N/A',
+      'Islero': s.usuario?.name || 'N/A',
+      'Email Islero': s.usuario?.email || 'N/A',
+      'Fecha Apertura': s.fecha_apertura,
+      'Fecha Cierre': s.fecha_cierre || 'Abierto',
+      'Estado': s.estado?.toUpperCase(),
+      'Ventas Combustible': parseFloat(s.total_ventas_combustible || 0),
+      'Ventas Lubricantes': parseFloat(s.total_ventas_lubricantes || 0),
+      'Créditos': parseFloat(s.total_creditos || 0),
+      'Abonos': parseFloat(s.total_abonos || 0),
+      'Pagos Efectivo': parseFloat(s.pagos_efectivo || 0),
+      'Pagos Datáfono': parseFloat(s.pagos_datafono || 0),
+      'Total Sistema': parseFloat(s.total_sistema || 0),
+      'Total Reportado': parseFloat(s.total_reportado || 0),
+      'Balance Final': parseFloat(s.balance_final || 0),
+      'Observación Apertura': s.observacion_apertura || '',
+      'Observación Cierre': s.observacion_cierre || ''
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Turnos Islero");
+    
+    XLSX.writeFile(workbook, `Reporte_Turnos_Islero_${startDate}_al_${endDate}.xlsx`);
+    showToast("Archivo Excel generado con éxito", "success");
+  };
+
+  const StatusBadge = ({ status }) => {
+    const isClosed = status === 'cerrado';
+    return (
+      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase border ${isClosed ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+        {status}
+      </span>
+    );
+  };
 
   return (
-    <div className="p-4 md:p-8 space-y-8 text-left">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/dashboard')} className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-zinc-900 shadow-sm transition-all">
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Historial de Turnos</h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Auditoría de cierres y balances</p>
-          </div>
+    <div className="p-4 md:p-8 space-y-6 text-left">
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">Turnos de Islero</h2>
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Auditoría de cierres y balances</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex flex-col gap-1">
-            <span className="text-[8px] font-black text-slate-400 uppercase ml-2 tracking-widest">Desde</span>
+          {/* BOTÓN EXPORTAR */}
+          <button 
+            onClick={handleExport}
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-emerald-700 transition-all shadow-md"
+          >
+            <Download size={16} /> <span className="hidden sm:inline">Exportar</span>
+          </button>
+
+          {/* SELECTORES DE FECHA */}
+          <div className="flex items-center gap-2 bg-white border border-slate-100 p-1 rounded-2xl shadow-sm">
+            <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
+              <Calendar size={14} className="text-slate-400" />
+              <input 
+                type="date" 
+                className="bg-transparent text-[10px] font-black uppercase outline-none text-slate-600"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <span className="text-slate-300 font-bold">-</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
+              <Calendar size={14} className="text-slate-400" />
+              <input 
+                type="date" 
+                className="bg-transparent text-[10px] font-black uppercase outline-none text-slate-600"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* BUSCADOR */}
+          <div className="relative group">
+            <Search className="absolute left-4 top-3 text-slate-400 group-focus-within:text-zinc-900 transition-colors" size={18} />
             <input 
-              type="date" 
-              className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold outline-none focus:border-zinc-900 shadow-sm uppercase"
-              value={filters.fecha_desde}
-              onChange={(e) => setFilters({...filters, fecha_desde: e.target.value})}
+              type="text" placeholder="Buscar..." 
+              className="w-full md:w-48 pl-12 pr-4 py-3 bg-white border border-slate-100 rounded-2xl text-xs outline-none focus:border-zinc-900 shadow-sm transition-all"
+              value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[8px] font-black text-slate-400 uppercase ml-2 tracking-widest">Hasta</span>
-            <input 
-              type="date" 
-              className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold outline-none focus:border-zinc-900 shadow-sm uppercase"
-              value={filters.fecha_hasta}
-              onChange={(e) => setFilters({...filters, fecha_hasta: e.target.value})}
-            />
-          </div>
+
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black shadow-xl transition-all"
+          >
+            Volver
+          </button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-4">
-        {loading ? (
-          <div className="p-20 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="animate-spin text-zinc-900" size={40} />
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cargando auditoría...</p>
-          </div>
-        ) : shifts.length > 0 ? (
-          shifts.map((s) => {
-            const balance = Number(s.balance_final || 0);
-            return (
-              <div 
-                key={s.id}
-                className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6"
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${balance >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                    {balance >= 0 ? <CheckCircle2 size={24} /> : <AlertCircle size={24} />}
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight">Turno #{s.id} - {s.estacion?.nombre}</h4>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="flex items-center gap-1 text-[9px] font-bold text-slate-400 uppercase"><User size={10} /> {s.usuario?.name || 'N/A'}</span>
-                      <span className="flex items-center gap-1 text-[9px] font-bold text-slate-400 uppercase"><Calendar size={10} /> {s.fecha_apertura ? new Date(s.fecha_apertura).toLocaleDateString() : ''}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:text-right">
-                  <div>
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Sistema</p>
-                    <p className="text-xs font-black text-slate-700">$ {Number(s.total_sistema || 0).toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Reportado</p>
-                    <p className="text-xs font-black text-slate-700">$ {Number(s.total_reportado || 0).toLocaleString()}</p>
-                  </div>
-                  <div className="col-span-2 md:col-span-1">
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Balance</p>
-                    <p className={`text-sm font-black ${balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {balance >= 0 ? '+' : ''} $ {balance.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        ) : (
-          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[3rem] p-20 text-center">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">No se encontraron turnos cerrados en este rango de fechas</p>
-          </div>
-        )}
+      {/* TABLA DE DATOS */}
+      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-50">
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Turno / Estación</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Islero</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Apertura</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Sistema</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Reportado</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Balance Final</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {loading ? (
+                <tr>
+                  <td colSpan="7" className="py-20 text-center">
+                    <Loader2 className="animate-spin mx-auto text-slate-200" size={32} />
+                  </td>
+                </tr>
+              ) : filteredShifts.length > 0 ? (
+                filteredShifts.map((s) => {
+                  const balance = Number(s.balance_final || 0);
+                  return (
+                    <tr key={s.id} className="hover:bg-slate-50/30 transition-colors">
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black text-slate-700 uppercase">Turno #{s.id}</span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">{s.estacion?.nombre}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black text-slate-700 uppercase">{s.usuario?.name || 'N/A'}</span>
+                          <span className="text-[9px] font-bold text-slate-400">{s.usuario?.email}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-[10px] font-bold text-slate-400 uppercase">
+                        {s.fecha_apertura ? new Date(s.fecha_apertura).toLocaleString() : ''}
+                      </td>
+                      <td className="px-5 py-4">
+                        <StatusBadge status={s.estado} />
+                      </td>
+                      <td className="px-5 py-4 text-right text-xs font-black text-slate-700">
+                        $ {Number(s.total_sistema || 0).toLocaleString('es-CO')}
+                      </td>
+                      <td className="px-5 py-4 text-right text-xs font-black text-slate-700">
+                        $ {Number(s.total_reportado || 0).toLocaleString('es-CO')}
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <span className={`text-xs font-black ${balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {balance >= 0 ? '+' : ''} $ {balance.toLocaleString('es-CO')}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="7" className="py-20 text-center text-slate-400 text-xs font-bold uppercase italic">
+                    No se encontraron turnos en este rango de fechas
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

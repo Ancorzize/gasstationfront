@@ -1,108 +1,116 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx'; // Importación para Excel
 import { 
-  Search, Loader2, Calendar, Download, User, MapPin, 
-  CheckCircle2, AlertCircle 
+  ShoppingBag, Search, Plus, Loader2, 
+  Calendar, Eye, Edit3, CheckCircle2, 
+  Clock, Wallet, Download // Importamos el icono de descarga
 } from 'lucide-react';
-import { shiftService } from '../services/shiftService';
+import { purchaseService } from '../services/purchaseService';
 import { useToast } from '../../../context/ToastContext';
 import { getTodayStr } from '../../../shared/utils/dateUtils';
 
-export const ShiftHistoryPage = () => {
-  const navigate = useNavigate();
-  const { showToast } = useToast();
-  
-  const [shifts, setShifts] = useState([]);
+export const PurchaseListPage = () => {
+
+  const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState(getTodayStr());
   const [endDate, setEndDate] = useState(getTodayStr());
 
-  const fetchHistory = async () => {
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+
+  const fetchPurchases = async () => {
     setLoading(true);
     try {
-      const res = await shiftService.getShiftHistory({
+      const res = await purchaseService.getPurchases({
         fecha_desde: startDate,
         fecha_hasta: endDate
       });
-      if (res.status) {
-        setShifts(res.data.items || res.data || []);
-      }
+      if (res.status) setPurchases(res.data.items || []);
     } catch (e) {
-      showToast("Error al cargar historial de turnos", "error");
+      showToast("Error al cargar listado de compras", "error");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => { 
-    fetchHistory(); 
+    fetchPurchases(); 
   }, [startDate, endDate]);
 
-  const filteredShifts = shifts.filter(s => {
+  const filteredPurchases = purchases.filter(p => {
     const term = searchTerm.toLowerCase();
     return (
-      s.id?.toString().includes(term) ||
-      s.estacion?.nombre?.toLowerCase().includes(term) ||
-      s.usuario?.name?.toLowerCase().includes(term) ||
-      s.estado?.toLowerCase().includes(term) ||
-      s.fecha_apertura?.includes(term)
+      p.numero_documento?.toLowerCase().includes(term) ||
+      p.proveedor?.nombre?.toLowerCase().includes(term) ||
+      p.estado?.toLowerCase().includes(term) ||
+      p.estado_pago?.toLowerCase().includes(term) ||
+      p.tipo_pago?.toLowerCase().includes(term) ||
+      p.fecha_compra?.includes(term)
     );
   });
 
-
+  // FUNCIÓN DE EXPORTACIÓN
   const handleExport = () => {
-    if (filteredShifts.length === 0) {
+    if (filteredPurchases.length === 0) {
       showToast("No hay datos para exportar", "info");
       return;
     }
 
-    const dataToExport = filteredShifts.map(s => ({
-      'ID Turno': s.id,
-      'Estación': s.estacion?.nombre || 'N/A',
-      'Código Estación': s.estacion?.codigo || 'N/A',
-      'Islero': s.usuario?.name || 'N/A',
-      'Email Islero': s.usuario?.email || 'N/A',
-      'Fecha Apertura': s.fecha_apertura,
-      'Fecha Cierre': s.fecha_cierre || 'Abierto',
-      'Estado': s.estado?.toUpperCase(),
-      'Ventas Combustible': parseFloat(s.total_ventas_combustible || 0),
-      'Ventas Lubricantes': parseFloat(s.total_ventas_lubricantes || 0),
-      'Créditos': parseFloat(s.total_creditos || 0),
-      'Abonos': parseFloat(s.total_abonos || 0),
-      'Pagos Efectivo': parseFloat(s.pagos_efectivo || 0),
-      'Pagos Datáfono': parseFloat(s.pagos_datafono || 0),
-      'Total Sistema': parseFloat(s.total_sistema || 0),
-      'Total Reportado': parseFloat(s.total_reportado || 0),
-      'Balance Final': parseFloat(s.balance_final || 0),
-      'Observación Apertura': s.observacion_apertura || '',
-      'Observación Cierre': s.observacion_cierre || ''
+    // Mapeamos los datos para que el Excel tenga nombres de columna claros
+    const dataToExport = filteredPurchases.map(p => ({
+      'Documento': p.numero_documento || 'S/N',
+      'Fecha': p.fecha_compra,
+      'Proveedor': p.proveedor?.nombre,
+      'NIT': p.proveedor?.nit,
+      'Estado': p.estado.toUpperCase(),
+      'Tipo Pago': p.tipo_pago.toUpperCase(),
+      'Estado Pago': p.estado_pago.toUpperCase(),
+      'Total': parseFloat(p.total),
+      'Saldo Pendiente': parseFloat(p.saldo_pendiente)
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Turnos Islero");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Compras");
     
-    XLSX.writeFile(workbook, `Reporte_Turnos_Islero_${startDate}_al_${endDate}.xlsx`);
+    // Generar archivo y descargar
+    XLSX.writeFile(workbook, `Reporte_Compras_${startDate}_al_${endDate}.xlsx`);
     showToast("Archivo Excel generado con éxito", "success");
   };
 
   const StatusBadge = ({ status }) => {
-    const isClosed = status === 'cerrado';
+    const styles = {
+      borrador: "bg-slate-100 text-slate-500 border-slate-200",
+      confirmada: "bg-emerald-50 text-emerald-600 border-emerald-100"
+    };
     return (
-      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase border ${isClosed ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase border ${styles[status] || styles.borrador}`}>
+        {status === 'confirmada' ? 'Confirmada' : 'Borrador'}
+      </span>
+    );
+  };
+
+  const PaymentBadge = ({ status }) => {
+    const styles = {
+      pendiente: "bg-orange-50 text-orange-600 border-orange-100",
+      pagado: "bg-blue-50 text-blue-600 border-blue-100"
+    };
+    return (
+      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase border ${styles[status] || styles.pendiente}`}>
         {status}
       </span>
     );
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6 text-left">
+    <div className="p-4 md:p-8 space-y-6">
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">Turnos de Islero</h2>
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Auditoría de cierres y balances</p>
+          <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">Compras realizadas</h2>
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Control detallado pagos</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -114,7 +122,6 @@ export const ShiftHistoryPage = () => {
             <Download size={16} /> <span className="hidden sm:inline">Exportar</span>
           </button>
 
-          {/* SELECTORES DE FECHA */}
           <div className="flex items-center gap-2 bg-white border border-slate-100 p-1 rounded-2xl shadow-sm">
             <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
               <Calendar size={14} className="text-slate-400" />
@@ -137,7 +144,6 @@ export const ShiftHistoryPage = () => {
             </div>
           </div>
 
-          {/* BUSCADOR */}
           <div className="relative group">
             <Search className="absolute left-4 top-3 text-slate-400 group-focus-within:text-zinc-900 transition-colors" size={18} />
             <input 
@@ -148,77 +154,97 @@ export const ShiftHistoryPage = () => {
           </div>
 
           <button 
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/compras/nueva')}
             className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black shadow-xl transition-all"
           >
-            Volver
+            <Plus size={16} /> Nueva Compra
           </button>
         </div>
       </header>
 
-      {/* TABLA DE DATOS */}
+      {/* ... Resto del componente (Tabla) se mantiene igual ... */}
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-50">
-                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Turno / Estación</th>
-                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Islero</th>
-                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Apertura</th>
-                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado</th>
-                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Sistema</th>
-                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Reportado</th>
-                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Balance Final</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Documento</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Proveedor</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Estatus</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Pago</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Total</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-24">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="py-20 text-center">
+                  <td colSpan="8" className="py-20 text-center">
                     <Loader2 className="animate-spin mx-auto text-slate-200" size={32} />
                   </td>
                 </tr>
-              ) : filteredShifts.length > 0 ? (
-                filteredShifts.map((s) => {
-                  const balance = Number(s.balance_final || 0);
-                  return (
-                    <tr key={s.id} className="hover:bg-slate-50/30 transition-colors">
-                      <td className="px-5 py-4">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-black text-slate-700 uppercase">Turno #{s.id}</span>
-                          <span className="text-[9px] font-bold text-slate-400 uppercase">{s.estacion?.nombre}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-black text-slate-700 uppercase">{s.usuario?.name || 'N/A'}</span>
-                          <span className="text-[9px] font-bold text-slate-400">{s.usuario?.email}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-[10px] font-bold text-slate-400 uppercase">
-                        {s.fecha_apertura ? new Date(s.fecha_apertura).toLocaleString() : ''}
-                      </td>
-                      <td className="px-5 py-4">
-                        <StatusBadge status={s.estado} />
-                      </td>
-                      <td className="px-5 py-4 text-right text-xs font-black text-slate-700">
-                        $ {Number(s.total_sistema || 0).toLocaleString('es-CO')}
-                      </td>
-                      <td className="px-5 py-4 text-right text-xs font-black text-slate-700">
-                        $ {Number(s.total_reportado || 0).toLocaleString('es-CO')}
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <span className={`text-xs font-black ${balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                          {balance >= 0 ? '+' : ''} $ {balance.toLocaleString('es-CO')}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
+              ) : filteredPurchases.length > 0 ? (
+                filteredPurchases.map((purchase) => (
+                  <tr key={purchase.id} className="hover:bg-slate-50/30 transition-colors group">
+                    <td className="px-5 py-4 font-black text-slate-700 text-xs uppercase">
+                      {purchase.numero_documento || 'S/N'}
+                    </td>
+                    <td className="px-5 py-4 text-[10px] font-bold text-slate-400 uppercase">
+                      {purchase.fecha_compra}
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black text-slate-700 uppercase">{purchase.proveedor?.nombre}</span>
+                        <span className="text-[9px] font-bold text-slate-400">NIT: {purchase.proveedor?.nit}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <StatusBadge status={purchase.estado} />
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className={`text-[10px] font-black uppercase ${purchase.tipo_pago === 'credito' ? 'text-orange-500' : 'text-slate-400'}`}>
+                        {purchase.tipo_pago}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      <PaymentBadge status={purchase.estado_pago} />
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <p className="text-sm font-black text-zinc-900 tracking-tighter">
+                        $ {parseFloat(purchase.total || 0).toLocaleString('es-CO')}
+                      </p>
+                      {purchase.saldo_pendiente > 0 && (
+                        <p className="text-[9px] font-bold text-red-500 uppercase">
+                          Saldo: $ {parseFloat(purchase.saldo_pendiente).toLocaleString('es-CO')}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button 
+                          onClick={() => navigate(`/compras/${purchase.id}`)}
+                          className="p-2 text-slate-400 hover:text-zinc-900 hover:bg-slate-100 rounded-xl transition-all"
+                        >
+                          <Eye size={18} />
+                        </button>
+                        {purchase.estado === 'borrador' && (
+                          <button 
+                            onClick={() => navigate(`/compras/editar/${purchase.id}`)}
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                          >
+                            <Edit3 size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="py-20 text-center text-slate-400 text-xs font-bold uppercase italic">
-                    No se encontraron turnos en este rango de fechas
+                  <td colSpan="8" className="py-20 text-center text-slate-400 text-xs font-bold uppercase italic">
+                    No se encontraron resultados
                   </td>
                 </tr>
               )}
