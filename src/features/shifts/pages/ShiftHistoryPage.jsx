@@ -25,7 +25,9 @@ export const ShiftHistoryPage = () => {
     setLoading(true);
     try {
       const res = await shiftService.getShiftHistory(filters);
-      if (res.status) setShifts(res.data);
+      if (res.status) {
+        setShifts(res.data.items || res.data || []);
+      }
     } catch (e) {
       showToast("Error al cargar historial", "error");
     } finally {
@@ -77,45 +79,48 @@ export const ShiftHistoryPage = () => {
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cargando auditoría...</p>
           </div>
         ) : shifts.length > 0 ? (
-          shifts.map((s) => (
-            <div 
-              key={s.id}
-              onClick={() => navigate(`/turnos-islero/${s.id}/resumen`)}
-              className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-6"
-            >
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${s.balance >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                  {s.balance >= 0 ? <CheckCircle2 size={24} /> : <AlertCircle size={24} />}
-                </div>
-                <div>
-                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight">Turno #{s.id} - {s.estacion?.nombre}</h4>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="flex items-center gap-1 text-[9px] font-bold text-slate-400 uppercase"><User size={10} /> {s.user?.name}</span>
-                    <span className="flex items-center gap-1 text-[9px] font-bold text-slate-400 uppercase"><Calendar size={10} /> {new Date(s.fecha_apertura).toLocaleDateString()}</span>
+          shifts.map((s) => {
+            const balance = Number(s.balance_final || 0);
+            return (
+              <div 
+                key={s.id}
+                onClick={() => navigate(`/turnos-islero/${s.id}/resumen`)}
+                className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-6"
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${balance >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                    {balance >= 0 ? <CheckCircle2 size={24} /> : <AlertCircle size={24} />}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight">Turno #{s.id} - {s.estacion?.nombre}</h4>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="flex items-center gap-1 text-[9px] font-bold text-slate-400 uppercase"><User size={10} /> {s.usuario?.name || 'N/A'}</span>
+                      <span className="flex items-center gap-1 text-[9px] font-bold text-slate-400 uppercase"><Calendar size={10} /> {s.fecha_apertura ? new Date(s.fecha_apertura).toLocaleDateString() : ''}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:text-right">
-                <div>
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Sistema</p>
-                  <p className="text-xs font-black text-slate-700">$ {Number(s.total_sistema).toLocaleString()}</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:text-right">
+                  <div>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Sistema</p>
+                    <p className="text-xs font-black text-slate-700">$ {Number(s.total_sistema || 0).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Reportado</p>
+                    <p className="text-xs font-black text-slate-700">$ {Number(s.total_reportado || 0).toLocaleString()}</p>
+                  </div>
+                  <div className="col-span-2 md:col-span-1">
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Balance</p>
+                    <p className={`text-sm font-black ${balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {balance >= 0 ? '+' : ''} $ {balance.toLocaleString()}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Reportado</p>
-                  <p className="text-xs font-black text-slate-700">$ {Number(s.total_reportado).toLocaleString()}</p>
-                </div>
-                <div className="col-span-2 md:col-span-1">
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Balance</p>
-                  <p className={`text-sm font-black ${s.balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {s.balance >= 0 ? '+' : ''} $ {Number(s.balance).toLocaleString()}
-                  </p>
-                </div>
+                
+                <ChevronRight className="hidden md:block text-slate-300" size={20} />
               </div>
-              
-              <ChevronRight className="hidden md:block text-slate-300" size={20} />
-            </div>
-          ))
+            );
+          })
         ) : (
           <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[3rem] p-20 text-center">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">No se encontraron turnos cerrados en este rango de fechas</p>
