@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, Calendar, Filter, Loader2, ArrowLeft, 
-  ChevronRight, AlertCircle, CheckCircle2, XCircle, User, MapPin 
+  AlertCircle, CheckCircle2, User, MapPin 
 } from 'lucide-react';
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
@@ -84,8 +84,7 @@ export const ShiftHistoryPage = () => {
             return (
               <div 
                 key={s.id}
-                onClick={() => navigate(`/turnos-islero/${s.id}/resumen`)}
-                className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-6"
+                className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6"
               >
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${balance >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
@@ -116,8 +115,6 @@ export const ShiftHistoryPage = () => {
                     </p>
                   </div>
                 </div>
-                
-                <ChevronRight className="hidden md:block text-slate-300" size={20} />
               </div>
             );
           })
