@@ -8,10 +8,40 @@ export const DashboardPage = () => {
   const { showToast } = useToast();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [periodo, setPeriodo] = useState('este_mes');
+  
+  const [periodo, setPeriodo] = useState('hoy');
   const [fechas, setFechas] = useState({ desde: '', hasta: '' });
 
+
+  const calcularFechasPorPeriodo = (tipoPeriodo) => {
+    const hoy = new Date();
+    const formatDate = (date) => date.toISOString().split('T')[0];
+
+    if (tipoPeriodo === 'hoy') {
+      const fechaActual = formatDate(hoy);
+      return { desde: fechaActual, hasta: fechaActual };
+    } 
+    
+    if (tipoPeriodo === 'este_mes') {
+      const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      const ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+      return { desde: formatDate(primerDia), hasta: formatDate(ultimoDia) };
+    }
+
+    return fechas;
+  };
+
+  useEffect(() => {
+    if (periodo !== 'personalizado') {
+      const nuevasFechas = calcularFechasPorPeriodo(periodo);
+      setFechas(nuevasFechas);
+    }
+  }, [periodo]);
+
   const fetchData = async () => {
+
+    if (!fechas.desde || !fechas.hasta) return;
+
     setLoading(true);
     try {
       const res = await dashboardService.getDashboardData(fechas.desde, fechas.hasta);
@@ -28,7 +58,9 @@ export const DashboardPage = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, [fechas, periodo]);
+  useEffect(() => { 
+    fetchData(); 
+  }, [fechas]);
 
   const KpiWidget = ({ data, titulo }) => (
     <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
@@ -86,15 +118,30 @@ export const DashboardPage = () => {
   return (
     <div className="space-y-6">
       <div className="flex gap-4 items-center bg-white p-4 rounded-2xl border">
-        <select value={periodo} onChange={(e) => setPeriodo(e.target.value)} className="p-2 border rounded-lg">
+        <select 
+          value={periodo} 
+          onChange={(e) => setPeriodo(e.target.value)} 
+          className="p-2 border rounded-lg text-xs font-bold text-slate-700 outline-none"
+        >
             <option value="hoy">Hoy</option>
             <option value="este_mes">Este Mes</option>
             <option value="personalizado">Personalizado</option>
         </select>
+        
         {periodo === 'personalizado' && (
             <div className="flex gap-2">
-                <input type="date" className="p-2 border rounded-lg" onChange={e => setFechas({...fechas, desde: e.target.value})} />
-                <input type="date" className="p-2 border rounded-lg" onChange={e => setFechas({...fechas, hasta: e.target.value})} />
+                <input 
+                  type="date" 
+                  value={fechas.desde}
+                  className="p-2 border rounded-lg text-xs" 
+                  onChange={e => setFechas({...fechas, desde: e.target.value})} 
+                />
+                <input 
+                  type="date" 
+                  value={fechas.hasta}
+                  className="p-2 border rounded-lg text-xs" 
+                  onChange={e => setFechas({...fechas, hasta: e.target.value})} 
+                />
             </div>
         )}
       </div>

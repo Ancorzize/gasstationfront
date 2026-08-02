@@ -108,7 +108,7 @@ export const PurchasePaymentDetailPage = () => {
           <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
             <div className="p-6 border-b bg-slate-50/50 flex justify-between items-center">
               <h3 className="text-xs font-black text-slate-500 uppercase flex items-center gap-2">
-                <ShoppingBag size={16} /> Detalle de Mercancía1
+                <ShoppingBag size={16} /> Detalle de Mercancía
               </h3>
               <div className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase text-slate-400">
                 {detalles.length} Productos

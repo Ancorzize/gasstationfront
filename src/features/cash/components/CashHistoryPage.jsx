@@ -59,6 +59,7 @@ export const CashHistoryPage = () => {
 
     const dataToExport = filteredData.map(c => ({
       ID: c.id,
+      'Nombre': c.nombre,
       'Tipo Caja': c.tipo_caja,
       'Estado': c.estado,
       'Fecha Apertura': c.fecha_apertura,
@@ -125,11 +126,18 @@ export const CashHistoryPage = () => {
             <table className="w-full text-left">
               <thead>
                 <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50">
-                  <th className="p-4">ID</th><th className="p-4">Tipo</th><th className="p-4">Estado</th>
-                  <th className="p-4">F. Apertura</th><th className="p-4">F. Cierre</th>
-                  <th className="p-4 text-right">Monto Ap.</th><th className="p-4 text-right">Cierre Sist.</th>
-                  <th className="p-4 text-right">Cierre Real</th><th className="p-4 text-right">Diferencia</th>
-                  <th className="p-4">Usuario Ap.</th><th className="p-4">Usuario Cie.</th>
+                  <th className="p-4">ID</th>
+                  <th className="p-4">Nombre</th>
+                  <th className="p-4">Tipo</th>
+                  <th className="p-4">Estado</th>
+                  <th className="p-4">F. Apertura</th>
+                  <th className="p-4">F. Cierre</th>
+                  <th className="p-4 text-right">Monto Ap.</th>
+                  <th className="p-4 text-right">Cierre Sist.</th>
+                  <th className="p-4 text-right">Cierre Real</th>
+                  <th className="p-4 text-right">Diferencia</th>
+                  <th className="p-4">Usuario Ap.</th>
+                  <th className="p-4">Usuario Cie.</th>
                   <th className="p-4">Acción</th>
                 </tr>
               </thead>
@@ -137,6 +145,7 @@ export const CashHistoryPage = () => {
                 {filteredData.map(c => (
                   <tr key={c.id} className="hover:bg-slate-50/50 text-[10px] font-bold text-slate-700 uppercase">
                     <td className="p-4">{c.id}</td>
+                    <td className="p-4"><span className='bg-slate-100 text-slate-600'>{c.nombre}</span></td>
                     <td className="p-4"><span className={`px-2 py-1 rounded-md ${c.tipo_caja === 'efectivo' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>{c.tipo_caja}</span></td>
                     <td className="p-4"><span className={`px-2 py-1 rounded-md ${c.estado === 'abierta' ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-600'}`}>{c.estado}</span></td>
                     <td className="p-4">{new Date(c.fecha_apertura).toLocaleString()}</td>

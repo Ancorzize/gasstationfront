@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { 
-  Search, Loader2, Calendar, Download, User, MapPin, 
-  CheckCircle2, AlertCircle 
+  Search, Loader2, Calendar, Download, Eye 
 } from 'lucide-react';
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
 import { getTodayStr } from '../../../shared/utils/dateUtils';
+import { ShiftReadingsModal } from '../components/ShiftReadingsModal'; // Importamos el modal independiente
 
 export const ShiftHistoryPage = () => {
   const navigate = useNavigate();
@@ -18,6 +18,10 @@ export const ShiftHistoryPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState(getTodayStr());
   const [endDate, setEndDate] = useState(getTodayStr());
+
+  // Estados para controlar el Modal de Lecturas
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTurnoId, setSelectedTurnoId] = useState(null);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -51,7 +55,11 @@ export const ShiftHistoryPage = () => {
     );
   });
 
- 
+  const handleOpenModal = (turnoId) => {
+    setSelectedTurnoId(turnoId);
+    setIsModalOpen(true);
+  };
+
   const handleExport = () => {
     if (filteredShifts.length === 0) {
       showToast("No hay datos para exportar", "info");
@@ -98,7 +106,7 @@ export const ShiftHistoryPage = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6 text-left">
+    <div className="p-4 md:p-8 space-y-6 text-left relative">
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">Turnos de Islero</h2>
@@ -106,7 +114,6 @@ export const ShiftHistoryPage = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* BOTÓN EXPORTAR */}
           <button 
             onClick={handleExport}
             className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-emerald-700 transition-all shadow-md"
@@ -114,7 +121,6 @@ export const ShiftHistoryPage = () => {
             <Download size={16} /> <span className="hidden sm:inline">Exportar</span>
           </button>
 
-          {/* SELECTORES DE FECHA */}
           <div className="flex items-center gap-2 bg-white border border-slate-100 p-1 rounded-2xl shadow-sm">
             <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
               <Calendar size={14} className="text-slate-400" />
@@ -137,7 +143,6 @@ export const ShiftHistoryPage = () => {
             </div>
           </div>
 
-          {/* BUSCADOR */}
           <div className="relative group">
             <Search className="absolute left-4 top-3 text-slate-400 group-focus-within:text-zinc-900 transition-colors" size={18} />
             <input 
@@ -169,12 +174,13 @@ export const ShiftHistoryPage = () => {
                 <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Sistema</th>
                 <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Reportado</th>
                 <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Balance Final</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-24">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="py-20 text-center">
+                  <td colSpan="8" className="py-20 text-center">
                     <Loader2 className="animate-spin mx-auto text-slate-200" size={32} />
                   </td>
                 </tr>
@@ -212,12 +218,21 @@ export const ShiftHistoryPage = () => {
                           {balance >= 0 ? '+' : ''} $ {balance.toLocaleString('es-CO')}
                         </span>
                       </td>
+                      <td className="px-5 py-4 text-center">
+                        <button 
+                          onClick={() => handleOpenModal(s.id)}
+                          title="Ver Lecturas"
+                          className="p-2 text-slate-400 hover:text-zinc-900 hover:bg-slate-100 rounded-xl transition-all"
+                        >
+                          <Eye size={18} />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" className="py-20 text-center text-slate-400 text-xs font-bold uppercase italic">
+                  <td colSpan="8" className="py-20 text-center text-slate-400 text-xs font-bold uppercase italic">
                     No se encontraron turnos en este rango de fechas
                   </td>
                 </tr>
@@ -226,6 +241,14 @@ export const ShiftHistoryPage = () => {
           </table>
         </div>
       </div>
+
+      {/* MODAL AISLADO */}
+      <ShiftReadingsModal 
+        turnoId={selectedTurnoId} 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
+
     </div>
   );
 };

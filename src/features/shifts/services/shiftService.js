@@ -46,4 +46,12 @@ export const shiftService = {
     });
     return res.json();
   },
+
+  getShiftReadings: async (turnoId) => {
+    const res = await fetch(`${API_URL}/mangueras/lecturas?turno_id=${turnoId}`, { 
+      headers: getHeaders() 
+    });
+    return res.json();
+  }
+
 };

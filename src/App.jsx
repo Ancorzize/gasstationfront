@@ -46,6 +46,7 @@ import { DestinationListPage } from "./features/destinations/pages/DestinationLi
 import { DashboardConfigPage } from "./features/dashboard/Pages/DashboardConfigPage";
 import { SalesListPage } from "./features/sales/pages/SalesListPage";
 import { SaleDetailPage } from "./features/sales/pages/SaleDetailPage";
+import { CapitalTrabajoPage } from "./features/reports/pages/CapitalTrabajoPage";
 
 
 function App() {
@@ -446,6 +447,15 @@ function App() {
                 <SaleDetailPage />
               </MainLayout>
             }
+          />
+
+          <Route 
+            path="/reportes/capital-trabajo" 
+            element={
+              <MainLayout>
+                <CapitalTrabajoPage />
+              </MainLayout>
+            } 
           />
 
           <Route path="/" element={<Navigate to="/login" replace />} />
