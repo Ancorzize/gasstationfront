@@ -97,18 +97,44 @@ export const PurchaseDetailPage = () => {
     if (isConfirmOpen) fetchCajas();
   }, [isConfirmOpen]);
 
+  const handleInitiateConfirm = () => {
+    if (purchase?.tipo_pago === 'credito') {
+      handleConfirmDirect(null);
+    } else {
+      setIsConfirmOpen(true);
+    }
+  };
+
+  const handleConfirmDirect = async (cajaId) => {
+    setConfirming(true);
+    try {
+      const res = await purchaseService.confirmPurchase(id, cajaId);
+      if (res.status) {
+        showToast("Compra confirmada e inventario actualizado", "success");
+        fetchPurchase();
+      } else { 
+        showToast(res.message, "error"); 
+      }
+    } catch (e) { 
+      showToast("Error de conexión", "error"); 
+    } finally { 
+      setConfirming(false); 
+    }
+  };
+
   const handleConfirm = async () => {
     if (!selectedCaja) {
       showToast("Por favor selecciona una caja para continuar", "warning");
       return;
     }
+    
+    const cajaSeleccionadaObj = cajas.find(c => String(c.id) === String(selectedCaja));
+    if (cajaSeleccionadaObj) {
+      localStorage.setItem('last_selected_purchase_caja_nombre', cajaSeleccionadaObj.nombre);
+    }
+
     setConfirming(true);
     try {
-      const cajaSeleccionadaObj = cajas.find(c => String(c.id) === String(selectedCaja));
-      if (cajaSeleccionadaObj) {
-        localStorage.setItem('last_selected_purchase_caja_nombre', cajaSeleccionadaObj.nombre);
-      }
-
       const res = await purchaseService.confirmPurchase(id, selectedCaja);
       if (res.status) {
         showToast("Compra confirmada e inventario actualizado", "success");
@@ -189,8 +215,13 @@ export const PurchaseDetailPage = () => {
               <button onClick={() => navigate(`/compras/editar/${id}`)} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl font-black text-[10px] uppercase hover:bg-slate-50 transition-all shadow-sm">
                 <Edit3 size={14} /> Editar
               </button>
-              <button onClick={() => setIsConfirmOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl font-black text-[10px] uppercase hover:bg-black shadow-md transition-all">
-                <CheckCircle2 size={14} /> Confirmar e Ingresar
+              <button 
+                onClick={handleInitiateConfirm} 
+                disabled={confirming}
+                className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl font-black text-[10px] uppercase hover:bg-black shadow-md transition-all disabled:opacity-50"
+              >
+                {confirming ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle2 size={14} />} 
+                Confirmar e Ingresar
               </button>
             </>
           )}
