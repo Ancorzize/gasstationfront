@@ -1,14 +1,11 @@
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const getHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` })
-  };
-};
+const getHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  'Authorization': `Bearer ${localStorage.getItem('token')}`
+});
 
 export const financialService = {
   getCapitalTrabajo: async (params = {}) => {

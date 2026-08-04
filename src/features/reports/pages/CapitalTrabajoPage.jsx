@@ -39,7 +39,7 @@ export const CapitalTrabajoPage = () => {
 
   return (
     <div className="p-4 md:p-8 space-y-6 text-left">
-      {/* Header */}
+  
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">Capital de Trabajo</h2>
@@ -62,7 +62,7 @@ export const CapitalTrabajoPage = () => {
       ) : data ? (
         <div className="space-y-6">
           
-          {/* Tarjeta de Resultado Principal / Estado */}
+     
           <div className={`p-8 rounded-[2.5rem] border shadow-sm relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6 ${isSuperavit ? 'bg-emerald-50/50 border-emerald-100' : 'bg-red-50/50 border-red-100'}`}>
             <div className="space-y-2 z-10">
               <div className="flex items-center gap-2">
@@ -84,10 +84,8 @@ export const CapitalTrabajoPage = () => {
             </div>
           </div>
 
-          {/* Cuadrícula de Desglose (Activos vs Pasivos) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            {/* Activos Corrientes */}
             <div className="bg-white rounded-[2.5rem] p-6 md:p-8 border border-slate-100 shadow-sm space-y-6">
               <div className="flex items-center justify-between border-b border-slate-50 pb-4">
                 <div className="flex items-center gap-3">
@@ -124,7 +122,6 @@ export const CapitalTrabajoPage = () => {
               </div>
             </div>
 
-            {/* Pasivos Corrientes */}
             <div className="bg-white rounded-[2.5rem] p-6 md:p-8 border border-slate-100 shadow-sm space-y-6">
               <div className="flex items-center justify-between border-b border-slate-50 pb-4">
                 <div className="flex items-center gap-3">
@@ -148,7 +145,7 @@ export const CapitalTrabajoPage = () => {
                 </div>
               </div>
 
-              {/* Nota informativa de la fórmula */}
+    
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100/80 flex items-start gap-3">
                 <ShieldCheck className="text-slate-400 shrink-0 mt-0.5" size={16} />
                 <p className="text-[10px] font-bold text-slate-500 uppercase leading-relaxed">
