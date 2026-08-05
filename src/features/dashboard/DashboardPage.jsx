@@ -15,17 +15,23 @@ export const DashboardPage = () => {
 
   const calcularFechasPorPeriodo = (tipoPeriodo) => {
     const hoy = new Date();
-    const formatDate = (date) => date.toISOString().split('T')[0];
+
+    const formatLocalDate = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
 
     if (tipoPeriodo === 'hoy') {
-      const fechaActual = formatDate(hoy);
+      const fechaActual = formatLocalDate(hoy);
       return { desde: fechaActual, hasta: fechaActual };
     } 
     
     if (tipoPeriodo === 'este_mes') {
       const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
       const ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
-      return { desde: formatDate(primerDia), hasta: formatDate(ultimoDia) };
+      return { desde: formatLocalDate(primerDia), hasta: formatLocalDate(ultimoDia) };
     }
 
     return fechas;
