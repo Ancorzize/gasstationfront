@@ -22,12 +22,12 @@ export const ImportInventoryModal = ({ isOpen, onClose, onImportSuccess }) => {
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         
-        // 1. Convertimos a JSON pero con nombres de columnas crudos
+    
         const rawData = XLSX.utils.sheet_to_json(ws);
         
-        // 2. Mapeo inteligente para corregir nombres de columnas
+  
         const formattedData = rawData.map(row => {
-        // Función interna para buscar una llave sin importar espacios o mayúsculas
+     
         const getValue = (keyName) => {
             const foundKey = Object.keys(row).find(k => 
             k.trim().toLowerCase() === keyName.toLowerCase()
@@ -43,7 +43,7 @@ export const ImportInventoryModal = ({ isOpen, onClose, onImportSuccess }) => {
         };
         });
 
-        // 3. Filtrar filas vacías (donde no hay producto ni bodega)
+      
         const cleanData = formattedData.filter(item => item.codigo_producto && item.bodega_codigo);
 
         setPreviewData(cleanData);

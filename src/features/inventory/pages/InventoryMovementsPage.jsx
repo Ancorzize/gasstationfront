@@ -145,7 +145,7 @@ export const InventoryMovementsPage = () => {
       <TransferModal 
         isOpen={isTransferOpen} 
         onClose={() => setIsTransferOpen(false)} 
-        onSave={fetchMovements} // Al guardar, recargamos la tabla automáticamente
+        onSave={fetchMovements} 
       />
     </div>
   );

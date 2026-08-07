@@ -24,7 +24,6 @@ export const LubricantSalesPage = () => {
     observacion: 'Venta lubricantes'
   });
 
-  // Estados para búsqueda de clientes
   const [searchingClients, setSearchingClients] = useState(false);
   const [clients, setClients] = useState([]);
   const [clientSearchTerm, setClientSearchTerm] = useState('');
@@ -191,22 +190,26 @@ export const LubricantSalesPage = () => {
           />
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {products.filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase())).map(p => (
-            <button 
-              key={p.id} onClick={() => addToCart(p)}
-              className="bg-white p-5 rounded-[2rem] border border-slate-100 hover:border-zinc-900 transition-all text-left space-y-3 shadow-sm group"
-            >
-              <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-zinc-900 group-hover:text-white transition-colors">
-                <Package size={20} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-800 uppercase line-clamp-1">{p.nombre}</p>
-                <p className="text-[11px] font-black text-emerald-600">$ {Number(p.precio_venta).toLocaleString()}</p>
-                <p className="text-[8px] font-bold text-slate-400 uppercase">Stock: {p.stock_actual || 0}</p>
-              </div>
-            </button>
-          ))}
+        <div className="overflow-y-auto custom-scrollbar max-h-[340px] md:max-h-[480px] pr-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {products.filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase())).map(p => (
+              <button 
+                key={p.id} onClick={() => addToCart(p)}
+                className="bg-white p-4 rounded-[2rem] border border-slate-100 hover:border-zinc-900 transition-all text-left flex flex-col justify-between shadow-sm group min-h-[120px]"
+              >
+                <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-zinc-900 group-hover:text-white transition-colors mb-2">
+                  <Package size={18} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-800 uppercase line-clamp-2 leading-tight" title={p.nombre}>
+                    {p.nombre}
+                  </p>
+                  <p className="text-[11px] font-black text-emerald-600 mt-1">$ {Number(p.precio_venta).toLocaleString()}</p>
+                  <p className="text-[8px] font-bold text-slate-400 uppercase">Stock: {p.stock_actual || 0}</p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -223,7 +226,7 @@ export const LubricantSalesPage = () => {
             {cart.map(item => (
               <div key={item.id} className="flex items-center justify-between gap-4 bg-zinc-800/40 p-4 rounded-2xl border border-white/5">
                 <div className="flex-1">
-                  <p className="text-[10px] font-bold uppercase truncate">{item.nombre}</p>
+                  <p className="text-[10px] font-bold uppercase truncate" title={item.nombre}>{item.nombre}</p>
                   <p className="text-[9px] text-zinc-500 font-bold">$ {Number(item.precio_venta).toLocaleString()} + IVA</p>
                 </div>
                 <div className="flex items-center gap-3">
