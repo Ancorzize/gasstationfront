@@ -60,7 +60,7 @@ export const SaleDetailPage = () => {
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-4xl mx-auto">
-      {/* BOTONERA SUPERIOR (Se oculta al imprimir) */}
+    
       <div className="flex items-center justify-between print:hidden">
         <button 
           onClick={() => navigate('/ventas')}
@@ -76,10 +76,9 @@ export const SaleDetailPage = () => {
         </button>
       </div>
 
-      {/* CONTENEDOR TIPO FACTURA */}
+      
       <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200 shadow-sm space-y-6 print:border-none print:shadow-none print:p-0">
         
-        {/* ENCABEZADO DE LA FACTURA */}
         <div className="flex justify-between items-start border-b border-slate-100 pb-5">
           <div>
             <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight">
@@ -142,7 +141,6 @@ export const SaleDetailPage = () => {
           </div>
         </div>
 
-        {/* TABLA DE DETALLES */}
         <div className="space-y-3">
           <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Detalle de Productos</h3>
           <div className="overflow-x-auto">
@@ -212,7 +210,6 @@ export const SaleDetailPage = () => {
           )}
         </div>
 
-        {/* OBSERVACIONES */}
         {sale.observacion && (
           <div className="pt-4 border-t border-slate-100 text-xs">
             <span className="font-black text-slate-400 uppercase tracking-widest block text-[10px] mb-1">Observaciones:</span>
