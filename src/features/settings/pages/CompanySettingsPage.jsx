@@ -43,7 +43,7 @@ export const CompanySettingsPage = () => {
         const config = configRes.data;
         setFormData(prev => ({ ...prev, ...config }));
         
-        // CAMBIO: Ahora el logo viene en config.logo.src
+    
         if (config.logo?.src) {
           setPreviewUrl(config.logo.src);
         }
@@ -148,7 +148,7 @@ export const CompanySettingsPage = () => {
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
-      {/* Header, Tabs y Form igual que el código anterior... */}
+
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Configuración de Empresa</h2>
