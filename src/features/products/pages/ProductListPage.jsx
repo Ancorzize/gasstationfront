@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Search, Edit2, Power, Package, Loader2, 
   Download, Plus, Trash2 
@@ -20,10 +20,12 @@ export const ProductListPage = () => {
   
   const { showToast } = useToast();
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (searchQuery = '') => {
     setLoading(true);
     try {
-      const result = await productService.getProducts();
+      // Enviamos el parámetro 'search' al backend
+      const params = searchQuery ? { search: searchQuery } : {};
+      const result = await productService.getProducts(params);
       if (result.status) {
         setProducts(result.data.items);
       }
@@ -34,24 +36,20 @@ export const ProductListPage = () => {
     }
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchProducts(searchTerm);
+    }, 400); 
 
-  const filteredProducts = useMemo(() => {
-    const target = searchTerm.toLowerCase().trim();
-    return products.filter(p => 
-      p.nombre?.toLowerCase().includes(target) || 
-      p.codigo?.toLowerCase().includes(target) ||
-      p.marca?.nombre?.toLowerCase().includes(target) ||
-      p.categoria_producto?.nombre?.toLowerCase().includes(target)
-    );
-  }, [searchTerm, products]);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
 
   const handleToggleStatus = async (product) => {
     try {
       const result = await productService.toggleStatus(product.id, !product.is_active);
       if (result.status) {
         showToast(result.message, "success");
-        fetchProducts();
+        fetchProducts(searchTerm);
       }
     } catch (error) {
       showToast("No se pudo cambiar el estado", "error");
@@ -63,7 +61,7 @@ export const ProductListPage = () => {
       const result = await productService.deleteProduct(productToDelete.id);
       if (result.status) {
         showToast(result.message, "success");
-        fetchProducts();
+        fetchProducts(searchTerm);
         setIsConfirmOpen(false);
       }
     } catch (error) {
@@ -80,7 +78,7 @@ export const ProductListPage = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6 text-left">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
@@ -92,7 +90,7 @@ export const ProductListPage = () => {
         
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
           <button 
-            onClick={() => exportToExcel(filteredProducts, 'Inventario_LasGranjas')}
+            onClick={() => exportToExcel(products, 'Inventario_LasGranjas')}
             className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-2xl font-bold text-xs uppercase hover:bg-emerald-700 transition-all shadow-md"
           >
             <Download size={16} /> <span className="hidden sm:inline">Exportar</span>
@@ -141,7 +139,7 @@ export const ProductListPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filteredProducts.map((p) => (
+                {products.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50/50 transition-colors text-slate-600 uppercase">
                     <td className="p-4">
                       <span className="text-[10px] font-black text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
@@ -186,13 +184,20 @@ export const ProductListPage = () => {
                     </td>
                   </tr>
                 ))}
+                {products.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan="10" className="text-center py-12 text-slate-400 text-xs uppercase font-bold italic">
+                      No se encontraron productos
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           )}
         </div>
       </div>
 
-      <ProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={fetchProducts} productToEdit={selectedProduct} />
+      <ProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={() => fetchProducts(searchTerm)} productToEdit={selectedProduct} />
       
       <ConfirmModal 
         isOpen={isConfirmOpen}

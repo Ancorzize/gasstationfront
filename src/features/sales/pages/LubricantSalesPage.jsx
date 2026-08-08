@@ -13,6 +13,7 @@ export const LubricantSalesPage = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [productsLoading, setProductsLoading] = useState(false);
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -30,9 +31,14 @@ export const LubricantSalesPage = () => {
   const [showClientList, setShowClientList] = useState(false);
   const clientListRef = useRef(null);
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      const res = await productService.getProducts({ per_page: 50 });
+  // Función para cargar/buscar productos en la API
+  const loadProducts = async (searchQuery = '') => {
+    setProductsLoading(true);
+    try {
+      const params = { per_page: 50 };
+      if (searchQuery) params.search = searchQuery;
+
+      const res = await productService.getProducts(params);
       if (res.status && res.data?.items) {
         const filtered = res.data.items.filter(p => 
           p.categoria_producto?.nombre !== 'Combustible' && 
@@ -40,9 +46,22 @@ export const LubricantSalesPage = () => {
         );
         setProducts(filtered);
       }
-    };
-    loadProducts();
-  }, []);
+    } catch (e) {
+      console.error("Error cargando productos", e);
+      showToast("Error al buscar productos", "error");
+    } finally {
+      setProductsLoading(false);
+    }
+  };
+
+  // Efecto con debounce para la búsqueda de productos vía API
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadProducts(searchTerm);
+    }, 400);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
 
   useEffect(() => {
     const searchClients = async () => {
@@ -68,7 +87,6 @@ export const LubricantSalesPage = () => {
     return () => clearTimeout(timeoutId);
   }, [clientSearchTerm, showClientList]);
 
-  
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (clientListRef.current && !clientListRef.current.contains(e.target)) {
@@ -185,14 +203,18 @@ export const LubricantSalesPage = () => {
           <input 
             type="text" 
             placeholder="Buscar por nombre o código..."
-            className="w-full pl-12 pr-6 py-4 bg-white border border-slate-100 rounded-[1.5rem] text-xs font-bold outline-none focus:border-zinc-900 shadow-sm"
+            className="w-full pl-12 pr-10 py-4 bg-white border border-slate-100 rounded-[1.5rem] text-xs font-bold outline-none focus:border-zinc-900 shadow-sm uppercase"
+            value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+          {productsLoading && (
+            <Loader2 className="absolute right-4 top-4 animate-spin text-slate-400" size={18} />
+          )}
         </div>
 
         <div className="overflow-y-auto custom-scrollbar max-h-[340px] md:max-h-[480px] pr-2">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {products.filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase())).map(p => (
+            {products.map(p => (
               <button 
                 key={p.id} onClick={() => addToCart(p)}
                 className="bg-white p-4 rounded-[2rem] border border-slate-100 hover:border-zinc-900 transition-all text-left flex flex-col justify-between shadow-sm group min-h-[120px]"
@@ -209,6 +231,11 @@ export const LubricantSalesPage = () => {
                 </div>
               </button>
             ))}
+            {!productsLoading && products.length === 0 && (
+              <div className="col-span-full py-16 text-center text-slate-400 text-[10px] uppercase font-bold italic">
+                No se encontraron productos
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -278,7 +305,6 @@ export const LubricantSalesPage = () => {
               </div>
             </div>
 
-         
             {saleData.tipo_venta === 'credito' && (
               <div className="space-y-1 relative" ref={clientListRef}>
                 <label className="text-[8px] font-black text-zinc-500 uppercase ml-1">Buscar Cliente (Nit/Nombre)</label>
