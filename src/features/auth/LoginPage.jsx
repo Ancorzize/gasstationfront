@@ -13,10 +13,10 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // Estado para toda la configuración de la empresa
+
   const [companyConfig, setCompanyConfig] = useState({
     logo_url: null,
-    nombre_empresa: 'Sistema de Gestión' // Valor por defecto inicial
+    nombre_empresa: 'Sistema de Gestión' 
   });
 
   const navigate = useNavigate();
@@ -53,7 +53,13 @@ export const LoginPage = () => {
     try {
       const response = await authService.login(credentials.email, credentials.password);
       if (response.status) {
-        navigate('/dashboard');
+        const rol = response.data?.rol;
+
+        if (rol === 'islero') {
+          navigate('/operacion/turnos');
+        } else {
+          navigate('/dashboard');
+        }
       }
     } catch (err) {
       setError(err.message || "Error de autenticación");
