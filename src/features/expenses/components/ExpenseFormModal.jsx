@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowDownCircle, CreditCard, Tag, Truck, Loader2, Save, AlignLeft, Calendar, Inbox } from 'lucide-react';
+import { X, ArrowDownCircle, Tag, Truck, Loader2, Save, AlignLeft, Calendar, Inbox } from 'lucide-react';
 import { expenseService } from '../services/expenseService';
 import { supplierService } from '../../suppliers/services/supplierService';
 import { cashService } from '../../cash/services/cashService';
@@ -26,12 +26,11 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
     fecha_gasto: getLocalDateString(),
     proveedor_id: '',
     categoria_gasto_id: '',
-    destino_recaudo_id: '',
-    medio_pago: 'efectivo',
+    caja_id: '',
+    tipo_caja: '',
     valor: '',
     descripcion: ''
   });
-
 
   useEffect(() => {
     if (isOpen) {
@@ -57,21 +56,31 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
       setCajasAbiertas(cajas);
 
       const lastCajaId = localStorage.getItem('last_selected_caja_id');
-      
-      const cajaExiste = cajas.some(c => String(c.destino_recaudo_id) === String(lastCajaId));
+      const cajaEncontrada = cajas.find(c => String(c.id) === String(lastCajaId));
 
       setFormData({
         fecha_gasto: getLocalDateString(),
         proveedor_id: '',
         categoria_gasto_id: '',
-        destino_recaudo_id: cajaExiste ? lastCajaId : '', 
-        medio_pago: 'efectivo',
+        caja_id: cajaEncontrada ? cajaEncontrada.id : '',
+        tipo_caja: cajaEncontrada ? cajaEncontrada.tipo_caja : '',
         valor: '',
         descripcion: ''
       });
     } catch (e) { 
       showToast("Error al cargar opciones", "error"); 
     }
+  };
+
+  const handleCajaChange = (e) => {
+    const selectedId = e.target.value;
+    const cajaSeleccionada = cajasAbiertas.find(c => String(c.id) === String(selectedId));
+    
+    setFormData({
+      ...formData,
+      caja_id: selectedId,
+      tipo_caja: cajaSeleccionada ? cajaSeleccionada.tipo_caja : ''
+    });
   };
 
   const handleMoneyChange = (e) => {
@@ -86,11 +95,9 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
     setFormData({ ...formData, valor: rawValue });
   };
 
- 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.destino_recaudo_id) {
+    if (!formData.caja_id) {
       return showToast("Debes seleccionar una caja", "warning");
     }
     if (!formData.valor || Number(formData.valor) <= 0) {
@@ -100,9 +107,7 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
     try {
       const res = await expenseService.createExpense(formData);
       if (res.status) {
-       
-        localStorage.setItem('last_selected_caja_id', formData.destino_recaudo_id);
-        
+        localStorage.setItem('last_selected_caja_id', formData.caja_id);
         showToast("Gasto registrado correctamente", "success");
         onSave();
         onClose();
@@ -143,7 +148,7 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
             </div>
 
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 md:p-8 space-y-5 custom-scrollbar-light">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Fecha</label>
                   <div className="relative">
@@ -153,19 +158,6 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
                       value={formData.fecha_gasto} onChange={e => setFormData({...formData, fecha_gasto: e.target.value})} />
                   </div>
                 </div>
-                
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Medio de Pago</label>
-                  <div className="relative">
-                    <CreditCard className="absolute left-4 top-3.5 text-slate-300" size={16} />
-                    <select required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:border-zinc-900 focus:bg-white appearance-none transition-all"
-                      value={formData.medio_pago} onChange={e => setFormData({...formData, medio_pago: e.target.value})}>
-                      <option value="efectivo">Efectivo</option>
-                      <option value="transferencia">Transferencia</option>
-                      <option value="consignacion">Consignación</option>
-                    </select>
-                  </div>
-                </div>
               </div>
 
               <div className="space-y-1">
@@ -173,11 +165,11 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
                 <div className="relative">
                   <Inbox className="absolute left-4 top-3.5 text-slate-300" size={16} />
                   <select required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:border-zinc-900 focus:bg-white appearance-none transition-all"
-                    value={formData.destino_recaudo_id} onChange={e => setFormData({...formData, destino_recaudo_id: e.target.value})}>
+                    value={formData.caja_id} onChange={handleCajaChange}>
                     <option value="">Seleccionar caja disponible...</option>
                     {cajasAbiertas.map(c => (
-                      <option key={c.id} value={c.destino_recaudo_id}>
-                        {c.nombre} ({c.destino_recaudo?.nombre})
+                      <option key={c.id} value={c.id}>
+                        {c.nombre} ({c.destino_recaudo?.nombre}) - [{c.tipo_caja}]
                       </option>
                     ))}
                   </select>
