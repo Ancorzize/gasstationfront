@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Plus, Lock, ArrowUpCircle, ArrowDownCircle, Banknote, CreditCard, History, Loader2, Power, X, Tag } from 'lucide-react';
+import { Wallet, Plus, ArrowUpCircle, ArrowDownCircle, ArrowLeftRight, Banknote, CreditCard, History, Loader2, Power, X, Tag } from 'lucide-react';
 import { cashService } from '../services/cashService';
 import { useToast } from '../../../context/ToastContext';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { CashOpenModal } from '../components/CashOpenModal';
 import { CashCloseModal } from '../components/CashCloseModal';
+import { CashIncomeModal } from '../components/CashIncomeModal';
+import { CashWithdrawalModal } from '../components/CashWithdrawalModal';
+import { CashTransferModal } from '../components/CashTransferModal';
 import { getTodayStr } from '../../../shared/utils/dateUtils';
 
 export const CashSessionPage = () => {
@@ -16,13 +19,17 @@ export const CashSessionPage = () => {
   const [loading, setLoading] = useState(true);
   const [loadingMovements, setLoadingMovements] = useState(false);
   const [selectedCajaId, setSelectedCajaId] = useState(null);
+  
   const [isOpenModalOpen, setIsOpenModalOpen] = useState(false);
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
+  const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   
   const { hasPermission } = usePermissions();
   const { showToast } = useToast();
 
-  const loadInitialData = async () => {
+  const loadInitialData = async (cajaIdToKeep = selectedCajaId) => {
     setLoading(true);
     try {
       const res = await cashService.getCurrentCash();
@@ -30,7 +37,10 @@ export const CashSessionPage = () => {
         setCashSessions(res.data || []);
         const [sumRes, movRes] = await Promise.all([
           cashService.getSummary(),
-          cashService.getMovements({ fecha: getTodayStr() })
+          cashService.getMovements({ 
+            ...(cajaIdToKeep ? { caja_id: cajaIdToKeep } : {}),
+            fecha: getTodayStr() 
+          })
         ]);
         if (sumRes.status) setSummary(sumRes.data || []);
         if (movRes.status) setMovements(movRes.data.items || []);
@@ -49,7 +59,7 @@ export const CashSessionPage = () => {
   const handleCajaClick = async (id) => {
     if (selectedCajaId === id) {
       setSelectedCajaId(null);
-      await loadInitialData();
+      await loadInitialData(null);
     } else {
       setSelectedCajaId(id);
       setLoadingMovements(true);
@@ -77,23 +87,36 @@ export const CashSessionPage = () => {
 
   return (
     <div className="p-4 md:p-8 space-y-6">
-      <header className="flex justify-between items-center">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h2 className="text-2xl font-black text-slate-800 uppercase flex items-center gap-3">
           <Wallet className={isCashOpen ? "text-emerald-500" : "text-slate-300"} size={28} /> Control de Caja
         </h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {isCashOpen && (
+            <>
+              <button onClick={() => setIsIncomeModalOpen(true)} className="px-4 py-3 bg-emerald-50 text-emerald-700 rounded-2xl font-black text-[10px] uppercase hover:bg-emerald-100 shadow-sm flex items-center gap-1">
+                <ArrowUpCircle size={16} /> Ingreso
+              </button>
+              <button onClick={() => setIsWithdrawalModalOpen(true)} className="px-4 py-3 bg-rose-50 text-rose-700 rounded-2xl font-black text-[10px] uppercase hover:bg-rose-100 shadow-sm flex items-center gap-1">
+                <ArrowDownCircle size={16} /> Retiro
+              </button>
+              <button onClick={() => setIsTransferModalOpen(true)} className="px-4 py-3 bg-blue-50 text-blue-700 rounded-2xl font-black text-[10px] uppercase hover:bg-blue-100 shadow-sm flex items-center gap-1">
+                <ArrowLeftRight size={16} /> Transferencia
+              </button>
+            </>
+          )}
           {hasPermission('ver_caja') && (
-            <button onClick={() => navigate('/caja/historico')} className="px-5 py-3 bg-white border border-slate-200 rounded-2xl font-black text-[10px] uppercase hover:bg-slate-50 shadow-sm">
+            <button onClick={() => navigate('/caja/historico')} className="px-4 py-3 bg-white border border-slate-200 rounded-2xl font-black text-[10px] uppercase hover:bg-slate-50 shadow-sm">
               <History size={16} />
             </button>
           )}
           {hasPermission('abrir_caja') && (
-            <button onClick={() => setIsOpenModalOpen(true)} className="px-5 py-3 bg-zinc-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black shadow-lg">
+            <button onClick={() => setIsOpenModalOpen(true)} className="px-4 py-3 bg-zinc-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black shadow-lg">
               <Plus size={16} /> Nueva Caja
             </button>
           )}
           {isCashOpen && hasPermission('cerrar_caja') && (
-            <button onClick={() => setIsCloseModalOpen(true)} className="px-5 py-3 bg-red-50 text-red-600 rounded-2xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all shadow-sm">
+            <button onClick={() => setIsCloseModalOpen(true)} className="px-4 py-3 bg-red-50 text-red-600 rounded-2xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all shadow-sm">
               <Power size={16} /> Cerrar Cajas
             </button>
           )}
@@ -183,8 +206,12 @@ export const CashSessionPage = () => {
         )}
       </div>
 
-      <CashOpenModal isOpen={isOpenModalOpen} onClose={() => setIsOpenModalOpen(false)} onSave={loadInitialData} />
-      <CashCloseModal isOpen={isCloseModalOpen} onClose={() => setIsCloseModalOpen(false)} summary={summary} onSave={loadInitialData} />
+      <CashOpenModal isOpen={isOpenModalOpen} onClose={() => setIsOpenModalOpen(false)} onSave={() => loadInitialData()} />
+      <CashCloseModal isOpen={isCloseModalOpen} onClose={() => setIsCloseModalOpen(false)} summary={summary} onSave={() => loadInitialData()} />
+      
+      <CashIncomeModal isOpen={isIncomeModalOpen} onClose={() => setIsIncomeModalOpen(false)} cashSessions={cashSessions} summary={summary} onSave={() => loadInitialData()} />
+      <CashWithdrawalModal isOpen={isWithdrawalModalOpen} onClose={() => setIsWithdrawalModalOpen(false)} cashSessions={cashSessions} summary={summary} onSave={() => loadInitialData()} />
+      <CashTransferModal isOpen={isTransferModalOpen} onClose={() => setIsTransferModalOpen(false)} cashSessions={cashSessions} summary={summary} onSave={() => loadInitialData()} />
     </div>
   );
 };

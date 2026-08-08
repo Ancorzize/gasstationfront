@@ -39,6 +39,33 @@ export const cashService = {
     return res.json();
   },
 
+  registerIncome: async (data) => {
+    const res = await fetch(`${API_URL}/caja/ingresos`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  },
+
+  registerWithdrawal: async (data) => {
+    const res = await fetch(`${API_URL}/caja/retiros`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  },
+
+  registerTransfer: async (data) => {
+    const res = await fetch(`${API_URL}/caja/transferencias`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  },
+
   getSummary: async () => {
     const res = await fetch(`${API_URL}/caja/resumen`, { headers: getHeaders() });
     return res.json();
@@ -58,12 +85,14 @@ export const cashService = {
     const res = await fetch(`${API_URL}/caja/historico?${query}`, { headers: getHeaders() });
     return res.json();
   },
+
   getDestinosRecaudo: async (isActive = true) => {
     const res = await fetch(`${API_URL}/destinos-recaudo?is_active=${isActive}`, { 
       headers: getHeaders() 
     });
     return res.json();
   },
+
   getSuggestedOpenings: async () => {
     const res = await fetch(`${API_URL}/caja/sugerencias-apertura`, { headers: getHeaders() });
     return res.json();
