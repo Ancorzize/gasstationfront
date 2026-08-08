@@ -31,23 +31,14 @@ export const StockStatusPage = () => {
     fetchWarehouses();
   }, []);
 
-  useEffect(() => {
-    if (selectedWarehouse) fetchStock();
-    else setStock([]);
-  }, [selectedWarehouse]);
-
-  useEffect(() => {
-    if (location.state?.bodega_id) {
-      setSelectedWarehouse(location.state.bodega_id.toString());
-
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
-
-  const fetchStock = async () => {
+  const fetchStock = async (searchQuery = '') => {
+    if (!selectedWarehouse) return;
     setLoading(true);
     try {
-      const res = await inventoryService.getStock({ bodega_id: selectedWarehouse });
+      const params = { bodega_id: selectedWarehouse };
+      if (searchQuery) params.search = searchQuery;
+
+      const res = await inventoryService.getStock(params);
       if (res.status) setStock(res.data.items || []);
     } catch (e) {
       showToast("Error al cargar existencias", "error");
@@ -56,17 +47,38 @@ export const StockStatusPage = () => {
     }
   };
 
-  const filteredStock = stock.filter(item => 
-    item.producto?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.producto?.codigo?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    if (selectedWarehouse) {
+      setSearchTerm('');
+      fetchStock('');
+    } else {
+      setStock([]);
+    }
+  }, [selectedWarehouse]);
+
+  useEffect(() => {
+    if (!selectedWarehouse) return;
+
+    const timeoutId = setTimeout(() => {
+      fetchStock(searchTerm);
+    }, 400);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (location.state?.bodega_id) {
+      setSelectedWarehouse(location.state.bodega_id.toString());
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const exportToExcel = () => {
-    if (filteredStock.length === 0) return showToast("No hay datos para exportar", "error");
+    if (stock.length === 0) return showToast("No hay datos para exportar", "error");
     
     const bodegaNombre = warehouses.find(w => w.id.toString() === selectedWarehouse)?.nombre || 'Bodega';
 
-    const dataToExport = filteredStock.map(item => ({
+    const dataToExport = stock.map(item => ({
       'CÓDIGO': item.producto?.codigo,
       'NOMBRE': item.producto?.nombre,
       'MARCA': item.producto?.marca?.nombre || 'N/A',
@@ -153,8 +165,8 @@ export const StockStatusPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filteredStock.length > 0 ? (
-                  filteredStock.map((item, idx) => {
+                {stock.length > 0 ? (
+                  stock.map((item, idx) => {
                     const isLow = parseFloat(item.cantidad) <= 10;
                     return (
                       <tr key={idx} className="hover:bg-slate-50/30 transition-colors group">
