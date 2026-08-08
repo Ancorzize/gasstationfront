@@ -42,7 +42,7 @@ export const ShiftManagementPage = () => {
   return (
     <div className="p-3 md:p-8 space-y-6 max-w-6xl mx-auto pb-24">
       <header className="px-1">
-        <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tight">Operación de Islero</h2>
+        <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tight">Operación de Turno</h2>
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gestión de turnos y lecturas</p>
       </header>
 

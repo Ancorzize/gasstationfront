@@ -22,7 +22,7 @@ const menuGroups = [
   {
     title: "Operación",
     items: [
-      { icon: Play, label: 'Turnos Islero', permission: 'ver_turnos_islero', path: '/operacion/turnos' },
+      { icon: Play, label: 'Turnos', permission: 'ver_turnos_islero', path: '/operacion/turnos' },
       { icon: Fuel, label: 'Ventas Combustible', permission: 'crear_ventas', path: '/ventas/nueva' },
       { icon: Package, label: 'Ventas Lubricantes', permission: 'crear_ventas', path: '/ventas/lubricantes' },
       { icon: ShoppingBag, label: 'Ventas Realizadas', permission: 'ver_ventas', path: '/ventas' },
