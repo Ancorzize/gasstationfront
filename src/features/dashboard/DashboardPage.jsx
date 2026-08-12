@@ -72,7 +72,7 @@ export const DashboardPage = () => {
     <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{titulo}</p>
       <h4 className="text-2xl font-black text-zinc-900 mt-2">
-        {typeof data?.valor === 'number' ? `$ ${data.valor.toLocaleString('es-CO')}` : data?.valor}
+        {typeof data?.valor === 'number' ? ` ${data.valor.toLocaleString('es-CO')}` : data?.valor}
       </h4>
     </div>
   );

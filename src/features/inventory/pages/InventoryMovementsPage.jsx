@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { 
   ArrowLeftRight, Search, Loader2, 
-  FileSpreadsheet, History 
+  FileSpreadsheet, History, Layers3 // Agregué Layers3 para el botón de masivo
 } from 'lucide-react';
 import { inventoryService } from '../services/inventoryService';
 import { ImportInventoryModal } from '../components/ImportInventoryModal';
 import { TransferModal } from '../components/TransferModal'; 
+// Asumiendo que crearás un TransferBulkModal o ajustarás el actual
+import { TransferBulkModal } from '../components/TransferBulkModal'; 
 import { useToast } from '../../../context/ToastContext';
 
 export const InventoryMovementsPage = () => {
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [isTransferOpen, setIsTransferOpen] = useState(false); // Estado para controlar el modal
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [isBulkTransferOpen, setIsBulkTransferOpen] = useState(false); // Nuevo estado
   const { showToast } = useToast();
 
   const fetchMovements = async () => {
@@ -40,6 +43,7 @@ export const InventoryMovementsPage = () => {
         </div>
 
         <div className="flex flex-wrap gap-3">
+          {/* Botón Importar */}
           <button 
             onClick={() => setIsImportOpen(true)} 
             className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"
@@ -47,7 +51,15 @@ export const InventoryMovementsPage = () => {
             <FileSpreadsheet size={16} /> Importar Excel
           </button>
           
-          {/* BOTÓN ACTIVADO */}
+          {/* Botón Traslado Masivo (NUEVO) */}
+          <button 
+            onClick={() => setIsBulkTransferOpen(true)} 
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-blue-700 transition-all shadow-xl shadow-blue-100"
+          >
+            <Layers3 size={16} /> Traslado Masivo
+          </button>
+
+          {/* Botón Traslado Individual */}
           <button 
             onClick={() => setIsTransferOpen(true)} 
             className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200"
@@ -145,6 +157,13 @@ export const InventoryMovementsPage = () => {
       <TransferModal 
         isOpen={isTransferOpen} 
         onClose={() => setIsTransferOpen(false)} 
+        onSave={fetchMovements} 
+      />
+
+      {/* Modal para Traslado Masivo */}
+      <TransferBulkModal 
+        isOpen={isBulkTransferOpen} 
+        onClose={() => setIsBulkTransferOpen(false)} 
         onSave={fetchMovements} 
       />
     </div>

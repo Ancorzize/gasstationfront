@@ -46,5 +46,13 @@ export const inventoryService = {
       }
     });
     return res.json();
-  }
+  },
+  createTransferBulk: async (data) => {
+    const res = await fetch(`${API_URL}/movimientos-inventario/masivo`, {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  },
 };

@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import AsyncSelect from 'react-select/async';
+import debounce from 'lodash/debounce';
 import { 
   X, ArrowLeftRight, Package, Home, 
-  Info, Loader2, AlertTriangle, CheckCircle 
+  Loader2, CheckCircle 
 } from 'lucide-react';
 import { inventoryService } from '../services/inventoryService';
 import { warehouseService } from '../../warehouses/services/warehouseService';
@@ -18,7 +20,7 @@ export const TransferModal = ({ isOpen, onClose, onSave }) => {
     observacion: ''
   });
 
-  const [products, setProducts] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -26,34 +28,50 @@ export const TransferModal = ({ isOpen, onClose, onSave }) => {
 
   useEffect(() => {
     if (isOpen) {
-      loadInitialData();
-      setFormData({
-        producto_id: '', bodega_origen_id: '', bodega_destino_id: '',
-        cantidad: '', observacion: ''
-      });
+      loadWarehouses();
+      setFormData({ producto_id: '', bodega_origen_id: '', bodega_destino_id: '', cantidad: '', observacion: '' });
+      setSelectedProduct(null);
     }
   }, [isOpen]);
 
-  const loadInitialData = async () => {
+  const loadWarehouses = async () => {
     setLoading(true);
     try {
-      const [prodRes, warRes] = await Promise.all([
-        productService.getProducts({ per_page: 100 }),
-        warehouseService.getWarehouses()
-      ]);
-      setProducts(prodRes.data?.items || []);
+      const warRes = await warehouseService.getWarehouses();
       setWarehouses(warRes.data?.items || []);
     } catch (error) {
-      showToast("Error al cargar datos necesarios", "error");
+      showToast("Error al cargar bodegas", "error");
     } finally {
       setLoading(false);
     }
   };
 
+  // Función ajustada a tu estructura de API
+  const loadOptions = async (inputValue) => {
+    if (!inputValue || inputValue.length < 2) return [];
+    
+    try {
+      const res = await productService.getProducts({ search: inputValue, per_page: 10 });
+      // Mapeo correcto basado en el JSON que enviaste
+      return (res.data?.items || []).map(p => ({
+        value: p.id,
+        label: `${p.codigo} - ${p.nombre}`
+      }));
+    } catch (error) {
+      console.error("Error buscando productos:", error);
+      return [];
+    }
+  };
+
+  const debouncedLoadOptions = useCallback(
+    debounce((inputValue, callback) => {
+      loadOptions(inputValue).then(callback);
+    }, 500),
+    []
+  );
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validación básica en frontend
     if (formData.bodega_origen_id === formData.bodega_destino_id) {
       return showToast("La bodega destino debe ser diferente al origen", "error");
     }
@@ -63,7 +81,7 @@ export const TransferModal = ({ isOpen, onClose, onSave }) => {
       const res = await inventoryService.createTransfer(formData);
       if (res.status) {
         showToast(res.message, "success");
-        onSave(); // Refrescar lista de movimientos
+        onSave();
         onClose();
       } else {
         showToast(res.message, "error");
@@ -86,7 +104,6 @@ export const TransferModal = ({ isOpen, onClose, onSave }) => {
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             className="relative bg-white w-full h-full md:h-auto md:max-w-xl md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden"
           >
-            {/* Header */}
             <div className="p-6 border-b flex justify-between items-center bg-white sticky top-0 z-10">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-zinc-900 text-white flex items-center justify-center shadow-lg shadow-zinc-200">
@@ -94,7 +111,6 @@ export const TransferModal = ({ isOpen, onClose, onSave }) => {
                 </div>
                 <div>
                   <h3 className="font-black text-slate-800 text-sm uppercase">Registrar Traslado</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Movimiento interno de productos</p>
                 </div>
               </div>
               <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors">
@@ -102,95 +118,65 @@ export const TransferModal = ({ isOpen, onClose, onSave }) => {
               </button>
             </div>
 
-            {loading ? (
-              <div className="p-20 flex flex-col items-center justify-center gap-4 text-slate-300">
-                <Loader2 className="animate-spin" size={40} />
-                <p className="text-[10px] font-black uppercase tracking-widest">Cargando existencias...</p>
+            <form onSubmit={handleSubmit} className="p-8 space-y-6">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Producto</label>
+                <div className="relative">
+                  <Package className="absolute left-4 top-3.5 text-slate-300 z-10" size={16} />
+                  <AsyncSelect
+                    cacheOptions
+                    loadOptions={debouncedLoadOptions}
+                    placeholder="Buscar por código o nombre..."
+                    value={selectedProduct}
+                    onChange={(option) => {
+                      setSelectedProduct(option);
+                      setFormData({...formData, producto_id: option?.value || ''});
+                    }}
+                    styles={{
+                      control: (base) => ({ 
+                        ...base, 
+                        paddingLeft: '32px', 
+                        borderRadius: '1rem', 
+                        backgroundColor: '#f8fafc', 
+                        borderColor: '#f1f5f9',
+                        paddingTop: '4px',
+                        paddingBottom: '4px'
+                      })
+                    }}
+                  />
+                </div>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto custom-scrollbar-light">
-                
-                {/* Selector de Producto */}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Producto a trasladar</label>
-                  <div className="relative">
-                    <Package className="absolute left-4 top-3.5 text-slate-300" size={16} />
-                    <select 
-                      required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:border-zinc-900 appearance-none"
-                      value={formData.producto_id} onChange={e => setFormData({...formData, producto_id: e.target.value})}>
-                      <option value="">Seleccione un producto...</option>
-                      {products.map(p => <option key={p.id} value={p.id}>{p.codigo} - {p.nombre}</option>)}
-                    </select>
-                  </div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Bodega Origen</label>
+                  <select required className="w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none"
+                    value={formData.bodega_origen_id} onChange={e => setFormData({...formData, bodega_origen_id: e.target.value})}>
+                    <option value="">Seleccione...</option>
+                    {warehouses.map(w => <option key={w.id} value={w.id}>{w.nombre}</option>)}
+                  </select>
                 </div>
-
-                {/* Bodegas */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Bodega Origen</label>
-                    <div className="relative">
-                      <Home className="absolute left-4 top-3.5 text-slate-300" size={16} />
-                      <select 
-                        required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:border-zinc-900 appearance-none"
-                        value={formData.bodega_origen_id} onChange={e => setFormData({...formData, bodega_origen_id: e.target.value})}>
-                        <option value="">Origen...</option>
-                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.nombre}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Bodega Destino</label>
-                    <div className="relative">
-                      <Home className="absolute left-4 top-3.5 text-slate-300" size={16} />
-                      <select 
-                        required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:border-zinc-900 appearance-none"
-                        value={formData.bodega_destino_id} onChange={e => setFormData({...formData, bodega_destino_id: e.target.value})}>
-                        <option value="">Destino...</option>
-                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.nombre}</option>)}
-                      </select>
-                    </div>
-                  </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Bodega Destino</label>
+                  <select required className="w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none"
+                    value={formData.bodega_destino_id} onChange={e => setFormData({...formData, bodega_destino_id: e.target.value})}>
+                    <option value="">Seleccione...</option>
+                    {warehouses.map(w => <option key={w.id} value={w.id}>{w.nombre}</option>)}
+                  </select>
                 </div>
+              </div>
 
-                {/* Cantidad y Observación */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                  <div className="space-y-1.5 md:col-span-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Cantidad</label>
-                    <input 
-                      required type="number" step="any" min="0.01" 
-                      className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:border-zinc-900 outline-none"
-                      value={formData.cantidad} onChange={e => setFormData({...formData, cantidad: e.target.value})} placeholder="0.00" />
-                  </div>
-                  <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Observación</label>
-                    <input 
-                      className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:border-zinc-900 outline-none"
-                      value={formData.observacion} onChange={e => setFormData({...formData, observacion: e.target.value})} placeholder="Ej: Traslado por falta de stock..." />
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input required type="number" step="any" className="md:col-span-1 w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm"
+                  value={formData.cantidad} onChange={e => setFormData({...formData, cantidad: e.target.value})} placeholder="Cantidad" />
+                <input className="md:col-span-2 w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm"
+                  value={formData.observacion} onChange={e => setFormData({...formData, observacion: e.target.value})} placeholder="Observación..." />
+              </div>
 
-                {formData.bodega_origen_id && formData.bodega_origen_id === formData.bodega_destino_id && (
-                  <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-center gap-3 text-orange-700 animate-pulse">
-                    <AlertTriangle size={18} />
-                    <p className="text-[10px] font-black uppercase">¡Error! Las bodegas no pueden ser iguales.</p>
-                  </div>
-                )}
-
-                {/* Botones */}
-                <div className="pt-4 flex gap-3">
-                  <button type="button" onClick={onClose} className="flex-1 py-4 rounded-2xl border border-slate-100 text-slate-400 font-black text-[10px] uppercase hover:bg-slate-50 transition-all">
-                    Descartar
-                  </button>
-                  <button 
-                    type="submit" disabled={submitting || (formData.bodega_origen_id === formData.bodega_destino_id)}
-                    className="flex-1 py-4 rounded-2xl bg-zinc-900 text-white font-black text-[10px] uppercase hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200 disabled:opacity-50"
-                  >
-                    {submitting ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />}
-                    Confirmar Traslado
-                  </button>
-                </div>
-              </form>
-            )}
+              <button type="submit" disabled={submitting} className="w-full py-4 rounded-2xl bg-zinc-900 text-white font-black text-[10px] uppercase transition-all hover:bg-black disabled:opacity-50">
+                {submitting ? <Loader2 className="animate-spin mx-auto" size={16} /> : "Confirmar Traslado"}
+              </button>
+            </form>
           </motion.div>
         </div>
       )}
