@@ -36,5 +36,24 @@ export const salesService = {
       console.error(`Error fetching sale ${id}:`, error);
       throw error;
     }
+  },
+  anularSale: async (id, motivo) => {
+    try {
+      const response = await fetch(`${API_URL}/ventas/${id}/anular`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ motivo_anulacion: motivo })
+      });
+      const data = await response.json();
+      
+      if (response.status === 403) {
+        throw new Error("No tienes permisos para anular ventas.");
+      }
+      
+      return data;
+    } catch (error) {
+      console.error(`Error al anular venta ${id}:`, error);
+      throw error;
+    }
   }
 };
