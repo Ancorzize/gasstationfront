@@ -34,5 +34,19 @@ export const portfolioService = {
       })
     });
     return res.json();
+  },
+
+  createInitialDebt: async (data) => {
+    const res = await fetch(`${API_URL}/cartera/saldos-iniciales`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        cliente_id: data.cliente_id,
+        fecha_documento: data.fecha_documento,
+        valor: data.valor,
+        observacion: data.observacion
+      })
+    });
+    return res.json();
   }
 };
