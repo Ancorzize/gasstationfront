@@ -7,7 +7,7 @@ import {
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
 import { getTodayStr } from '../../../shared/utils/dateUtils';
-import { ShiftReadingsModal } from '../components/ShiftReadingsModal'; // Importamos el modal independiente
+import { ShiftReadingsModal } from '../components/ShiftReadingsModal'; 
 
 export const ShiftHistoryPage = () => {
   const navigate = useNavigate();

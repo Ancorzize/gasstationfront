@@ -111,7 +111,7 @@ export const ShiftClosingPage = () => {
         <header className="flex items-center justify-between">
           <button onClick={() => navigate(-1)} className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-zinc-900 shadow-sm"><ArrowLeft size={20} /></button>
           <div className="text-right">
-            <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tight">Cierre de Turno</h2>
+            <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tight">Cierre de Turno2</h2>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estación: {summary.turno?.estacion?.nombre}</p>
           </div>
         </header>
