@@ -104,11 +104,19 @@ export const LubricantSalesPage = () => {
   };
 
   const addToCart = (product) => {
+    const stockAvailable = Number(product.stock_actual ?? product.stock ?? 0);
     const exists = cart.find(item => item.id === product.id);
+    const currentQty = exists ? exists.cantidad : 0;
+
+    if (currentQty + 1 > stockAvailable) {
+      showToast("No hay suficiente stock disponible", "error");
+      return;
+    }
+
     if (exists) {
       setCart(cart.map(item => item.id === product.id ? { ...item, cantidad: item.cantidad + 1 } : item));
     } else {
-      setCart([...cart, { ...product, cantidad: 1 }]);
+      setCart([...cart, { ...product, cantidad: 1, stock_actual: stockAvailable }]);
     }
   };
 
@@ -116,6 +124,13 @@ export const LubricantSalesPage = () => {
     setCart(cart.map(item => {
       if (item.id === id) {
         const newQty = item.cantidad + delta;
+        const stockAvailable = Number(item.stock_actual ?? item.stock ?? 0);
+
+        if (delta > 0 && newQty > stockAvailable) {
+          showToast("Stock máximo alcanzado", "error");
+          return item;
+        }
+
         return { ...item, cantidad: newQty > 0 ? newQty : 1 };
       }
       return item;
@@ -214,23 +229,31 @@ export const LubricantSalesPage = () => {
 
         <div className="overflow-y-auto custom-scrollbar max-h-[340px] md:max-h-[480px] pr-2">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {products.map(p => (
-              <button 
-                key={p.id} onClick={() => addToCart(p)}
-                className="bg-white p-4 rounded-[2rem] border border-slate-100 hover:border-zinc-900 transition-all text-left flex flex-col justify-between shadow-sm group min-h-[120px]"
-              >
-                <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-zinc-900 group-hover:text-white transition-colors mb-2">
-                  <Package size={18} />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-slate-800 uppercase line-clamp-2 leading-tight" title={p.nombre}>
-                    {p.nombre}
-                  </p>
-                  <p className="text-[11px] font-black text-emerald-600 mt-1">$ {Number(p.precio_venta).toLocaleString()}</p>
-                  <p className="text-[8px] font-bold text-slate-400 uppercase">Stock: {p.stock_actual || 0}</p>
-                </div>
-              </button>
-            ))}
+            {products.map(p => {
+              const stockDisponible = Number(p.stock_actual ?? p.stock ?? 0);
+              return (
+                <button 
+                  key={p.id} 
+                  onClick={() => addToCart(p)}
+                  className="bg-white p-4 rounded-[2rem] border border-slate-100 hover:border-zinc-900 transition-all text-left flex flex-col justify-between shadow-sm group min-h-[120px]"
+                >
+                  <div className="flex items-center justify-between w-full mb-2">
+                    <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-zinc-900 group-hover:text-white transition-colors">
+                      <Package size={18} />
+                    </div>
+                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${stockDisponible > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
+                      Stock: {stockDisponible}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-800 uppercase line-clamp-2 leading-tight" title={p.nombre}>
+                      {p.nombre}
+                    </p>
+                    <p className="text-[11px] font-black text-emerald-600 mt-1">$ {Number(p.precio_venta).toLocaleString()}</p>
+                  </div>
+                </button>
+              );
+            })}
             {!productsLoading && products.length === 0 && (
               <div className="col-span-full py-16 text-center text-slate-400 text-[10px] uppercase font-bold italic">
                 No se encontraron productos
@@ -250,20 +273,26 @@ export const LubricantSalesPage = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-2">
-            {cart.map(item => (
-              <div key={item.id} className="flex items-center justify-between gap-4 bg-zinc-800/40 p-4 rounded-2xl border border-white/5">
-                <div className="flex-1">
-                  <p className="text-[10px] font-bold uppercase truncate" title={item.nombre}>{item.nombre}</p>
-                  <p className="text-[9px] text-zinc-500 font-bold">$ {Number(item.precio_venta).toLocaleString()} + IVA</p>
+            {cart.map(item => {
+              const stockDisponible = Number(item.stock_actual ?? item.stock ?? 0);
+              return (
+                <div key={item.id} className="flex items-center justify-between gap-4 bg-zinc-800/40 p-4 rounded-2xl border border-white/5">
+                  <div className="flex-1">
+                    <p className="text-[10px] font-bold uppercase truncate" title={item.nombre}>{item.nombre}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-[9px] text-zinc-400 font-bold">$ {Number(item.precio_venta).toLocaleString()} + IVA</p>
+                      <span className="text-[8px] text-zinc-500 font-semibold">(Stock: {stockDisponible})</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:text-yellow-500"><Minus size={14}/></button>
+                    <span className="text-xs font-black w-4 text-center">{item.cantidad}</span>
+                    <button onClick={() => updateQuantity(item.id, 1)} className="p-1 hover:text-yellow-500"><Plus size={14}/></button>
+                    <button onClick={() => removeFromCart(item.id)} className="ml-2 text-zinc-600 hover:text-red-400 transition-colors"><Trash2 size={16}/></button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:text-yellow-500"><Minus size={14}/></button>
-                  <span className="text-xs font-black w-4 text-center">{item.cantidad}</span>
-                  <button onClick={() => updateQuantity(item.id, 1)} className="p-1 hover:text-yellow-500"><Plus size={14}/></button>
-                  <button onClick={() => removeFromCart(item.id)} className="ml-2 text-zinc-600 hover:text-red-400 transition-colors"><Trash2 size={16}/></button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {cart.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 text-zinc-600">
                 <Package size={40} className="mb-2 opacity-20" />

@@ -76,7 +76,6 @@ export const SaleDetailPage = () => {
         </button>
       </div>
 
-      
       <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200 shadow-sm space-y-6 print:border-none print:shadow-none print:p-0">
         
         <div className="flex justify-between items-start border-b border-slate-100 pb-5">
@@ -104,7 +103,7 @@ export const SaleDetailPage = () => {
           </div>
         </div>
 
-        {/* BLOQUE DE DATOS GENERALES (Compacto en grid de 2 columnas) */}
+        {/* BLOQUE DE DATOS GENERALES */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/60 p-4 rounded-2xl border border-slate-100 text-xs">
           <div className="space-y-1.5">
             <div className="flex justify-between">
@@ -214,6 +213,74 @@ export const SaleDetailPage = () => {
           <div className="pt-4 border-t border-slate-100 text-xs">
             <span className="font-black text-slate-400 uppercase tracking-widest block text-[10px] mb-1">Observaciones:</span>
             <p className="font-bold text-slate-700">{sale.observacion}</p>
+          </div>
+        )}
+
+        {/* --- SECCIÓN CONDICIONAL: HISTORIAL DE PAGOS --- */}
+        {sale.pagos && sale.pagos.length > 0 && (
+          <div className="pt-4 border-t border-slate-200 space-y-3">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Historial de Pagos</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase">Fecha</th>
+                    <th className="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase">Método</th>
+                    <th className="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase">Caja</th>
+                    <th className="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase">Usuario</th>
+                    <th className="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase text-right">Monto</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {sale.pagos.map((pago) => (
+                    <tr key={pago.id}>
+                      <td className="py-3 px-3 text-slate-700">
+                        {new Date(pago.fecha_pago).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-3 capitalize text-slate-700 font-bold">{pago.metodo_pago}</td>
+                      <td className="py-3 px-3 text-slate-600 uppercase">{pago.caja?.tipo_caja || 'N/A'}</td>
+                      <td className="py-3 px-3 text-slate-600 uppercase">{pago.usuario?.name}</td>
+                      <td className="py-3 px-3 text-right font-black text-zinc-900">
+                        $ {parseFloat(pago.monto || 0).toLocaleString('es-CO')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* --- SECCIÓN CONDICIONAL: ABONOS DE CARTERA --- */}
+        {sale.abonos_cartera && sale.abonos_cartera.length > 0 && (
+          <div className="pt-4 border-t border-slate-200 space-y-3">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Abonos a Cartera</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase">Fecha de Abono</th>
+                    <th className="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase">Medio de Pago</th>
+                    <th className="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase">Registrado por</th>
+                    <th className="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase text-right">Valor Aplicado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {sale.abonos_cartera.map((abono) => (
+                    <tr key={abono.id}>
+                      <td className="py-3 px-3 text-slate-700">
+                        {new Date(abono.fecha_abono).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-3 capitalize text-slate-700 font-bold">{abono.medio_pago}</td>
+                      <td className="py-3 px-3 text-slate-600 uppercase">{abono.usuario?.name}</td>
+                      <td className="py-3 px-3 text-right font-black text-emerald-600">
+                        $ {parseFloat(abono.valor_aplicado || 0).toLocaleString('es-CO')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

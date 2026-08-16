@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, User, Mail, Lock, Shield } from 'lucide-react';
+import { X, Save, User, Mail, Lock, Shield, Warehouse } from 'lucide-react';
 import { userService } from '../services/userService';
 import { useToast } from '../../../context/ToastContext';
 import { warehouseService } from '../../warehouses/services/warehouseService';
 
 export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
   const [roles, setRoles] = useState([]);
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', role: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', role: '', bodega_id: null });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { showToast } = useToast();
@@ -43,16 +43,12 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
   };
 
   const fetchWarehouses = async () => {
-    const res = await warehouseService.getWarehouses();
-    setWarehouses(res.data?.items || []);
-  };
-
-  const handleRoleChange = (newRole) => {
-    setFormData(prev => ({
-      ...prev,
-      role: newRole,
-      bodega_id: newRole === 'ISLERO' ? prev.bodega_id : null
-    }));
+    try {
+      const res = await warehouseService.getWarehouses();
+      setWarehouses(res.data?.items || []);
+    } catch (err) {
+      console.error("Error al cargar bodegas");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -73,7 +69,6 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
         onSave(); 
         onClose(); 
       } else {
-       
         const errorMsg = result.message || "Error en la operación";
         setError(errorMsg);
         showToast(errorMsg, "error");
@@ -86,11 +81,10 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
     }
   };
 
- return (
+  return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-         
           <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
@@ -99,14 +93,12 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
             className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
           />
 
-       
           <motion.div 
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200"
+            className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200 text-left"
           >
-         
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-tight">
                 <User size={18} className="text-yellow-500" /> 
@@ -117,7 +109,6 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
               </button>
             </div>
 
-          
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {error && (
                 <motion.div 
@@ -129,21 +120,19 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
                 </motion.div>
               )}
 
-            
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre Completo</label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 text-slate-400" size={16} />
                   <input 
                     required 
-                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-yellow-500 transition-all" 
+                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-yellow-500 transition-all uppercase" 
                     value={formData.name} 
                     onChange={e => setFormData({...formData, name: e.target.value})} 
                   />
                 </div>
               </div>
 
-           
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Correo Electrónico</label>
                 <div className="relative">
@@ -157,7 +146,6 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
                   />
                 </div>
               </div>
-
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
@@ -175,16 +163,15 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
                   </div>
                 </div>
                 
-                {/* Rol */}
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Rol</label>
                   <div className="relative">
                     <Shield className="absolute left-3 top-3 text-slate-400" size={16} />
                     <select 
                       required 
-                      className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-yellow-500 transition-all appearance-none cursor-pointer" 
+                      className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-yellow-500 transition-all appearance-none cursor-pointer uppercase" 
                       value={formData.role} 
-                      onChange={e => handleRoleChange(e.target.value)}
+                      onChange={e => setFormData({...formData, role: e.target.value})}
                     >
                       <option value="">Seleccionar...</option>
                       {roles.map(r => <option key={r.id} value={r.name}>{r.name.toUpperCase()}</option>)}
@@ -193,29 +180,24 @@ export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
                 </div>
               </div>
 
-           
-              {roles.find(r => r.name === 'islero' && r.name === formData.role) && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }} 
-                  animate={{ opacity: 1, height: 'auto' }} 
-                  className="space-y-1"
-                >
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Asignar Bodega *</label>
+              {/* Selector de Bodega disponible para cualquier rol, opcional u obligatorio según requieras */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Asignar Bodega (Opcional)</label>
+                <div className="relative">
+                  <Warehouse className="absolute left-3 top-3 text-slate-400" size={16} />
                   <select 
-                    required
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-yellow-500 transition-all"
+                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-yellow-500 transition-all appearance-none cursor-pointer uppercase"
                     value={formData.bodega_id || ""}
-                    onChange={e => setFormData({...formData, bodega_id: e.target.value})}
+                    onChange={e => setFormData({...formData, bodega_id: e.target.value ? Number(e.target.value) : null})}
                   >
-                    <option value="">Seleccionar bodega...</option>
+                    <option value="">Sin bodega asignada</option>
                     {warehouses.map(b => (
                       <option key={b.id} value={b.id}>{b.nombre}</option>
                     ))}
                   </select>
-                </motion.div>
-              )}
+                </div>
+              </div>
 
-           
               <div className="pt-4 flex gap-3">
                 <button 
                   type="button" 

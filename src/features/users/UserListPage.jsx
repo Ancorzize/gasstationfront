@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { userService } from './services/userService';
-import { Plus, Edit2, Trash2, Power, Shield, Loader2, UserCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Power, Shield, Loader2, UserCircle, Warehouse } from 'lucide-react';
 import { UserModal } from './components/UserModal';
 import { useToast } from '../../context/ToastContext';
 import { ConfirmModal } from '../../shared/components/ConfirmModal';
@@ -84,14 +84,14 @@ export const UserListPage = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6 text-left">
       {/* Header unificado con los demás módulos */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">
             Administración de Usuarios
           </h2>
-          <p className="text-slate-500 text-xs md:text-sm">Gestiona el personal y sus niveles de acceso.</p>
+          <p className="text-slate-500 text-xs md:text-sm">Gestiona el personal, sus bodegas asignadas y niveles de acceso.</p>
         </div>
         
         <button 
@@ -111,73 +111,87 @@ export const UserListPage = () => {
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Consultando base de datos...</p>
             </div>
           ) : (
-            <table className="w-full text-left border-collapse min-w-[600px] md:min-w-full">
+            <table className="w-full text-left border-collapse min-w-[700px] md:min-w-full">
               <thead>
                 <tr className="bg-slate-50/50">
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Información Personal</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rol / Cargo</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bodega Asignada</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Estado</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50/30 transition-colors group">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-                          <UserCircle size={20} />
+                {users.map((user) => {
+                  // Manejo flexible por si el backend retorna la bodega como objeto (ej: user.bodega.nombre) o nombre directo
+                  const bodegaNombre = user.bodega?.nombre || user.bodega_nombre || user.nombre_bodega || (user.bodega_id ? `Bodega #${user.bodega_id}` : null);
+
+                  return (
+                    <tr key={user.id} className="hover:bg-slate-50/30 transition-colors group">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                            <UserCircle size={20} />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-slate-700 text-xs uppercase">{user.name}</span>
+                            <span className="text-[10px] text-slate-400 lowercase">{user.email}</span>
+                          </div>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-slate-700 text-xs uppercase">{user.name}</span>
-                          <span className="text-[10px] text-slate-400 lowercase">{user.email}</span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2 text-zinc-600 bg-zinc-50 w-fit px-3 py-1 rounded-lg border border-zinc-100">
+                          <Shield size={12} className="text-zinc-400" />
+                          <span className="text-[10px] font-bold uppercase tracking-tight">
+                            {user.roles && user.roles[0] ? user.roles[0] : 'Sin Rol'}
+                          </span>
                         </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2 text-zinc-600 bg-zinc-50 w-fit px-3 py-1 rounded-lg border border-zinc-100">
-                        <Shield size={12} className="text-zinc-400" />
-                        <span className="text-[10px] font-bold uppercase tracking-tight">
-                          {user.roles && user.roles[0] ? user.roles[0] : 'Sin Rol'}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2 text-slate-600 bg-slate-50/80 w-fit px-3 py-1 rounded-lg border border-slate-100">
+                          <Warehouse size={12} className="text-slate-400" />
+                          <span className="text-[10px] font-bold uppercase tracking-tight">
+                            {bodegaNombre || 'General / Sin Asignar'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${
+                          user.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
+                        }`}>
+                          {user.is_active ? 'Activo' : 'Inactivo'}
                         </span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-center">
-                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${
-                        user.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
-                      }`}>
-                        {user.is_active ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center justify-center gap-1 md:gap-2">
-                        <button 
-                          onClick={() => handleEdit(user)}
-                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                          title="Editar"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button 
-                          onClick={() => handleToggleStatus(user)}
-                          className={`p-2 rounded-xl transition-all ${
-                            user.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
-                          }`}
-                          title={user.is_active ? "Desactivar" : "Activar"}
-                        >
-                          <Power size={16} />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteClick(user)}
-                          className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center justify-center gap-1 md:gap-2">
+                          <button 
+                            onClick={() => handleEdit(user)}
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                            title="Editar"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleToggleStatus(user)}
+                            className={`p-2 rounded-xl transition-all ${
+                              user.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
+                            }`}
+                            title={user.is_active ? "Desactivar" : "Activar"}
+                          >
+                            <Power size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteClick(user)}
+                            className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all"
+                            title="Eliminar"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
