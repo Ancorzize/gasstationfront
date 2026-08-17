@@ -19,7 +19,6 @@ export const ShiftHistoryPage = () => {
   const [startDate, setStartDate] = useState(getTodayStr());
   const [endDate, setEndDate] = useState(getTodayStr());
 
-  // Estados para controlar el Modal de Lecturas
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTurnoId, setSelectedTurnoId] = useState(null);
 
@@ -75,16 +74,10 @@ export const ShiftHistoryPage = () => {
       'Fecha Apertura': s.fecha_apertura,
       'Fecha Cierre': s.fecha_cierre || 'Abierto',
       'Estado': s.estado?.toUpperCase(),
-      'Ventas Combustible': parseFloat(s.total_ventas_combustible || 0),
-      'Ventas Lubricantes': parseFloat(s.total_ventas_lubricantes || 0),
-      'Créditos': parseFloat(s.total_creditos || 0),
-      'Abonos': parseFloat(s.total_abonos || 0),
-      'Pagos Efectivo': parseFloat(s.pagos_efectivo || 0),
-      'Pagos Datáfono': parseFloat(s.pagos_datafono || 0),
+      'Observación Apertura': s.observacion_apertura || '',
       'Total Sistema': parseFloat(s.total_sistema || 0),
       'Total Reportado': parseFloat(s.total_reportado || 0),
       'Balance Final': parseFloat(s.balance_final || 0),
-      'Observación Apertura': s.observacion_apertura || '',
       'Observación Cierre': s.observacion_cierre || ''
     }));
 
@@ -163,18 +156,18 @@ export const ShiftHistoryPage = () => {
 
       {/* TABLA DE DATOS */}
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="max-h-[60vh] overflow-y-auto overflow-x-auto relative">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-50">
+            <thead className="sticky top-0 bg-slate-50 z-10">
+              <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Turno / Estación</th>
                 <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Islero</th>
                 <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Apertura</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Obs. Apertura</th>
                 <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado</th>
                 <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Sistema</th>
-                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Reportado</th>
-                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Balance Final</th>
-                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-24">Acciones</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Balance</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -188,7 +181,7 @@ export const ShiftHistoryPage = () => {
                 filteredShifts.map((s) => {
                   const balance = Number(s.balance_final || 0);
                   return (
-                    <tr key={s.id} className="hover:bg-slate-50/30 transition-colors">
+                    <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-5 py-4">
                         <div className="flex flex-col">
                           <span className="text-xs font-black text-slate-700 uppercase">Turno #{s.id}</span>
@@ -204,14 +197,14 @@ export const ShiftHistoryPage = () => {
                       <td className="px-5 py-4 text-[10px] font-bold text-slate-400 uppercase">
                         {s.fecha_apertura ? new Date(s.fecha_apertura).toLocaleString() : ''}
                       </td>
+                      <td className="px-5 py-4 text-[10px] text-slate-500 italic max-w-[150px] truncate">
+                        {s.observacion_apertura || '-'}
+                      </td>
                       <td className="px-5 py-4">
                         <StatusBadge status={s.estado} />
                       </td>
                       <td className="px-5 py-4 text-right text-xs font-black text-slate-700">
                         $ {Number(s.total_sistema || 0).toLocaleString('es-CO')}
-                      </td>
-                      <td className="px-5 py-4 text-right text-xs font-black text-slate-700">
-                        $ {Number(s.total_reportado || 0).toLocaleString('es-CO')}
                       </td>
                       <td className="px-5 py-4 text-right">
                         <span className={`text-xs font-black ${balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
@@ -221,7 +214,6 @@ export const ShiftHistoryPage = () => {
                       <td className="px-5 py-4 text-center">
                         <button 
                           onClick={() => handleOpenModal(s.id)}
-                          title="Ver Lecturas"
                           className="p-2 text-slate-400 hover:text-zinc-900 hover:bg-slate-100 rounded-xl transition-all"
                         >
                           <Eye size={18} />
@@ -242,13 +234,11 @@ export const ShiftHistoryPage = () => {
         </div>
       </div>
 
-      {/* MODAL AISLADO */}
       <ShiftReadingsModal 
         turnoId={selectedTurnoId} 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
       />
-
     </div>
   );
 };

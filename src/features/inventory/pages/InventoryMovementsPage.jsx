@@ -1,28 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  ArrowLeftRight, Search, Loader2, 
-  FileSpreadsheet, History, Layers3 // Agregué Layers3 para el botón de masivo
+  ArrowLeftRight, Loader2, 
+  FileSpreadsheet, Layers3, Calendar, X
 } from 'lucide-react';
 import { inventoryService } from '../services/inventoryService';
 import { ImportInventoryModal } from '../components/ImportInventoryModal';
 import { TransferModal } from '../components/TransferModal'; 
-// Asumiendo que crearás un TransferBulkModal o ajustarás el actual
 import { TransferBulkModal } from '../components/TransferBulkModal'; 
 import { useToast } from '../../../context/ToastContext';
 
 export const InventoryMovementsPage = () => {
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const getTodayDate = () => new Date().toISOString().split('T')[0];
+
+  const [fechaDesde, setFechaDesde] = useState(getTodayDate());
+  const [fechaHasta, setFechaHasta] = useState(getTodayDate());
+  
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
-  const [isBulkTransferOpen, setIsBulkTransferOpen] = useState(false); // Nuevo estado
+  const [isBulkTransferOpen, setIsBulkTransferOpen] = useState(false);
   const { showToast } = useToast();
 
   const fetchMovements = async () => {
     setLoading(true);
     try {
-      const res = await inventoryService.getMovements();
-      if (res.status) setMovements(res.data.items);
+      const res = await inventoryService.getMovements({ 
+        fecha_desde: fechaDesde, 
+        fecha_hasta: fechaHasta 
+      });
+      if (res.status) {
+        setMovements(res.data.items);
+      }
     } catch (e) { 
       showToast("Error al cargar historial", "error"); 
     } finally { 
@@ -30,42 +40,75 @@ export const InventoryMovementsPage = () => {
     }
   };
 
-  useEffect(() => { fetchMovements(); }, []);
+  useEffect(() => { 
+    fetchMovements(); 
+  }, [fechaDesde, fechaHasta]); 
+
+  const clearFilters = () => {
+    setFechaDesde('');
+    setFechaHasta('');
+  };
 
   return (
     <div className="p-4 md:p-8 space-y-6">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase flex items-center gap-2">
-            Movimientos de Stock
-          </h2>
-          <p className="text-slate-500 text-xs font-medium uppercase tracking-tighter">Control de traslados y entradas de inventario</p>
+      <header className="flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase flex items-center gap-2">
+              Movimientos de Stock
+            </h2>
+            <p className="text-slate-500 text-xs font-medium uppercase tracking-tighter">Control de traslados y entradas de inventario</p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button 
+              onClick={() => setIsImportOpen(true)} 
+              className="flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"
+            >
+              <FileSpreadsheet size={16} /> Importar Excel
+            </button>
+            
+            <button 
+              onClick={() => setIsBulkTransferOpen(true)} 
+              className="flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-blue-700 transition-all shadow-xl shadow-blue-100"
+            >
+              <Layers3 size={16} /> Traslado Masivo
+            </button>
+
+            <button 
+              onClick={() => setIsTransferOpen(true)} 
+              className="flex items-center justify-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200"
+            >
+              <ArrowLeftRight size={16} /> Nuevo Traslado
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          {/* Botón Importar */}
-          <button 
-            onClick={() => setIsImportOpen(true)} 
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"
-          >
-            <FileSpreadsheet size={16} /> Importar Excel
-          </button>
-          
-          {/* Botón Traslado Masivo (NUEVO) */}
-          <button 
-            onClick={() => setIsBulkTransferOpen(true)} 
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-blue-700 transition-all shadow-xl shadow-blue-100"
-          >
-            <Layers3 size={16} /> Traslado Masivo
-          </button>
-
-          {/* Botón Traslado Individual */}
-          <button 
-            onClick={() => setIsTransferOpen(true)} 
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200"
-          >
-            <ArrowLeftRight size={16} /> Nuevo Traslado
-          </button>
+        {/* Fila de Filtros */}
+        <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm w-fit">
+          <div className="flex items-center px-3 gap-2">
+            <Calendar size={14} className="text-slate-400" />
+            <input 
+              type="date" 
+              className="text-[10px] font-bold text-slate-600 bg-transparent outline-none uppercase"
+              value={fechaDesde}
+              onChange={(e) => setFechaDesde(e.target.value)}
+            />
+          </div>
+          <div className="h-4 w-[1px] bg-slate-200" />
+          <div className="flex items-center px-3 gap-2">
+            <input 
+              type="date" 
+              className="text-[10px] font-bold text-slate-600 bg-transparent outline-none uppercase"
+              value={fechaHasta}
+              onChange={(e) => setFechaHasta(e.target.value)}
+            />
+          </div>
+          {(fechaDesde || fechaHasta) && (
+            <button onClick={clearFilters} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-red-500 transition-colors">
+              <X size={14} />
+            </button>
+          )}
         </div>
       </header>
 
@@ -138,7 +181,7 @@ export const InventoryMovementsPage = () => {
               ) : (
                 <tr>
                   <td colSpan="5" className="p-10 text-center text-slate-400 italic text-xs uppercase font-black">
-                    No hay movimientos registrados
+                    No hay movimientos registrados en el periodo seleccionado
                   </td>
                 </tr>
               )}
@@ -147,25 +190,9 @@ export const InventoryMovementsPage = () => {
         </div>
       </div>
 
-      {/* MODALES */}
-      <ImportInventoryModal 
-        isOpen={isImportOpen} 
-        onClose={() => setIsImportOpen(false)} 
-        onImportSuccess={fetchMovements} 
-      />
-
-      <TransferModal 
-        isOpen={isTransferOpen} 
-        onClose={() => setIsTransferOpen(false)} 
-        onSave={fetchMovements} 
-      />
-
-      {/* Modal para Traslado Masivo */}
-      <TransferBulkModal 
-        isOpen={isBulkTransferOpen} 
-        onClose={() => setIsBulkTransferOpen(false)} 
-        onSave={fetchMovements} 
-      />
+      <ImportInventoryModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} onImportSuccess={fetchMovements} />
+      <TransferModal isOpen={isTransferOpen} onClose={() => setIsTransferOpen(false)} onSave={fetchMovements} />
+      <TransferBulkModal isOpen={isBulkTransferOpen} onClose={() => setIsBulkTransferOpen(false)} onSave={fetchMovements} />
     </div>
   );
 };
