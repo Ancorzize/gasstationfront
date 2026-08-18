@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
   ArrowLeftRight, Loader2, 
-  FileSpreadsheet, Layers3, Calendar, X
+  FileSpreadsheet, Layers3, Calendar, X, Eye, Printer
 } from 'lucide-react';
 import { inventoryService } from '../services/inventoryService';
 import { ImportInventoryModal } from '../components/ImportInventoryModal';
@@ -13,25 +13,42 @@ export const InventoryMovementsPage = () => {
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const getTodayDate = () => new Date().toISOString().split('T')[0];
+  // Función para obtener la fecha local correcta en formato YYYY-MM-DD sin desfase UTC
+  const getLocalDate = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
-  const [fechaDesde, setFechaDesde] = useState(getTodayDate());
-  const [fechaHasta, setFechaHasta] = useState(getTodayDate());
+  const [fechaDesde, setFechaDesde] = useState(getLocalDate());
+  const [fechaHasta, setFechaHasta] = useState(getLocalDate());
   
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [isBulkTransferOpen, setIsBulkTransferOpen] = useState(false);
+  
+  // Estados para el Modal de Detalle del Lote
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedLote, setSelectedLote] = useState(null);
+  const [loteDetails, setLoteDetails] = useState([]);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  const printRef = useRef();
   const { showToast } = useToast();
 
   const fetchMovements = async () => {
     setLoading(true);
     try {
-      const res = await inventoryService.getMovements({ 
-        fecha_desde: fechaDesde, 
-        fecha_hasta: fechaHasta 
-      });
+      const params = {};
+      if (fechaDesde) params.fecha_desde = fechaDesde;
+      if (fechaHasta) params.fecha_hasta = fechaHasta;
+
+      const res = await inventoryService.getMovements(params);
       if (res.status) {
-        setMovements(res.data.items);
+        const dataList = Array.isArray(res.data) ? res.data : (res.data?.items || []);
+        setMovements(dataList);
       }
     } catch (e) { 
       showToast("Error al cargar historial", "error"); 
@@ -49,13 +66,43 @@ export const InventoryMovementsPage = () => {
     setFechaHasta('');
   };
 
+  const handleOpenDetail = async (loteItem) => {
+    if (!loteItem?.codigo_lote) return;
+    setSelectedLote(loteItem);
+    setIsDetailOpen(true);
+    setLoadingDetail(true);
+    try {
+      const res = await inventoryService.getMovementDetail(loteItem.codigo_lote);
+      if (res.status || res.data) {
+        setLoteDetails(res.data || []);
+      } else {
+        setLoteDetails([]);
+      }
+    } catch (error) {
+      showToast("Error al cargar el detalle del lote", "error");
+      setLoteDetails([]);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const handlePrint = () => {
+    const printContent = printRef.current.innerHTML;
+    const originalContent = document.body.innerHTML;
+
+    document.body.innerHTML = printContent;
+    window.print();
+    document.body.innerHTML = originalContent;
+    window.location.reload();
+  };
+
   return (
     <div className="p-4 md:p-8 space-y-6">
       <header className="flex flex-col gap-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase flex items-center gap-2">
-              Movimientos de Stock
+              Movimientos de Stock por Lotes
             </h2>
             <p className="text-slate-500 text-xs font-medium uppercase tracking-tighter">Control de traslados y entradas de inventario</p>
           </div>
@@ -112,17 +159,17 @@ export const InventoryMovementsPage = () => {
         </div>
       </header>
 
-      {/* Tabla de Movimientos */}
+      {/* Tabla de Movimientos por Lotes */}
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-50/50">
               <tr>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha / Usuario</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Producto</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Código Lote / Fecha</th>
                 <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo / Ruta</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Cantidad</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Detalle</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Productos</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Usuario</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -134,22 +181,11 @@ export const InventoryMovementsPage = () => {
                 </tr>
               ) : movements.length > 0 ? (
                 movements.map((m) => (
-                  <tr key={m.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500 uppercase">
-                          {m.usuario?.name.substring(0, 2)}
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-black text-slate-700 uppercase tracking-tight">{m.usuario?.name}</p>
-                          <p className="text-[9px] font-bold text-slate-400">{new Date(m.created_at).toLocaleString()}</p>
-                        </div>
-                      </div>
-                    </td>
+                  <tr key={m.codigo_lote || m.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-slate-700 uppercase">{m.producto?.nombre}</span>
-                        <span className="text-[9px] font-bold text-slate-400 tracking-widest">{m.producto?.codigo}</span>
+                        <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight">{m.codigo_lote || 'N/A'}</span>
+                        <span className="text-[9px] font-bold text-slate-400">{m.fecha_traslado || new Date(m.created_at).toLocaleString()}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -157,24 +193,36 @@ export const InventoryMovementsPage = () => {
                         <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${
                           m.tipo_movimiento === 'traslado' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
                         }`}>
-                          {m.tipo_movimiento}
+                          {m.tipo_movimiento || 'movimiento'}
                         </span>
                         <div className="flex items-center text-[9px] font-bold text-slate-400 uppercase">
                           {m.bodega_origen?.nombre || 'Proveedor'} 
                           <ArrowLeftRight size={10} className="mx-1 text-slate-300" />
-                          {m.bodega_destino?.nombre}
+                          {m.bodega_destino?.nombre || 'Destino'}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="text-sm font-black text-zinc-900 tracking-tight">
-                        {parseFloat(m.cantidad).toLocaleString('es-CO')}
+                    <td className="px-6 py-4">
+                      <span className="text-xs font-black text-zinc-900 tracking-tight">
+                        {m.cantidad_productos ?? m.cantidad ?? 1} producto(s)
                       </span>
                     </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-500 uppercase">
+                          {m.usuario?.name ? m.usuario.name.substring(0, 2) : 'US'}
+                        </div>
+                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-tight">{m.usuario?.name || 'Sistema'}</span>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-right">
-                       <p className="text-[10px] text-slate-400 font-medium italic max-w-[150px] truncate ml-auto">
-                        {m.observacion || '-'}
-                       </p>
+                      <button 
+                        onClick={() => handleOpenDetail(m)}
+                        className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-all inline-flex items-center gap-1 text-[10px] font-black uppercase"
+                        title="Ver detalle del lote"
+                      >
+                        <Eye size={16} className="text-indigo-600" />
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -189,6 +237,88 @@ export const InventoryMovementsPage = () => {
           </table>
         </div>
       </div>
+
+      {/* Modal de Detalle del Lote con Encabezado y Opción de Impresión */}
+      {isDetailOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] shadow-2xl border border-slate-100 max-w-2xl w-full p-6 space-y-6 animate-in fade-in zoom-in duration-200">
+            
+            {/* Contenedor que se imprimirá */}
+            <div ref={printRef} className="space-y-6 p-2">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Detalle del Lote</h3>
+                  <p className="text-xs font-bold text-indigo-600">{selectedLote?.codigo_lote}</p>
+                </div>
+              </div>
+
+              {/* Encabezado con Bodega Origen, Destino y Fecha */}
+              <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs">
+                <div>
+                  <span className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">Bodega Origen</span>
+                  <span className="font-bold text-slate-700 uppercase">{selectedLote?.bodega_origen?.nombre || 'Proveedor'}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">Bodega Destino</span>
+                  <span className="font-bold text-slate-700 uppercase">{selectedLote?.bodega_destino?.nombre || 'Destino'}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">Fecha Traslado</span>
+                  <span className="font-bold text-slate-700">{selectedLote?.fecha_traslado || 'N/A'}</span>
+                </div>
+              </div>
+
+              {/* Tabla de Productos del Lote */}
+              <div className="max-h-[50vh] overflow-y-auto pr-2">
+                {loadingDetail ? (
+                  <div className="py-12 flex justify-center">
+                    <Loader2 className="animate-spin text-slate-300" size={32} />
+                  </div>
+                ) : loteDetails.length > 0 ? (
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase">
+                        <th className="py-3 px-2">Producto</th>
+                        <th className="py-3 px-2">SKU / Código</th>
+                        <th className="py-3 px-2 text-center">Cantidad</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {loteDetails.map((item, index) => (
+                        <tr key={index} className="text-xs">
+                          <td className="py-3 px-2 font-bold text-slate-700 uppercase">{item.nombre_producto || item.producto?.nombre}</td>
+                          <td className="py-3 px-2 font-medium text-slate-400">{item.sku || item.producto?.codigo}</td>
+                          <td className="py-3 px-2 text-center font-black text-slate-900">{parseFloat(item.cantidad).toLocaleString('es-CO')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-center py-8 text-xs text-slate-400 font-bold uppercase">No se encontraron productos en este lote</p>
+                )}
+              </div>
+            </div>
+
+            {/* Botones de Acción inferior (Imprimir y Cerrar) */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border border-indigo-100"
+              >
+                <Printer size={16} /> Imprimir Lote
+              </button>
+
+              <button
+                onClick={() => setIsDetailOpen(false)}
+                className="bg-slate-900 hover:bg-black text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+              >
+                Cerrar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       <ImportInventoryModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} onImportSuccess={fetchMovements} />
       <TransferModal isOpen={isTransferOpen} onClose={() => setIsTransferOpen(false)} onSave={fetchMovements} />

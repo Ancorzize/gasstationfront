@@ -6,10 +6,18 @@ const getHeaders = () => ({
 });
 
 export const inventoryService = {
-  // Listar movimientos con filtros
+  // Listar movimientos / lotes con filtros de fecha
   getMovements: async (params = {}) => {
     const query = new URLSearchParams(params).toString();
-    const res = await fetch(`${API_URL}/movimientos-inventario?${query}`, {
+    const res = await fetch(`${API_URL}/movimientos-inventario/lotes?${query}`, {
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' }
+    });
+    return res.json();
+  },
+
+  // Obtener el detalle de los productos de un lote específico
+  getMovementDetail: async (codigoLote) => {
+    const res = await fetch(`${API_URL}/movimientos-inventario/lotes/${codigoLote}`, {
       headers: { ...getHeaders(), 'Content-Type': 'application/json' }
     });
     return res.json();
@@ -37,6 +45,7 @@ export const inventoryService = {
     });
     return res.json();
   },
+
   getStock: async (params = {}) => {
     const query = new URLSearchParams(params).toString();
     const res = await fetch(`${API_URL}/inventarios?${query}`, {
@@ -47,6 +56,7 @@ export const inventoryService = {
     });
     return res.json();
   },
+
   createTransferBulk: async (data) => {
     const res = await fetch(`${API_URL}/movimientos-inventario/masivo`, {
       method: 'POST',
