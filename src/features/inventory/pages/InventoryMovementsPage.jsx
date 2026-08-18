@@ -13,7 +13,6 @@ export const InventoryMovementsPage = () => {
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Función para obtener la fecha local correcta en formato YYYY-MM-DD sin desfase UTC
   const getLocalDate = () => {
     const d = new Date();
     const year = d.getFullYear();
@@ -86,11 +85,27 @@ export const InventoryMovementsPage = () => {
     }
   };
 
+  // Función para imprimir compactando los espacios de la lista
   const handlePrint = () => {
     const printContent = printRef.current.innerHTML;
     const originalContent = document.body.innerHTML;
 
-    document.body.innerHTML = printContent;
+    const printStyles = `
+      <style>
+        @media print {
+          body { background: white !important; color: black !important; font-size: 11px !important; }
+          .max-h-\\[50vh\\] { max-height: none !important; overflow: visible !important; }
+          table { width: 100% !important; border-collapse: collapse !important; }
+          th, td { padding: 4px 6px !important; line-height: 1.1 !important; }
+          tr { page-break-inside: avoid; }
+          thead { display: table-header-group; }
+          .grid { display: flex !important; justify-content: space-between !important; gap: 10px !important; }
+          .grid > div { flex: 1 !important; }
+        }
+      </style>
+    `;
+
+    document.body.innerHTML = printStyles + printContent;
     window.print();
     document.body.innerHTML = originalContent;
     window.location.reload();
@@ -244,8 +259,8 @@ export const InventoryMovementsPage = () => {
           <div className="bg-white rounded-[2rem] shadow-2xl border border-slate-100 max-w-2xl w-full p-6 space-y-6 animate-in fade-in zoom-in duration-200">
             
             {/* Contenedor que se imprimirá */}
-            <div ref={printRef} className="space-y-6 p-2">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div ref={printRef} className="space-y-4 p-2">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div>
                   <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Detalle del Lote</h3>
                   <p className="text-xs font-bold text-indigo-600">{selectedLote?.codigo_lote}</p>
@@ -253,7 +268,7 @@ export const InventoryMovementsPage = () => {
               </div>
 
               {/* Encabezado con Bodega Origen, Destino y Fecha */}
-              <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs">
+              <div className="grid grid-cols-3 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 text-xs">
                 <div>
                   <span className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">Bodega Origen</span>
                   <span className="font-bold text-slate-700 uppercase">{selectedLote?.bodega_origen?.nombre || 'Proveedor'}</span>
@@ -278,17 +293,17 @@ export const InventoryMovementsPage = () => {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase">
-                        <th className="py-3 px-2">Producto</th>
-                        <th className="py-3 px-2">SKU / Código</th>
-                        <th className="py-3 px-2 text-center">Cantidad</th>
+                        <th className="py-2.5 px-2">Producto</th>
+                        <th className="py-2.5 px-2">SKU / Código</th>
+                        <th className="py-2.5 px-2 text-center">Cantidad</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {loteDetails.map((item, index) => (
                         <tr key={index} className="text-xs">
-                          <td className="py-3 px-2 font-bold text-slate-700 uppercase">{item.nombre_producto || item.producto?.nombre}</td>
-                          <td className="py-3 px-2 font-medium text-slate-400">{item.sku || item.producto?.codigo}</td>
-                          <td className="py-3 px-2 text-center font-black text-slate-900">{parseFloat(item.cantidad).toLocaleString('es-CO')}</td>
+                          <td className="py-2 px-2 font-bold text-slate-700 uppercase">{item.nombre_producto || item.producto?.nombre}</td>
+                          <td className="py-2 px-2 font-medium text-slate-400">{item.sku || item.producto?.codigo}</td>
+                          <td className="py-2 px-2 text-center font-black text-slate-900">{parseFloat(item.cantidad).toLocaleString('es-CO')}</td>
                         </tr>
                       ))}
                     </tbody>
