@@ -77,26 +77,54 @@ export const DashboardPage = () => {
     </div>
   );
 
-  const TableWidget = ({ data, titulo }) => (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-slate-50 font-black text-xs text-slate-600 uppercase">{titulo}</div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
-          <tbody className="divide-y divide-slate-50">
-            {data.items?.map((item, i) => (
-              <tr key={i}>
-                {Object.values(item).map((val, j) => (
-                  <td key={j} className="px-4 py-3 text-slate-600">
-                    {typeof val === 'object' ? JSON.stringify(val) : val}
+  const TableWidget = ({ data, titulo }) => {
+    // Verificamos si hay elementos para extraer las columnas
+    const items = data.items || [];
+    const hasItems = items.length > 0;
+    const columns = hasItems ? Object.keys(items[0]) : [];
+
+    return (
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full">
+        <div className="p-4 border-b border-slate-50 font-black text-xs text-slate-600 uppercase">
+          {titulo}
+        </div>
+        <div className="overflow-x-auto flex-1">
+          <table className="w-full text-left text-xs whitespace-nowrap">
+            {hasItems && (
+              <thead className="bg-slate-50 text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-100">
+                <tr>
+                  {columns.map((col, index) => (
+                    <th key={index} className="px-4 py-2.5">
+                      {col.replace(/_/g, ' ')}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+            )}
+            <tbody className="divide-y divide-slate-50">
+              {hasItems ? (
+                items.map((item, i) => (
+                  <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                    {Object.values(item).map((val, j) => (
+                      <td key={j} className="px-4 py-3 text-slate-600">
+                        {typeof val === 'object' && val !== null ? JSON.stringify(val) : val}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="100%" className="px-4 py-8 text-center text-slate-400 text-xs">
+                    Sin datos disponibles
                   </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderWidget = (widget) => {
     const { tipo, data, nombre } = widget;

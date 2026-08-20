@@ -14,6 +14,15 @@ export const CashOpenModal = ({ isOpen, onClose, onSave }) => {
     nombre: '', tipo_caja: 'efectivo', destino_recaudo_id: '', monto_apertura: '', observacion_apertura: ''
   });
 
+  // Función para formatear números visualmente (1.283.000,32)
+  const formatNumberDisplay = (value) => {
+    if (value === '' || value === null || value === undefined) return '';
+    let stringValue = value.toString().replace('.', ',');
+    const parts = stringValue.split(',');
+    let integerPart = parts[0].replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return integerPart + (parts[1] !== undefined ? ',' + parts[1].replace(/\D/g, '') : '');
+  };
+
   useEffect(() => {
     if (isOpen) {
       setFormData({ nombre: '', tipo_caja: 'efectivo', destino_recaudo_id: '', monto_apertura: '', observacion_apertura: '' });
@@ -30,6 +39,24 @@ export const CashOpenModal = ({ isOpen, onClose, onSave }) => {
 
   const toggleSelection = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  // Manejador para formatear el monto mientras se escribe
+  const handleMontoChange = (e) => {
+    let val = e.target.value;
+    let raw = val.replace(/[^0-9,]/g, '');
+    
+    // Permitir solo una coma decimal
+    const firstCommaIndex = raw.indexOf(',');
+    if (firstCommaIndex !== -1) {
+      raw = raw.substring(0, firstCommaIndex + 1) + raw.substring(firstCommaIndex + 1).replace(/,/g, '');
+    }
+
+    const parts = raw.split(',');
+    let integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    let formatted = integerPart + (parts[1] !== undefined ? ',' + parts[1] : '');
+
+    setFormData(prev => ({ ...prev, monto_apertura: formatted }));
   };
 
   const handleProcessOpenings = async () => {
@@ -53,7 +80,13 @@ export const CashOpenModal = ({ isOpen, onClose, onSave }) => {
       }
 
       if (hasManualData) {
-        await cashService.openCash(formData);
+        // Limpiar formato visual (puntos fuera, coma a punto decimal) antes de enviar al backend
+        const cleanMonto = formData.monto_apertura.toString().replace(/\./g, '').replace(',', '.');
+        const payload = {
+          ...formData,
+          monto_apertura: cleanMonto
+        };
+        await cashService.openCash(payload);
       }
 
       showToast("Proceso de apertura completado", "success");
@@ -101,16 +134,24 @@ export const CashOpenModal = ({ isOpen, onClose, onSave }) => {
                 <input className="w-full p-4 bg-slate-50 border rounded-2xl text-sm font-black outline-none" placeholder="Nombre de la caja" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
                 
                 <div className="grid grid-cols-2 gap-4">
-                  <select className="p-4 bg-slate-50 border rounded-2xl text-sm font-black" onChange={e => setFormData({...formData, tipo_caja: e.target.value})}>
+                  <select className="p-4 bg-slate-50 border rounded-2xl text-sm font-black" value={formData.tipo_caja} onChange={e => setFormData({...formData, tipo_caja: e.target.value})}>
                     <option value="efectivo">Efectivo</option>
                     <option value="digital">Digital</option>
                   </select>
-                  <select className="p-4 bg-slate-50 border rounded-2xl text-sm font-black" onChange={e => setFormData({...formData, destino_recaudo_id: e.target.value})}>
+                  <select className="p-4 bg-slate-50 border rounded-2xl text-sm font-black" value={formData.destino_recaudo_id} onChange={e => setFormData({...formData, destino_recaudo_id: e.target.value})}>
                     <option value="">Destino...</option>
                     {destinos.map(d => <option key={d.id} value={d.id}>{d.nombre}</option>)}
                   </select>
                 </div>
-                <input type="number" className="w-full p-4 bg-slate-50 border rounded-2xl text-lg font-black outline-none" placeholder="Monto Inicial (Solo si es manual)" value={formData.monto_apertura} onChange={e => setFormData({...formData, monto_apertura: e.target.value})} />
+                
+                <input 
+                  type="text" 
+                  inputMode="decimal"
+                  className="w-full p-4 bg-slate-50 border rounded-2xl text-lg font-black outline-none" 
+                  placeholder="Monto Inicial (Solo si es manual)" 
+                  value={formData.monto_apertura} 
+                  onChange={handleMontoChange} 
+                />
 
                 <button 
                   type="button" 

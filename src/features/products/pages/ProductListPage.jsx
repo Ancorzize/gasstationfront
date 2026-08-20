@@ -23,7 +23,6 @@ export const ProductListPage = () => {
   const fetchProducts = async (searchQuery = '') => {
     setLoading(true);
     try {
-      // Enviamos el parámetro 'search' al backend
       const params = searchQuery ? { search: searchQuery } : {};
       const result = await productService.getProducts(params);
       if (result.status) {
@@ -114,9 +113,9 @@ export const ProductListPage = () => {
         </div>
       </div>
 
-      {/* Tabla Expandida */}
+      {/* Tabla con Scroll Vertical y Horizontal */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto custom-scrollbar-light">
+        <div className="max-h-[65vh] overflow-y-auto overflow-x-auto custom-scrollbar-light">
           {loading ? (
             <div className="p-20 flex flex-col items-center justify-center text-slate-400 gap-3">
               <Loader2 className="animate-spin" size={40} />
@@ -124,11 +123,10 @@ export const ProductListPage = () => {
             </div>
           ) : (
             <table className="w-full text-left border-collapse min-w-[1200px]">
-              <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100">
-                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Código</th>
+              <thead className="sticky top-0 bg-slate-50 z-10 shadow-sm">
+                <tr className="border-b border-slate-100">
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest w-36">Código</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nombre</th>
-                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Descripción</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Marca</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Categoría</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">U. Medida</th>
@@ -147,7 +145,6 @@ export const ProductListPage = () => {
                       </span>
                     </td>
                     <td className="p-4 text-xs font-bold text-slate-700 whitespace-nowrap">{p.nombre}</td>
-                    <td className="p-4 text-[10px] max-w-[200px] truncate normal-case italic">{p.descripcion || '---'}</td>
                     <td className="p-4 text-xs font-medium">{p.marca?.nombre || 'GENÉRICO'}</td>
                     <td className="p-4 text-xs font-medium">{p.categoria_producto?.nombre}</td>
                     <td className="p-4 text-center text-[10px] font-bold text-slate-500">

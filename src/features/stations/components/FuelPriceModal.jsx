@@ -10,19 +10,32 @@ export const FuelPriceModal = ({ isOpen, onClose, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [combustibles, setCombustibles] = useState([]);
-  
-
   const [searchTerm, setSearchTerm] = useState('');
   const [showProductList, setShowProductList] = useState(false);
   const productListRef = useRef(null);
 
+  // Estado para el valor visual (con puntos) y el valor real (número limpio)
+  const [displayPrecio, setDisplayPrecio] = useState('');
   const [formData, setFormData] = useState({
     producto_id: '',
     precio: '',
     fecha_inicio: getTodayStr() + " 00:00:00"
   });
 
- 
+  // Manejador del formato de precio
+  const handlePrecioChange = (e) => {
+    const rawValue = e.target.value.replace(/\D/g, ''); // Solo números
+    if (rawValue === '') {
+      setDisplayPrecio('');
+      setFormData({ ...formData, precio: '' });
+      return;
+    }
+    // Formatear con puntos de miles
+    const formatted = new Intl.NumberFormat('es-CO').format(rawValue);
+    setDisplayPrecio(formatted);
+    setFormData({ ...formData, precio: rawValue });
+  };
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (productListRef.current && !productListRef.current.contains(e.target)) {
@@ -33,7 +46,6 @@ export const FuelPriceModal = ({ isOpen, onClose, onSave }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  
   useEffect(() => {
     const searchProducts = async () => {
       if (searchTerm.length < 2) return;
@@ -72,10 +84,8 @@ export const FuelPriceModal = ({ isOpen, onClose, onSave }) => {
     setLoading(true);
     try {
       const res = await fuelPriceService.createPrice(formData);
-      
-  
       if (res.status || res.success) {
-        showToast(res.message, "success");
+        showToast(res.message || "Precio actualizado", "success");
         onSave(); 
         onClose(); 
       } else {
@@ -113,7 +123,6 @@ export const FuelPriceModal = ({ isOpen, onClose, onSave }) => {
               Al guardar, el precio anterior se cerrará automáticamente con fecha de hoy.
             </p>
           </div>
-
       
           <div className="space-y-2 relative" ref={productListRef}>
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Producto Combustible</label>
@@ -161,10 +170,12 @@ export const FuelPriceModal = ({ isOpen, onClose, onSave }) => {
               <div className="relative">
                 <DollarSign className="absolute left-4 top-4 text-emerald-500" size={18} />
                 <input
-                  type="number" required placeholder="0.00"
+                  type="text" 
+                  required 
+                  placeholder="0"
                   className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black outline-none focus:border-zinc-900 transition-all"
-                  value={formData.precio}
-                  onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
+                  value={displayPrecio}
+                  onChange={handlePrecioChange}
                 />
               </div>
             </div>

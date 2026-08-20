@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowDownCircle, Tag, Truck, Loader2, Save, AlignLeft, Calendar, Inbox } from 'lucide-react';
+import { X, ArrowDownCircle, Loader2, Save, Calendar } from 'lucide-react';
 import { expenseService } from '../services/expenseService';
 import { supplierService } from '../../suppliers/services/supplierService';
 import { cashService } from '../../cash/services/cashService';
@@ -14,22 +14,11 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
   const [cajasAbiertas, setCajasAbiertas] = useState([]);
   const [displayValor, setDisplayValor] = useState('');
 
-  const getLocalDateString = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+  const getLocalDateString = () => new Date().toISOString().split('T')[0];
 
   const [formData, setFormData] = useState({
-    fecha_gasto: getLocalDateString(),
-    proveedor_id: '',
-    categoria_gasto_id: '',
-    caja_id: '',
-    tipo_caja: '',
-    valor: '',
-    descripcion: ''
+    fecha_gasto: getLocalDateString(), proveedor_id: '', categoria_gasto_id: '',
+    caja_id: '', tipo_caja: '', valor: '', descripcion: ''
   });
 
   useEffect(() => {
@@ -46,190 +35,79 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
         supplierService.getSuppliers(),
         cashService.getCurrentCash()
       ]);
-
-      const cats = catRes.status ? catRes.data.items : [];
-      const supps = suppRes.status ? suppRes.data.items : [];
-      const cajas = cashRes.status ? cashRes.data : [];
-
-      setCategories(cats);
-      setSuppliers(supps);
-      setCajasAbiertas(cajas);
-
+      setCategories(catRes.status ? catRes.data.items : []);
+      setSuppliers(suppRes.status ? suppRes.data.items : []);
+      setCajasAbiertas(cashRes.status ? cashRes.data : []);
+      
       const lastCajaId = localStorage.getItem('last_selected_caja_id');
-      const cajaEncontrada = cajas.find(c => String(c.id) === String(lastCajaId));
-
-      setFormData({
-        fecha_gasto: getLocalDateString(),
-        proveedor_id: '',
-        categoria_gasto_id: '',
-        caja_id: cajaEncontrada ? cajaEncontrada.id : '',
-        tipo_caja: cajaEncontrada ? cajaEncontrada.tipo_caja : '',
-        valor: '',
-        descripcion: ''
-      });
-    } catch (e) { 
-      showToast("Error al cargar opciones", "error"); 
-    }
-  };
-
-  const handleCajaChange = (e) => {
-    const selectedId = e.target.value;
-    const cajaSeleccionada = cajasAbiertas.find(c => String(c.id) === String(selectedId));
-    
-    setFormData({
-      ...formData,
-      caja_id: selectedId,
-      tipo_caja: cajaSeleccionada ? cajaSeleccionada.tipo_caja : ''
-    });
-  };
-
-  const handleMoneyChange = (e) => {
-    const rawValue = e.target.value.replace(/\D/g, '');
-    if (rawValue === '') {
-      setDisplayValor('');
-      setFormData({ ...formData, valor: '' });
-      return;
-    }
-    const formatted = new Intl.NumberFormat('es-CO').format(rawValue);
-    setDisplayValor(formatted);
-    setFormData({ ...formData, valor: rawValue });
+      const cajaEncontrada = cashRes.data?.find(c => String(c.id) === String(lastCajaId));
+      setFormData(prev => ({
+        ...prev, 
+        caja_id: cajaEncontrada?.id || '',
+        tipo_caja: cajaEncontrada?.tipo_caja || ''
+      }));
+    } catch (e) { showToast("Error al cargar opciones", "error"); }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.caja_id) {
-      return showToast("Debes seleccionar una caja", "warning");
-    }
-    if (!formData.valor || Number(formData.valor) <= 0) {
-        return showToast("El valor del gasto debe ser mayor a 0", "warning");
-    }
+    if (!formData.caja_id || !formData.valor) return showToast("Completa los campos obligatorios", "warning");
     setLoading(true);
-    try {
-      const res = await expenseService.createExpense(formData);
-      if (res.status) {
-        localStorage.setItem('last_selected_caja_id', formData.caja_id);
-        showToast("Gasto registrado correctamente", "success");
-        onSave();
-        onClose();
-      } else { 
-        showToast(res.message || "Error al registrar", "error"); 
-      }
-    } catch (e) { 
-      showToast("Error al registrar el gasto", "error"); 
-    } finally { 
-      setLoading(false); 
-    }
+    const res = await expenseService.createExpense(formData);
+    if (res.status) {
+      localStorage.setItem('last_selected_caja_id', formData.caja_id);
+      showToast("Gasto registrado", "success");
+      onSave(); onClose();
+    } else showToast(res.message || "Error", "error");
+    setLoading(false);
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-0 md:p-4">
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose} className="absolute inset-0 bg-zinc-950/70 backdrop-blur-sm" 
-          />
-          <motion.div 
-            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-            className="relative bg-white w-full h-full md:h-auto md:max-w-xl md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden"
-          >
-            <div className="p-5 border-b flex justify-between items-center bg-white sticky top-0 z-10">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-600">
-                  <ArrowDownCircle size={18} />
-                </div>
-                <h3 className="font-black text-slate-800 text-xs md:text-sm uppercase tracking-tight">
-                    Registrar Gasto Administrativo
-                </h3>
-              </div>
-              <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-all">
-                <X size={20} />
-              </button>
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
+          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
+            <div className="p-4 border-b flex justify-between items-center bg-slate-50/50">
+              <h3 className="font-black text-slate-700 text-xs uppercase tracking-wider flex items-center gap-2">
+                <ArrowDownCircle size={16} className="text-red-500" /> Registrar Gasto
+              </h3>
+              <button onClick={onClose}><X size={18} className="text-slate-400" /></button>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 md:p-8 space-y-5 custom-scrollbar-light">
-              <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <form onSubmit={handleSubmit} className="p-5 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Fecha</label>
-                  <div className="relative">
-                    <Calendar className="absolute left-4 top-3.5 text-slate-300" size={16} />
-                    <input required type="date" 
-                      className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:border-zinc-900 focus:bg-white transition-all"
-                      value={formData.fecha_gasto} onChange={e => setFormData({...formData, fecha_gasto: e.target.value})} />
-                  </div>
+                  <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Fecha</label>
+                  <input required type="date" className="w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs font-bold outline-none" value={formData.fecha_gasto} onChange={e => setFormData({...formData, fecha_gasto: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Valor</label>
+                  <input required type="text" className="w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs font-black outline-none" placeholder="$ 0" value={displayValor} onChange={e => { const raw = e.target.value.replace(/\D/g, ''); setDisplayValor(raw ? new Intl.NumberFormat('es-CO').format(raw) : ''); setFormData({...formData, valor: raw}); }} />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Caja / Destino</label>
-                <div className="relative">
-                  <Inbox className="absolute left-4 top-3.5 text-slate-300" size={16} />
-                  <select required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:border-zinc-900 focus:bg-white appearance-none transition-all"
-                    value={formData.caja_id} onChange={handleCajaChange}>
-                    <option value="">Seleccionar caja disponible...</option>
-                    {cajasAbiertas.map(c => (
-                      <option key={c.id} value={c.id}>
-                        {c.nombre} ({c.destino_recaudo?.nombre}) - [{c.tipo_caja}]
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <select required className="w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs font-bold outline-none" value={formData.caja_id} onChange={e => { const c = cajasAbiertas.find(x => String(x.id) === String(e.target.value)); setFormData({...formData, caja_id: e.target.value, tipo_caja: c?.tipo_caja || ''}); }}>
+                <option value="">Seleccionar caja...</option>
+                {cajasAbiertas.map(c => <option key={c.id} value={c.id}>{c.nombre} ({c.tipo_caja})</option>)}
+              </select>
+
+              <div className="grid grid-cols-2 gap-3">
+                <select className="w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs font-bold outline-none" value={formData.categoria_gasto_id} onChange={e => setFormData({...formData, categoria_gasto_id: e.target.value})}>
+                  <option value="">Categoría...</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                </select>
+                <select className="w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs font-bold outline-none" value={formData.proveedor_id} onChange={e => setFormData({...formData, proveedor_id: e.target.value})}>
+                  <option value="">Proveedor (Opcional)...</option>
+                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Categoría del Gasto</label>
-                <div className="relative">
-                  <Tag className="absolute left-4 top-3.5 text-slate-300" size={16} />
-                  <select required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:border-zinc-900 focus:bg-white appearance-none transition-all"
-                    value={formData.categoria_gasto_id} onChange={e => setFormData({...formData, categoria_gasto_id: e.target.value})}>
-                    <option value="">Seleccionar categoría...</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                  </select>
-                </div>
-              </div>
+              <textarea required className="w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs outline-none h-16 resize-none" placeholder="Descripción del gasto..." value={formData.descripcion} onChange={e => setFormData({...formData, descripcion: e.target.value})} />
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Proveedor (Opcional)</label>
-                <div className="relative">
-                  <Truck className="absolute left-4 top-3.5 text-slate-300" size={16} />
-                  <select className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:border-zinc-900 focus:bg-white appearance-none transition-all"
-                    value={formData.proveedor_id} onChange={e => setFormData({...formData, proveedor_id: e.target.value})}>
-                    <option value="">Gasto General / Sin Proveedor</option>
-                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Valor del Gasto</label>
-                <div className="relative">
-                  <div className="absolute left-5 top-3.5 text-slate-400 font-black text-sm">$</div>
-                  <input required type="text"
-                    className="w-full pl-10 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-xl font-black outline-none focus:border-zinc-900 focus:bg-white transition-all"
-                    placeholder="0" value={displayValor} onChange={handleMoneyChange} />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Descripción / Concepto</label>
-                <div className="relative">
-                    <AlignLeft className="absolute left-4 top-4 text-slate-300" size={16} />
-                    <textarea required className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs outline-none focus:border-zinc-900 focus:bg-white transition-all h-24 resize-none"
-                    placeholder="Detalle del gasto..." value={formData.descripcion}
-                    onChange={e => setFormData({...formData, descripcion: e.target.value})} />
-                </div>
-              </div>
-
-              <div className="pt-4 flex flex-col-reverse md:flex-row gap-3">
-                <button type="button" onClick={onClose} 
-                    className="flex-1 py-4 rounded-2xl border border-slate-200 text-slate-600 font-black text-[10px] uppercase hover:bg-slate-50 transition-all">
-                    Cancelar
-                </button>
-                <button type="submit" disabled={loading} 
-                    className="flex-1 py-4 rounded-2xl bg-zinc-900 text-white font-black text-[10px] uppercase hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200">
-                  {loading ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18}/> Registrar Gasto</>}
-                </button>
-              </div>
+              <button type="submit" disabled={loading} className="w-full py-3 rounded-xl bg-zinc-900 text-white font-black text-xs uppercase hover:bg-black transition-all flex items-center justify-center gap-2">
+                {loading ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16}/> Registrar Gasto</>}
+              </button>
             </form>
           </motion.div>
         </div>

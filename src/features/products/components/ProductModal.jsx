@@ -18,6 +18,15 @@ export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) 
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
 
+  // Función para formatear números con puntos en miles y coma en decimales
+  const formatNumberDisplay = (value) => {
+    if (value === '' || value === null || value === undefined) return '';
+    let stringValue = value.toString().replace('.', ',');
+    const parts = stringValue.split(',');
+    let integerPart = parts[0].replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return integerPart + (parts[1] !== undefined ? ',' + parts[1].replace(/\D/g, '') : '');
+  };
+
   useEffect(() => {
     if (isOpen) {
       loadDependencies();
@@ -29,8 +38,8 @@ export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) 
           marca_id: productToEdit.marca_id || '',
           categoria_producto_id: productToEdit.categoria_producto_id || '',
           unidad_medida_id: productToEdit.unidad_medida_id || '',
-          precio_compra: productToEdit.precio_compra || '',
-          precio_venta: productToEdit.precio_venta || '',
+          precio_compra: productToEdit.precio_compra ? formatNumberDisplay(productToEdit.precio_compra) : '',
+          precio_venta: productToEdit.precio_venta ? formatNumberDisplay(productToEdit.precio_venta) : '',
           permite_decimal: !!productToEdit.permite_decimal
         });
       } else {
@@ -60,13 +69,41 @@ export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) 
     }
   };
 
+  // Manejador específico para formatear precios mientras se escribe
+  const handlePriceChange = (field, e) => {
+    let val = e.target.value;
+    let raw = val.replace(/[^0-9,]/g, '');
+    
+    // Permitir solo una coma decimal
+    const firstCommaIndex = raw.indexOf(',');
+    if (firstCommaIndex !== -1) {
+      raw = raw.substring(0, firstCommaIndex + 1) + raw.substring(firstCommaIndex + 1).replace(/,/g, '');
+    }
+
+    const parts = raw.split(',');
+    let integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    let formatted = integerPart + (parts[1] !== undefined ? ',' + parts[1] : '');
+
+    setFormData(prev => ({ ...prev, [field]: formatted }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Limpiar formato visual antes de enviar al backend (puntos fuera, coma a punto decimal)
+      const cleanPrecioCompra = formData.precio_compra ? formData.precio_compra.toString().replace(/\./g, '').replace(',', '.') : null;
+      const cleanPrecioVenta = formData.precio_venta ? formData.precio_venta.toString().replace(/\./g, '').replace(',', '.') : null;
+
+      const payload = {
+        ...formData,
+        precio_compra: cleanPrecioCompra,
+        precio_venta: cleanPrecioVenta
+      };
+
       const result = productToEdit 
-        ? await productService.updateProduct(productToEdit.id, formData)
-        : await productService.createProduct(formData);
+        ? await productService.updateProduct(productToEdit.id, payload)
+        : await productService.createProduct(payload);
 
       if (result.status) {
         showToast(result.message, "success");
@@ -109,7 +146,7 @@ export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) 
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Código Único</label>
                   <div className="relative">
                     <Hash className="absolute left-3 top-3 text-slate-400" size={16} />
-                    <input required className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none"
+                    <input required className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none uppercase"
                       value={formData.codigo} onChange={e => setFormData({...formData, codigo: e.target.value.toUpperCase()})} placeholder="REF-001" />
                   </div>
                 </div>
@@ -155,16 +192,29 @@ export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) 
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Precio Compra</label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-3 text-emerald-500" size={16} />
-                    <input type="number" step="any" className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none"
-                      value={formData.precio_compra} onChange={e => setFormData({...formData, precio_compra: e.target.value})} />
+                    <input 
+                      type="text" 
+                      inputMode="decimal"
+                      className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none font-medium"
+                      value={formData.precio_compra} 
+                      onChange={e => handlePriceChange('precio_compra', e)} 
+                      placeholder="0,00"
+                    />
                   </div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Precio Venta (Base)</label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-3 text-blue-500" size={16} />
-                    <input required type="number" step="any" className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none"
-                      value={formData.precio_venta} onChange={e => setFormData({...formData, precio_venta: e.target.value})} />
+                    <input 
+                      required 
+                      type="text" 
+                      inputMode="decimal"
+                      className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none font-medium"
+                      value={formData.precio_venta} 
+                      onChange={e => handlePriceChange('precio_venta', e)} 
+                      placeholder="0,00"
+                    />
                   </div>
                 </div>
               </div>
