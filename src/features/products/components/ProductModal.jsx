@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Package, Tag, Layers, Ruler, DollarSign, Hash, AlignLeft, Info } from 'lucide-react';
+import { X, Package, Tag, Layers, Ruler, DollarSign, Hash, AlignLeft, Info, Barcode } from 'lucide-react';
 import { productService } from '../services/productService';
 import { brandService } from '../../brands/services/brandService';
 import { categoryService } from '../../categories/services/categoryService';
@@ -9,7 +9,7 @@ import { useToast } from '../../../context/ToastContext';
 
 export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) => {
   const [formData, setFormData] = useState({
-    codigo: '', nombre: '', descripcion: '', 
+    codigo: '', codigo_barras: '', nombre: '', descripcion: '', 
     marca_id: '', categoria_producto_id: '', unidad_medida_id: '',
     precio_compra: '', precio_venta: '', permite_decimal: false
   });
@@ -33,6 +33,7 @@ export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) 
       if (productToEdit) {
         setFormData({
           codigo: productToEdit.codigo || '',
+          codigo_barras: productToEdit.codigo_barras || '',
           nombre: productToEdit.nombre || '',
           descripcion: productToEdit.descripcion || '',
           marca_id: productToEdit.marca_id || '',
@@ -44,7 +45,7 @@ export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) 
         });
       } else {
         setFormData({
-          codigo: '', nombre: '', descripcion: '', marca_id: '',
+          codigo: '', codigo_barras: '', nombre: '', descripcion: '', marca_id: '',
           categoria_producto_id: '', unidad_medida_id: '',
           precio_compra: '', precio_venta: '', permite_decimal: false
         });
@@ -150,13 +151,24 @@ export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) 
                       value={formData.codigo} onChange={e => setFormData({...formData, codigo: e.target.value.toUpperCase()})} placeholder="REF-001" />
                   </div>
                 </div>
+                
+                {/* Nuevo campo de Código de Barras */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre del Producto</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Código de Barras (Opcional)</label>
                   <div className="relative">
-                    <Package className="absolute left-3 top-3 text-slate-400" size={16} />
-                    <input required className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none"
-                      value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} placeholder="Nombre comercial" />
+                    <Barcode className="absolute left-3 top-3 text-slate-400" size={16} />
+                    <input className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none uppercase"
+                      value={formData.codigo_barras} onChange={e => setFormData({...formData, codigo_barras: e.target.value.toUpperCase()})} placeholder="770123456789" />
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombre del Producto</label>
+                <div className="relative">
+                  <Package className="absolute left-3 top-3 text-slate-400" size={16} />
+                  <input required className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none"
+                    value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} placeholder="Nombre comercial" />
                 </div>
               </div>
 

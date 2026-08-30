@@ -20,11 +20,23 @@ export const PaymentRegistrationModal = ({ isOpen, onClose, onSave, client }) =>
     observacion: ''
   });
 
+  // Estado auxiliar para mostrar el valor formateado con miles en el input
+  const [valorDisplay, setValorDisplay] = useState('');
+
   useEffect(() => {
     if (isOpen) {
       loadCajas();
+      setFormData(prev => ({
+        ...prev,
+        cliente_id: client?.id,
+        fecha_abono: getTodayStr(),
+        valor: '',
+        medio_pago: 'efectivo',
+        observacion: ''
+      }));
+      setValorDisplay('');
     }
-  }, [isOpen]);
+  }, [isOpen, client]);
 
   const loadCajas = async () => {
     setLoadingCajas(true);
@@ -50,6 +62,24 @@ export const PaymentRegistrationModal = ({ isOpen, onClose, onSave, client }) =>
     } finally {
       setLoadingCajas(false);
     }
+  };
+
+  // Función para manejar el cambio del monto y aplicar el formato de miles
+  const handleValorChange = (e) => {
+    const rawValue = e.target.value.replace(/\D/g, ''); // Solo números
+    
+    if (rawValue === '') {
+      setValorDisplay('');
+      setFormData(prev => ({ ...prev, valor: '' }));
+      return;
+    }
+
+    const numericValue = Number(rawValue);
+    // Formatea con puntos como separador de miles
+    const formatted = numericValue.toLocaleString('es-CO');
+
+    setValorDisplay(formatted);
+    setFormData(prev => ({ ...prev, valor: numericValue }));
   };
 
   const handleSubmit = async (e) => {
@@ -96,13 +126,13 @@ export const PaymentRegistrationModal = ({ isOpen, onClose, onSave, client }) =>
             </div>
             <div>
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Registrar Abono</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Saldo: $ {Number(client?.saldo_credito).toLocaleString()}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Saldo: $ {Number(client?.saldo_credito || 0).toLocaleString()}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white rounded-xl transition-colors text-slate-400"><X size={24} /></button>
         </header>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="p-8 space-y-6 text-left">
           {/* Selección de Caja */}
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Seleccionar Caja Destino</label>
@@ -141,12 +171,12 @@ export const PaymentRegistrationModal = ({ isOpen, onClose, onSave, client }) =>
               <div className="relative">
                 <DollarSign className="absolute left-4 top-3.5 text-emerald-500" size={16} />
                 <input
-                  type="number"
+                  type="text"
                   required
-                  step="0.01"
-                  className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black outline-none focus:border-emerald-500 transition-all"
-                  value={formData.valor}
-                  onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
+                  placeholder="0"
+                  className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black outline-none focus:border-emerald-500 transition-all text-slate-800"
+                  value={valorDisplay}
+                  onChange={handleValorChange}
                 />
               </div>
             </div>

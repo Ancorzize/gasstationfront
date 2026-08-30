@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,ShoppingBag,ArrowDownCircle,
+  LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,ShoppingBag,ArrowDownCircle,CheckCircle2,
   Wrench, Users, Wallet, Truck, TrendingUp, Fuel, BarChart3, Ruler, UserRoundPlus,Receipt, Target, Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X, Landmark, ClipboardList, Crosshair as Pump, Droplets, Play
 } from 'lucide-react';
 import logoEmpresa from '../images/logoGranjas.png';
 import { authService } from '../features/auth/services/authService';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { usePermissions } from '../hooks/usePermissions';2
+import { usePermissions } from '../hooks/usePermissions';
 
 const menuGroups = [
   {
@@ -23,6 +23,7 @@ const menuGroups = [
     title: "Operación",
     items: [
       { icon: Play, label: 'Turnos', permission: 'ver_turnos_islero', path: '/operacion/turnos' },
+      { icon: CheckCircle2, label: 'Aprobación de Turnos', permission: 'aprobar_cierres_turnos_islero', path: '/turnos/aprobaciones' },
       { icon: Fuel, label: 'Ventas Combustible', permission: 'crear_ventas', path: '/ventas/nueva' },
       { icon: Package, label: 'Ventas Lubricantes', permission: 'crear_ventas', path: '/ventas/lubricantes' },
       { icon: ShoppingBag, label: 'Ventas Realizadas', permission: 'ver_ventas', path: '/ventas' },

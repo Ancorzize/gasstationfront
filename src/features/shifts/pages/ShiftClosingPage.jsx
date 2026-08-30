@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, ArrowLeft, Banknote, Droplets, Users } from 'lucide-react';
+import { Loader2, ArrowLeft, Banknote, Droplets, Users, Send } from 'lucide-react';
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
 
@@ -53,7 +53,7 @@ export const ShiftClosingPage = () => {
     const totalReportado = formData.destinos_recaudo.reduce((acc, d) => {
       return acc + Object.values(d.pagos).reduce((sum, val) => sum + val, 0);
     }, 0);
-                        
+                    
     return { totalEsperado, totalReportado, balance: totalReportado - totalEsperado };
   }, [summary, formData]);
 
@@ -88,15 +88,17 @@ export const ShiftClosingPage = () => {
         otros_movimientos_detalle: null,
         observacion_cierre: '' 
       };
-      const res = await shiftService.closeShift(id, payload);
+      
+      // CAMBIO PRINCIPAL: Se solicita el cierre en lugar de ejecutar el cierre definitivo directo
+      const res = await shiftService.requestCloseShift(id, payload);
       if (res.status) {
-        showToast("Turno cerrado exitosamente", "success");
-        navigate('/operacion/turnos');
+        showToast("Cierre solicitado exitosamente. Pendiente de aprobación.", "success");
+        navigate(`/operacion/turnos`);
       } else {
         showToast(res.message, "error");
       }
     } catch (error) {
-      showToast("Error al cerrar el turno", "error");
+      showToast("Error al solicitar el cierre del turno", "error");
     } finally {
       setLoading(false);
     }
@@ -111,7 +113,7 @@ export const ShiftClosingPage = () => {
         <header className="flex items-center justify-between">
           <button onClick={() => navigate(-1)} className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-zinc-900 shadow-sm"><ArrowLeft size={20} /></button>
           <div className="text-right">
-            <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tight">Cierre de Turno</h2>
+            <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tight">Solicitud de Cierre de Turno</h2>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estación: {summary.turno?.estacion?.nombre}</p>
           </div>
         </header>
@@ -199,8 +201,9 @@ export const ShiftClosingPage = () => {
 
         </div>
 
-        <button type="submit" disabled={loading} className="w-full bg-zinc-900 text-white py-5 rounded-[2rem] font-black uppercase text-xs hover:bg-black transition-all shadow-xl">
-          {loading ? <Loader2 className="animate-spin mx-auto" /> : "Finalizar y Cerrar Turno"}
+        <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white py-5 rounded-[2rem] font-black uppercase text-xs hover:bg-black transition-all shadow-xl">
+          {loading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
+          Solicitar aprobación de cierre
         </button>
       </form>
     </div>

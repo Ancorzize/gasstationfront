@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, ArrowLeft, Fuel, Package, CreditCard, Receipt, Calculator, ChevronRight } from 'lucide-react';
+import { Loader2, ArrowLeft, Fuel, Package, CreditCard, Receipt, Calculator, ChevronRight, AlertCircle, Clock, ShieldAlert } from 'lucide-react';
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
 
@@ -34,6 +34,8 @@ export const ShiftSummaryPage = () => {
 
   const totales = summary?.totales_sistema || {};
   const totalEsperadoCaja = (totales.total_sistema || 0);
+  const turno = summary?.turno || {};
+  const estadoActual = turno.estado;
 
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto">
@@ -45,10 +47,41 @@ export const ShiftSummaryPage = () => {
         <div className="text-right">
           <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">Resumen de Control</h2>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            Pre-cierre: {summary?.turno?.estacion?.nombre} #{id}
+            Turno: {turno?.estacion?.nombre} #{id} | Estado: <span className="uppercase text-zinc-900">{estadoActual}</span>
           </p>
         </div>
       </div>
+
+      {estadoActual === 'pendiente_cierre' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 flex items-center gap-4 text-amber-800 shadow-sm">
+          <Clock size={24} className="shrink-0" />
+          <div>
+            <h4 className="text-xs font-black uppercase tracking-wider">Pendiente de aprobación administrativa</h4>
+            <p className="text-xs mt-1 font-medium">Ya has solicitado el cierre de este turno. No se puede modificar mientras el administrador esté realizando la revisión.</p>
+          </div>
+        </div>
+      )}
+
+      {estadoActual === 'devuelto' && (
+        <div className="bg-red-50 border border-red-200 rounded-3xl p-6 flex items-start gap-4 text-red-800 shadow-sm">
+          <ShieldAlert size={24} className="shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h4 className="text-xs font-black uppercase tracking-wider">Turno Devuelto por el Administrador</h4>
+            <p className="text-xs font-bold">Motivo: {turno.observacion_devolucion || 'Sin especificar'}</p>
+            <p className="text-[11px] text-red-600">Puedes corregir los datos ingresando nuevamente al formulario de cierre de este turno.</p>
+          </div>
+        </div>
+      )}
+
+      {estadoActual === 'cerrado' && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 flex items-center gap-4 text-emerald-800 shadow-sm">
+          <AlertCircle size={24} className="shrink-0" />
+          <div>
+            <h4 className="text-xs font-black uppercase tracking-wider">Turno Cerrado Definitivamente</h4>
+            <p className="text-xs mt-1 font-medium">Este turno ha sido aprobado y cerrado por la administración. No permite modificaciones.</p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Fuel} label="Combustible" value={totales.ventas_combustible} color="bg-blue-600" />
@@ -118,12 +151,15 @@ export const ShiftSummaryPage = () => {
           <p className="text-[9px] text-zinc-500 max-w-sm uppercase leading-tight mt-2">El total excluye créditos pendientes. {summary?.nota}</p>
         </div>
         
-        <button 
-          onClick={() => navigate(`/turnos-islero/${id}/cerrar`)}
-          className="w-full md:w-auto flex items-center justify-center gap-3 bg-white text-zinc-900 px-10 py-5 rounded-2xl font-black uppercase text-xs hover:scale-105 transition-transform"
-        >
-          <Calculator size={18} /> Registrar Pagos y Cerrar <ChevronRight size={18} />
-        </button>
+        {/* Renderizamos CTA según estado: Si está devuelto o abierto, permite ir a corregir/cerrar */}
+        {(estadoActual === 'abierto' || estadoActual === 'devuelto') && (
+          <button 
+            onClick={() => navigate(`/turnos-islero/${id}/cerrar`)}
+            className="w-full md:w-auto flex items-center justify-center gap-3 bg-white text-zinc-900 px-10 py-5 rounded-2xl font-black uppercase text-xs hover:scale-105 transition-transform"
+          >
+            <Calculator size={18} /> {estadoActual === 'devuelto' ? 'Corregir Cierre' : 'Registrar Pagos y Cerrar'} <ChevronRight size={18} />
+          </button>
+        )}
       </div>
     </div>
   );

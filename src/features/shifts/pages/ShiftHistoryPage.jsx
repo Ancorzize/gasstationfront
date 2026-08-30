@@ -7,7 +7,7 @@ import {
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
 import { getTodayStr } from '../../../shared/utils/dateUtils';
-import { ShiftReadingsModal } from '../components/ShiftReadingsModal'; 
+import { ShiftReadingsSection } from '../components/ShiftReadingsSection'; // Importamos como sección
 
 export const ShiftHistoryPage = () => {
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ export const ShiftHistoryPage = () => {
   const [startDate, setStartDate] = useState(getTodayStr());
   const [endDate, setEndDate] = useState(getTodayStr());
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // Estado para controlar qué turno se está visualizando en formato sección
   const [selectedTurnoId, setSelectedTurnoId] = useState(null);
 
   const fetchHistory = async () => {
@@ -53,11 +53,6 @@ export const ShiftHistoryPage = () => {
       s.fecha_apertura?.includes(term)
     );
   });
-
-  const handleOpenModal = (turnoId) => {
-    setSelectedTurnoId(turnoId);
-    setIsModalOpen(true);
-  };
 
   const handleExport = () => {
     if (filteredShifts.length === 0) {
@@ -97,6 +92,18 @@ export const ShiftHistoryPage = () => {
       </span>
     );
   };
+
+  // Si hay un turno seleccionado, mostramos la sección de detalles en lugar de la tabla de historial
+  if (selectedTurnoId) {
+    return (
+      <div className="p-4 md:p-8 relative">
+        <ShiftReadingsSection 
+          turnoId={selectedTurnoId} 
+          onBack={() => setSelectedTurnoId(null)} 
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 space-y-6 text-left relative">
@@ -213,7 +220,7 @@ export const ShiftHistoryPage = () => {
                       </td>
                       <td className="px-5 py-4 text-center">
                         <button 
-                          onClick={() => handleOpenModal(s.id)}
+                          onClick={() => setSelectedTurnoId(s.id)}
                           className="p-2 text-slate-400 hover:text-zinc-900 hover:bg-slate-100 rounded-xl transition-all"
                         >
                           <Eye size={18} />
@@ -233,12 +240,6 @@ export const ShiftHistoryPage = () => {
           </table>
         </div>
       </div>
-
-      <ShiftReadingsModal 
-        turnoId={selectedTurnoId} 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-      />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Fuel, DollarSign, User, Droplets, Loader2, CheckCircle, AlertTriangle, Search, Check, X } from 'lucide-react';
+import { Fuel, DollarSign, User, Loader2, CheckCircle, AlertTriangle, Search, Check, X } from 'lucide-react';
 import { shiftService } from '../../shifts/services/shiftService';
 import { fuelSalesService } from '../services/fuelSalesService';
 import { clientService } from '../../clients/services/clientService';
@@ -91,7 +91,7 @@ export const FuelSalesPage = () => {
       const res = await fuelSalesService.createFuelSale(formData);
       if (res.status) {
         showToast(res.message, "success");
-        navigate('/operacion/turnos');
+        navigate('/operacion/factura-combustible', { state: { saleData: res.data } });
       } else {
         showToast(res.message, "error");
         if (res.message.includes("asignada")) window.location.reload();
@@ -137,7 +137,8 @@ export const FuelSalesPage = () => {
                     isSelected ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg' : 'border-slate-50 bg-slate-50 text-slate-400 hover:border-slate-200'
                   }`}
                 >
-                  <Droplets size={20} className={isSelected ? 'text-blue-400' : 'text-slate-300'} />
+                  {/* Icono de dispensador/surtidor de gasolina */}
+                  <Fuel size={22} className={isSelected ? 'text-amber-400' : 'text-slate-300'} />
                   <span className="text-[10px] font-black uppercase">{m.nombre}</span>
                   <span className={`text-[8px] font-bold ${isSelected ? 'text-zinc-400' : 'text-slate-400'}`}>
                     {m.producto?.nombre}

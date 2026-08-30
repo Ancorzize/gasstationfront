@@ -47,7 +47,10 @@ import { DashboardConfigPage } from "./features/dashboard/Pages/DashboardConfigP
 import { SalesListPage } from "./features/sales/pages/SalesListPage";
 import { SaleDetailPage } from "./features/sales/pages/SaleDetailPage";
 import { CapitalTrabajoPage } from "./features/reports/pages/CapitalTrabajoPage";
-
+import { ShiftApprovalsPage } from "./features/shifts/pages/ShiftApprovalsPage"; 
+import { ShiftEditClosingPage } from "./features/shifts/pages/ShiftEditClosingPage";
+import { SaleInvoiceView } from "./features/sales/pages/SaleInvoiceView";
+import { FuelInvoiceView } from "./features/sales/pages/FuelInvoiceView";
 
 function App() {
   useInactivityTimeout(30);
@@ -454,6 +457,42 @@ function App() {
             element={
               <MainLayout>
                 <CapitalTrabajoPage />
+              </MainLayout>
+            } 
+          />
+
+          <Route
+            path="/turnos/aprobaciones"
+            element={
+              <MainLayout>
+                <ShiftApprovalsPage />
+              </MainLayout>
+            }
+          />
+
+          <Route 
+            path="/turnos-islero/:id/editar-cierre" 
+            element={
+              <MainLayout>
+                <ShiftEditClosingPage />
+              </MainLayout>
+            } 
+          />
+          
+          <Route 
+            path="/operacion/factura-venta" 
+            element={
+              <MainLayout>
+                <SaleInvoiceView />
+              </MainLayout>
+            } 
+          />
+
+          <Route 
+            path="/operacion/factura-combustible" 
+            element={
+              <MainLayout>
+                <FuelInvoiceView />
               </MainLayout>
             } 
           />

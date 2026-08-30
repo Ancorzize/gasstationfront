@@ -19,9 +19,14 @@ export const PaymentModal = ({ isOpen, onClose, purchase, onSave }) => {
     observacion: ''
   });
 
+  // Estado para mostrar el valor formateado con puntos y comas en el input
+  const [montoDisplay, setMontoDisplay] = useState('');
+
   useEffect(() => {
     if (isOpen) {
       loadCajas();
+      setFormData(prev => ({ ...prev, monto: '' }));
+      setMontoDisplay('');
     }
   }, [isOpen]);
 
@@ -51,11 +56,50 @@ export const PaymentModal = ({ isOpen, onClose, purchase, onSave }) => {
     }
   };
 
+  // Función para formatear mientras se escribe (ej: 2.234.000,50)
+  const handleMontoChange = (e) => {
+    let value = e.target.value;
+
+    // Permitir solo números, puntos y comas
+    value = value.replace(/[^0-9.,]/g, '');
+
+    // Evitar múltiples comas decimales
+    const parts = value.split(',');
+    if (parts.length > 2) {
+      value = parts[0] + ',' + parts.slice(1).join('');
+    }
+
+    // Limpiar puntos de miles anteriores para reconstruir el formato limpio
+    let cleanVal = value.replace(/\./g, '');
+    
+    if (cleanVal.includes(',')) {
+      const [integerPart, decimalPart] = cleanVal.split(',');
+      const formattedInteger = integerPart ? Number(integerPart).toLocaleString('es-CO') : '';
+      value = formattedInteger !== '' ? `${formattedInteger},${decimalPart}` : `,${decimalPart}`;
+      
+      // Valor real numérico para el backend (cambiando coma por punto para el float)
+      const numericVal = parseFloat(`${integerPart || 0}.${decimalPart}`);
+      setFormData(prev => ({ ...prev, monto: isNaN(numericVal) ? '' : numericVal }));
+    } else {
+      const formattedInteger = cleanVal ? Number(cleanVal).toLocaleString('es-CO') : '';
+      value = formattedInteger;
+      
+      const numericVal = parseFloat(cleanVal);
+      setFormData(prev => ({ ...prev, monto: isNaN(numericVal) ? '' : numericVal }));
+    }
+
+    setMontoDisplay(value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!formData.caja_id) {
       return showToast("Debe seleccionar una caja", "error");
+    }
+
+    if (!formData.monto || parseFloat(formData.monto) <= 0) {
+      return showToast("Debe ingresar un monto válido", "error");
     }
 
     if (parseFloat(formData.monto) > parseFloat(purchase.saldo_pendiente)) {
@@ -134,9 +178,15 @@ export const PaymentModal = ({ isOpen, onClose, purchase, onSave }) => {
                 <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Monto a Pagar</label>
                 <div className="relative">
                   <DollarSign className="absolute left-4 top-3.5 text-slate-300" size={16} />
-                  <input required type="number" step="any" min="1" max={purchase?.saldo_pendiente}
+                  <input 
+                    required 
+                    type="text" 
+                    inputMode="decimal"
                     className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black outline-none focus:border-zinc-900"
-                    value={formData.monto} onChange={e => setFormData({...formData, monto: e.target.value})} placeholder="0.00" />
+                    value={montoDisplay} 
+                    onChange={handleMontoChange} 
+                    placeholder="0.00" 
+                  />
                 </div>
               </div>
 
