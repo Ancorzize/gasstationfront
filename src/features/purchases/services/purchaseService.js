@@ -76,4 +76,12 @@ export const purchaseService = {
     
     return await response.blob();
   },
+  registrarPagoProveedor: async (data) => {
+    const res = await fetch(`${API_URL}/compras/pagos-general`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  },
 };

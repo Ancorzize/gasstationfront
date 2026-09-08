@@ -36,16 +36,7 @@ export const ShiftReadingsSection = ({ turnoId, onBack }) => {
   };
 
   const lecturas = turnoDetalle?.lecturas || [];
-  const datosCierre = turnoDetalle?.datos_cierre_pendiente || {};
-  const destinosRecaudo = datosCierre.destinos_recaudo || [];
-
-  const getNombreDestino = (id) => {
-    switch (Number(id)) {
-      case 1: return 'Combustible';
-      case 2: return 'Lubricantes';
-      default: return `Destino #${id}`;
-    }
-  };
+  const recaudos = turnoDetalle?.recaudos || [];
 
   return (
     <>
@@ -67,7 +58,7 @@ export const ShiftReadingsSection = ({ turnoId, onBack }) => {
             padding: 4px !important;
             margin: 0 !important;
           }
-          .print\:hidden {
+          .print\\:hidden {
             display: none !important;
           }
           tr, div {
@@ -158,42 +149,61 @@ export const ShiftReadingsSection = ({ turnoId, onBack }) => {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1.5 border-t border-slate-200/60">
                   <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-2xs print:border-slate-300">
                     <span className="text-[7px] font-bold text-slate-400 uppercase block">Ventas Combustible</span>
-                    <span className="text-[10px] font-black text-slate-800">${Number(datosCierre.total_ventas_combustible || turnoDetalle.total_ventas_combustible || 0).toLocaleString()}</span>
+                    <span className="text-[10px] font-black text-slate-800">${Number(turnoDetalle.total_ventas_combustible || 0).toLocaleString()}</span>
                   </div>
                   <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-2xs print:border-slate-300">
                     <span className="text-[7px] font-bold text-slate-400 uppercase block">Ventas Lubricantes</span>
-                    <span className="text-[10px] font-black text-slate-800">${Number(datosCierre.total_ventas_lubricantes || turnoDetalle.total_ventas_lubricantes || 0).toLocaleString()}</span>
+                    <span className="text-[10px] font-black text-slate-800">${Number(turnoDetalle.total_ventas_lubricantes || 0).toLocaleString()}</span>
                   </div>
                   <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-2xs print:border-slate-300">
                     <span className="text-[7px] font-bold text-slate-400 uppercase block">Total Abonos</span>
-                    <span className="text-[10px] font-black text-slate-800">${Number(datosCierre.total_abonos || turnoDetalle.total_abonos || 0).toLocaleString()}</span>
+                    <span className="text-[10px] font-black text-slate-800">${Number(turnoDetalle.total_abonos || 0).toLocaleString()}</span>
                   </div>
                   <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-2xs print:border-slate-300">
                     <span className="text-[7px] font-bold text-slate-400 uppercase block">Dinero Recaudado</span>
-                    <span className="text-[10px] font-black text-emerald-600">${Number(datosCierre.total_dinero_recaudado || turnoDetalle.total_reportado || 0).toLocaleString()}</span>
+                    <span className="text-[10px] font-black text-emerald-600">${Number(turnoDetalle.total_reportado || 0).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
 
               {/* Destinos de Recaudo */}
-              {destinosRecaudo.length > 0 && (
+              {recaudos.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                     <Banknote size={14} /> Destinos de Recaudo y Medios de Pago
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                    {destinosRecaudo.map((destino) => (
-                      <div key={destino.destino_recaudo_id} className="bg-slate-50 border border-slate-100 p-3 rounded-2xl space-y-2 print:bg-white print:border-slate-300">
-                        <h5 className="text-[10px] font-black text-slate-900 uppercase border-b border-slate-200/60 pb-1.5">
-                          {getNombreDestino(destino.destino_recaudo_id)}
-                        </h5>
+                    {recaudos.map((recaudo) => (
+                      <div key={recaudo.id} className="bg-slate-50 border border-slate-100 p-3 rounded-2xl space-y-2 print:bg-white print:border-slate-300">
+                        <div className="flex justify-between items-center border-b border-slate-200/60 pb-1.5">
+                          <h5 className="text-[10px] font-black text-slate-900 uppercase">
+                            {recaudo.destino_recaudo?.nombre || 'General'}
+                          </h5>
+                          <span className="text-[9px] font-black text-emerald-600">
+                            Total: ${Number(recaudo.total || 0).toLocaleString()}
+                          </span>
+                        </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[9px]">
-                          {destino.pagos && Object.entries(destino.pagos).map(([medio, valor]) => (
-                            <div key={medio} className="bg-white p-2 rounded-xl border border-slate-100 shadow-2xs print:border-slate-300">
-                              <span className="text-[7px] font-bold text-slate-400 uppercase block">{medio}</span>
-                              <span className="font-black text-slate-700">${Number(valor || 0).toLocaleString()}</span>
-                            </div>
-                          ))}
+                          <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-2xs print:border-slate-300">
+                            <span className="text-[7px] font-bold text-slate-400 uppercase block">Efectivo</span>
+                            <span className="font-black text-slate-700">${Number(recaudo.efectivo || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-2xs print:border-slate-300">
+                            <span className="text-[7px] font-bold text-slate-400 uppercase block">QR</span>
+                            <span className="font-black text-slate-700">${Number(recaudo.qr || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-2xs print:border-slate-300">
+                            <span className="text-[7px] font-bold text-slate-400 uppercase block">Datáfono</span>
+                            <span className="font-black text-slate-700">${Number(recaudo.datafono || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-2xs print:border-slate-300">
+                            <span className="text-[7px] font-bold text-slate-400 uppercase block">Transferencia</span>
+                            <span className="font-black text-slate-700">${Number(recaudo.transferencia || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-2xs print:border-slate-300 col-span-2 sm:col-span-1">
+                            <span className="text-[7px] font-bold text-slate-400 uppercase block">Consignación</span>
+                            <span className="font-black text-slate-700">${Number(recaudo.consignacion || 0).toLocaleString()}</span>
+                          </div>
                         </div>
                       </div>
                     ))}

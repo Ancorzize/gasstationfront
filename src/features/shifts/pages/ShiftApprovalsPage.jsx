@@ -1,10 +1,28 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Search, ShieldCheck, CheckCircle, XCircle, Eye, 
-  MapPin, ArrowLeft, Loader2, AlertTriangle, Droplets, Banknote, Users 
+  Search, ShieldCheck, CheckCircle, Eye, 
+  MapPin, ArrowLeft, Loader2, Droplets, Banknote, Users, Save, FileText 
 } from 'lucide-react';
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
+
+// Funciones auxiliares de formateo en pesos colombianos
+const formatPesos = (value) => {
+  if (value === '' || value === null || value === undefined) return '';
+  const num = Number(value);
+  if (isNaN(num)) return '';
+  
+  const parts = num.toFixed(2).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${parts[0]},${parts[1]}`;
+};
+
+const parsePesos = (str) => {
+  if (!str) return '';
+  const clean = str.toString().replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
+  const num = parseFloat(clean);
+  return isNaN(num) ? '' : num;
+};
 
 export const ShiftApprovalsPage = () => {
   const { showToast } = useToast();
@@ -15,10 +33,15 @@ export const ShiftApprovalsPage = () => {
   const [selectedTurno, setSelectedTurno] = useState(null);
   const [revisionData, setRevisionData] = useState(null);
   const [loadingRevision, setLoadingRevision] = useState(false);
-
   const [actionLoading, setActionLoading] = useState(false);
-  const [showDevolverModal, setShowDevolverModal] = useState(false);
-  const [observacionDevolucion, setObservacionDevolucion] = useState('');
+
+  // Estados locales editables
+  const [editLecturas, setEditLecturas] = useState([]);
+  const [editDestinosRecaudo, setEditDestinosRecaudo] = useState([]);
+  const [otrosMovimientos, setOtrosMovimientos] = useState(0);
+  const [otrosMovimientosInput, setOtrosMovimientosInput] = useState('');
+  const [otrosDetalle, setOtrosDetalle] = useState('');
+  const [observacionCierre, setObservacionCierre] = useState('');
 
   const fetchPendientes = async () => {
     setLoading(true);
@@ -46,7 +69,57 @@ export const ShiftApprovalsPage = () => {
     try {
       const response = await shiftService.getPendingsCloseRevision(turno.id);
       if (response && response.status) {
-        setRevisionData(response.data);
+        const data = response.data;
+        setRevisionData(data);
+
+        setEditLecturas(
+          (data.turno?.lecturas || []).map(l => {
+            const valFinal = l.lectura_final !== null ? parseFloat(l.lectura_final) : '';
+            return {
+              manguera_id: l.manguera_id,
+              lectura_final: valFinal,
+              lecturaFinalInput: valFinal !== '' ? formatPesos(valFinal) : '',
+              lectura_inicial: parseFloat(l.lectura_inicial || 0),
+              precio_galon: parseFloat(l.precio_galon || 0),
+              manguera: l.manguera
+            };
+          })
+        );
+
+        setEditDestinosRecaudo(
+          (data.destinos_recaudo || []).map(d => {
+            const recaudoIslero = (data.turno?.recaudos || []).find(
+              r => r.destino_recaudo_id === d.destino_recaudo_id
+            );
+
+            const initialPagos = recaudoIslero ? {
+              efectivo: parseFloat(recaudoIslero.efectivo || 0),
+              qr: parseFloat(recaudoIslero.qr || 0),
+              datafono: parseFloat(recaudoIslero.datafono || 0),
+              transferencia: parseFloat(recaudoIslero.transferencia || 0),
+              consignacion: parseFloat(recaudoIslero.consignacion || 0)
+            } : { ...(d.pagos || { efectivo: 0, qr: 0, datafono: 0, transferencia: 0, consignacion: 0 }) };
+
+            const pagosInputs = {};
+            Object.keys(initialPagos).forEach(medio => {
+              pagosInputs[medio] = initialPagos[medio] ? formatPesos(initialPagos[medio]) : '';
+            });
+
+            return {
+              destino_recaudo_id: d.destino_recaudo_id,
+              nombre: d.nombre,
+              pagos: initialPagos,
+              pagosInputs: pagosInputs
+            };
+          })
+        );
+
+        const valOtros = parseFloat(data.resumen?.otros_movimientos || 0);
+        setOtrosMovimientos(valOtros);
+        setOtrosMovimientosInput(valOtros ? formatPesos(valOtros) : '');
+        setOtrosDetalle(data.resumen?.otros_movimientos_detalle || '');
+        setObservacionCierre(data.resumen?.observacion_cierre || 'Cierre revisado y corregido por administrador.');
+
       } else {
         showToast(response?.message || 'Error al obtener la información de revisión', 'error');
       }
@@ -57,92 +130,124 @@ export const ShiftApprovalsPage = () => {
     }
   };
 
-  const handleAprobar = async () => {
+  const handleReadingChange = (mangueraId, rawValue) => {
+    setEditLecturas(prev => prev.map(l => {
+      if (l.manguera_id !== mangueraId) return l;
+      const parsedNum = parsePesos(rawValue);
+      return {
+        ...l,
+        lectura_final: parsedNum === '' ? '' : parsedNum,
+        lecturaFinalInput: rawValue
+      };
+    }));
+  };
+
+  const handleReadingBlur = (mangueraId) => {
+    setEditLecturas(prev => prev.map(l => {
+      if (l.manguera_id !== mangueraId) return l;
+      const num = l.lectura_final;
+      return {
+        ...l,
+        lecturaFinalInput: num !== '' && !isNaN(num) ? formatPesos(num) : ''
+      };
+    }));
+  };
+
+  const handlePaymentChange = (destinoId, medio, rawValue) => {
+    setEditDestinosRecaudo(prev => prev.map(d => {
+      if (d.destino_recaudo_id !== destinoId) return d;
+
+      const parsedNum = parsePesos(rawValue);
+      return {
+        ...d,
+        pagos: { ...d.pagos, [medio]: parsedNum === '' ? 0 : parsedNum },
+        pagosInputs: { ...d.pagosInputs, [medio]: rawValue }
+      };
+    }));
+  };
+
+  const handlePaymentBlur = (destinoId, medio) => {
+    setEditDestinosRecaudo(prev => prev.map(d => {
+      if (d.destino_recaudo_id !== destinoId) return d;
+      const num = d.pagos[medio];
+      return {
+        ...d,
+        pagosInputs: { ...d.pagosInputs, [medio]: num ? formatPesos(num) : '' }
+      };
+    }));
+  };
+
+  const handleOtrosMovimientosChange = (rawValue) => {
+    setOtrosMovimientosInput(rawValue);
+    const parsedNum = parsePesos(rawValue);
+    setOtrosMovimientos(parsedNum === '' ? 0 : parsedNum);
+  };
+
+  const handleOtrosMovimientosBlur = () => {
+    setOtrosMovimientosInput(otrosMovimientos ? formatPesos(otrosMovimientos) : '');
+  };
+
+  const handleAprobar = async (e) => {
+    e.preventDefault();
     if (!selectedTurno) return;
     setActionLoading(true);
     try {
-      const response = await shiftService.approveShift(selectedTurno.id);
-      if (response && response.status) {
-        showToast('Turno aprobado exitosamente', 'success');
-        setSelectedTurno(null);
-        setRevisionData(null);
-        fetchPendientes();
-      } else {
-        showToast(response?.message || 'Error al aprobar el turno', 'error');
-      }
-    } catch (error) {
-      showToast('Error de conexión al aprobar el turno', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDevolver = async () => {
-    if (!selectedTurno || !observacionDevolucion.trim()) {
-      showToast('Debe ingresar una observación de devolución', 'error');
-      return;
-    }
-    setActionLoading(true);
-    try {
-      const response = await shiftService.returnShift(selectedTurno.id, {
-        observacion_devolucion: observacionDevolucion
-      });
-      if (response && response.status) {
-        showToast('Turno devuelto al islero correctamente', 'success');
-        setShowDevolverModal(false);
-        setObservacionDevolucion('');
-        setSelectedTurno(null);
-        setRevisionData(null);
-        fetchPendientes();
-      } else {
-        showToast(response?.message || 'Error al devolver el turno', 'error');
-      }
-    } catch (error) {
-      showToast('Error de conexión al devolver el turno', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Cálculo del balance basado en los datos del cierre pendiente (Esperado vs Reportado)
-  const calculatedValues = useMemo(() => {
-    if (!revisionData || !revisionData.datos_cierre_pendiente) {
-      return { totalEsperado: 0, totalReportado: 0, balance: 0 };
-    }
-    
-    const cierre = revisionData.datos_cierre_pendiente;
-    
-    const totalVentasCombustible = Number(cierre.total_ventas_combustible || 0);
-    const totalVentasLubricantes = Number(cierre.total_ventas_lubricantes || 0);
-    
-    const totalEsperado = totalVentasCombustible + totalVentasLubricantes;
-    const totalReportado = Number(cierre.total_dinero_recaudado || 0) - Number(cierre.total_abonos || 0);
-    
-    return { 
-      totalEsperado, 
-      totalReportado, 
-      balance: totalReportado - totalEsperado 
-    };
-  }, [revisionData]);
-
-  // Mapeo y estructuración de destinos de recaudo usando datos_cierre_pendiente
-  const destinosRecaudoFormateados = useMemo(() => {
-    if (!revisionData) return [];
-    const pendientesDestinos = revisionData.datos_cierre_pendiente?.destinos_recaudo || [];
-    
-    const baseDestinos = [
-      { destino_recaudo_id: 1, nombre: 'Combustible', pagos: { efectivo: 0, qr: 0, datafono: 0, transferencia: 0, consignacion: 0 } },
-      { destino_recaudo_id: 2, nombre: 'Lubricantes', pagos: { efectivo: 0, qr: 0, datafono: 0, transferencia: 0, consignacion: 0 } }
-    ];
-
-    return baseDestinos.map(base => {
-      const encontrado = pendientesDestinos.find(p => p.destino_recaudo_id === base.destino_recaudo_id);
-      return {
-        ...base,
-        pagos: encontrado ? { ...encontrado.pagos } : base.pagos
+      const payload = {
+        lecturas_finales: editLecturas.map(({ manguera_id, lectura_final }) => ({
+          manguera_id,
+          lectura_final: Number(lectura_final) || 0
+        })),
+        destinos_recaudo: editDestinosRecaudo.map(d => ({
+          destino_recaudo_id: d.destino_recaudo_id,
+          pagos: d.pagos
+        })),
+        otros_movimientos: Number(otrosMovimientos) || 0,
+        otros_movimientos_detalle: otrosDetalle ? otrosDetalle : null,
+        observacion_cierre: observacionCierre
       };
-    });
-  }, [revisionData]);
+
+      const response = await shiftService.closeShift(selectedTurno.id, payload);
+      
+      if (response && response.status) {
+        showToast('Turno modificado y aprobado exitosamente', 'success');
+        setSelectedTurno(null);
+        setRevisionData(null);
+        fetchPendientes();
+      } else {
+        showToast(response?.message || 'Error al procesar el cierre del turno', 'error');
+      }
+    } catch (error) {
+      showToast('Error de conexión al guardar y aprobar el turno', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const calculatedValues = useMemo(() => {
+    if (!revisionData) return { totalEsperado: 0, totalReportado: 0, balance: 0 };
+    
+    const totalCombustible = editLecturas.reduce((acc, l) => {
+      const final = l.lectura_final !== '' ? Number(l.lectura_final) : l.lectura_inicial;
+      const galonesVendidos = Math.max(0, final - l.lectura_inicial);
+      return acc + (galonesVendidos * l.precio_galon);
+    }, 0);
+
+    const abonos = (revisionData.abonos || []).reduce((acc, a) => acc + Number(a.monto || 0), 0);
+  
+    const ventasLubricantes = Number(revisionData.resumen?.total_ventas_lubricantes || 0);
+    const totalCreditos = Number(revisionData.resumen?.total_creditos || 0);
+    const totalEsperado = totalCombustible + ventasLubricantes - totalCreditos + abonos;
+
+    const totalReportado = editDestinosRecaudo.reduce((acc, d) => {
+      return acc + Object.values(d.pagos).reduce((sum, val) => sum + Number(val || 0), 0);
+    }, 0) + Number(otrosMovimientos || 0) + abonos;
+                    
+    return { 
+      totalEsperado: Number(totalEsperado || 0), 
+      totalReportado: Number(totalReportado || 0), 
+      balance: Number(totalReportado || 0) - Number(totalEsperado || 0) 
+    };
+  }, [revisionData, editLecturas, editDestinosRecaudo, otrosMovimientos]);
 
   const filteredPendientes = pendientes.filter(t => {
     const term = searchTerm.toLowerCase();
@@ -153,184 +258,193 @@ export const ShiftApprovalsPage = () => {
   });
 
   return (
-    <div className="p-4 md:p-8 text-left max-w-6xl mx-auto space-y-6 pb-20">
+    <div className="p-4 md:p-8 space-y-6 max-w-6xl mx-auto pb-20 text-left">
 
       {selectedTurno ? (
         <div className="space-y-6">
-          <button
-            onClick={() => { setSelectedTurno(null); setRevisionData(null); }}
-            className="flex items-center gap-2 text-xs font-black uppercase text-yellow-600 hover:text-yellow-700 transition-colors"
-          >
-            <ArrowLeft size={16} /> Volver al listado
-          </button>
+          
+          <div className="sticky top-0 z-40 bg-slate-50/90 dark:bg-zinc-950/90 backdrop-blur-md pt-2 pb-4 space-y-4 -mx-4 px-4 md:mx-0 md:px-0">
+            <header className="flex items-center justify-between">
+              <button 
+                onClick={() => { setSelectedTurno(null); setRevisionData(null); }} 
+                className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-zinc-900 shadow-sm transition-all"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <div className="text-right">
+                <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tight">Modificación y Aprobación</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  Estación: {revisionData?.turno?.estacion?.nombre} | Islero: {revisionData?.turno?.usuario?.name}
+                </p>
+              </div>
+            </header>
+
+            {loadingRevision ? null : (
+              <div className={`p-5 rounded-[2rem] shadow-md border flex items-center justify-between transition-colors ${calculatedValues.balance === 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-900' : calculatedValues.balance < 0 ? 'bg-rose-50 border-rose-100 text-rose-900' : 'bg-blue-50 border-blue-100 text-blue-900'}`}>
+                <div>
+                  <h4 className="text-[10px] md:text-xs font-black uppercase tracking-wider">Balance del Turno (Editable)</h4>
+                  <p className="text-[9px] md:text-[10px] font-bold opacity-75">
+                    Esperado: {formatPesos(calculatedValues.totalEsperado)} | Reportado: {formatPesos(calculatedValues.totalReportado)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm md:text-xl font-black">
+                    {calculatedValues.balance >= 0 ? 'Sobrante' : 'Faltante'}: {formatPesos(Math.abs(calculatedValues.balance))}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
 
           {loadingRevision ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-              <Loader2 className="animate-spin text-yellow-500 mb-2" size={32} />
+              <Loader2 className="animate-spin text-zinc-900 mb-2" size={32} />
               <p className="text-[10px] font-bold uppercase tracking-widest">Cargando información de revisión...</p>
             </div>
           ) : revisionData ? (
-            <div className="space-y-6">
-              
-              {/* Sticky Header con Banner de Esperado vs Reportado integrado */}
-              <div className="sticky top-0 z-40 bg-slate-50/90 dark:bg-zinc-950/90 backdrop-blur-md pt-2 pb-4 space-y-4 -mx-4 px-4 md:mx-0 md:px-0">
-                <header className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-600 border border-yellow-500/25 uppercase">
-                      Turno #{revisionData.id} - {revisionData.estado}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tight">Revisión y Aprobación de Turno</h2>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estación: {revisionData.estacion?.nombre} | Islero: {revisionData.usuario?.name}</p>
-                  </div>
-                </header>
-
-                {/* Banner de Balance (Esperado vs Reportado) */}
-                <div className={`p-5 rounded-[2rem] shadow-md border flex items-center justify-between transition-colors ${calculatedValues.balance === 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-900' : calculatedValues.balance < 0 ? 'bg-rose-50 border-rose-100 text-rose-900' : 'bg-blue-50 border-blue-100 text-blue-900'}`}>
-                  <div>
-                    <h4 className="text-[10px] md:text-xs font-black uppercase tracking-wider">Balance del Turno: Mangueras + Lubricantes</h4>
-                    <p className="text-[9px] md:text-[10px] font-bold opacity-75">Esperado: ${calculatedValues.totalEsperado.toLocaleString()} | Reportado: ${calculatedValues.totalReportado.toLocaleString()}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm md:text-xl font-black">{calculatedValues.balance >= 0 ? 'Sobrante' : 'Faltante'}: ${Math.abs(calculatedValues.balance).toLocaleString()}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Grid de Contenido principal: Usamos flex-col-reverse en móvil para que el Resumen (y botones) quede al final de la pantalla visualmente */}
-              <div className="flex flex-col-reverse lg:grid lg:grid-cols-2 gap-8">
+            <form onSubmit={handleAprobar} className="space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 
-                {/* Columna Izquierda en Desktop / Abajo en Móvil: Mangueras y Recaudos */}
-                <div className="space-y-6">
-                  {/* Panel Izquierdo: Mangueras / Lecturas Finales */}
-                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4">
-                    <h3 className="text-xs font-black text-slate-800 uppercase mb-6 flex items-center gap-2">
-                      <Droplets size={16} /> Mangueras y Lecturas (Cierre Pendiente)
-                    </h3>
-                    {revisionData.lecturas?.map((l) => {
-                      const lecturaPendiente = revisionData.datos_cierre_pendiente?.lecturas_finales?.find(lf => lf.manguera_id === l.manguera_id);
-                      
-                      return (
-                        <div key={l.id} className="p-4 bg-slate-50 rounded-2xl space-y-3">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black uppercase text-slate-800">
-                              Manguera #{l.manguera_id} ({lecturaPendiente?.codigo_manguera || 'N/A'})
-                            </span>
-                            <span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-2.5 py-0.5 rounded-full border border-yellow-200">
-                              Galones: {lecturaPendiente?.galones_vendidos ?? 0}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-[8px] font-bold text-slate-400 uppercase block mb-1">Lectura Inicial</label>
-                              <input 
-                                type="text" 
-                                readOnly 
-                                disabled 
-                                className="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 cursor-not-allowed outline-none" 
-                                value={l.lectura_inicial} 
-                              />
-                            </div>
-                            <div>
-                              <label className="text-[8px] font-bold text-slate-400 uppercase block mb-1">Lectura Final Reportada</label>
-                              <input 
-                                type="text" 
-                                readOnly 
-                                disabled 
-                                className="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-black text-slate-800 cursor-not-allowed outline-none" 
-                                value={lecturaPendiente?.lectura_final ?? 'N/A'} 
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex justify-between items-center text-[9px] pt-1 border-t border-slate-200/60 font-bold text-slate-500">
-                            <span>Precio/Galón: ${Number(lecturaPendiente?.precio_galon || l.precio_galon || 0).toLocaleString()}</span>
-                            <span className="text-slate-900 font-black">Total Venta: ${Number(lecturaPendiente?.total_venta || 0).toLocaleString()}</span>
-                          </div>
+                {/* Mangueras */}
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4">
+                  <h3 className="text-xs font-black text-slate-800 uppercase mb-6 flex items-center gap-2">
+                    <Droplets size={16} /> Mangueras y Lecturas (Modificables)
+                  </h3>
+                  {editLecturas.map((l) => (
+                    <div key={l.manguera_id} className="mb-4 p-4 bg-slate-50 rounded-2xl space-y-2 border border-slate-100">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-[9px] font-bold uppercase text-slate-600">{l.manguera?.nombre || `Manguera #${l.manguera_id}`}</p>
+                          <p className="text-[10px] font-black text-slate-800">{formatPesos(l.precio_galon)} /gal</p>
                         </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Destinos de Recaudo */}
-                  {destinosRecaudoFormateados.map((destino) => (
-                    <div key={destino.destino_recaudo_id} className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm">
-                      <h3 className="text-xs font-black uppercase mb-6 flex items-center gap-2 text-slate-800">
-                        <Banknote size={16} /> Recaudo: {destino.nombre}
-                      </h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        {Object.keys(destino.pagos).map((medio) => (
-                          <div key={medio} className="space-y-1">
-                            <label className="text-[9px] font-bold text-slate-400 uppercase">{medio}</label>
-                            <input 
-                              type="text" 
-                              readOnly
-                              disabled
-                              className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-black text-right text-slate-700 cursor-not-allowed outline-none" 
-                              value={`$ ${Number(destino.pagos[medio] || 0).toLocaleString()}`} 
-                            />
-                          </div>
-                        ))}
+                        <span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-2.5 py-0.5 rounded-full border border-yellow-200">
+                          Inicial: {formatPesos(l.lectura_inicial)}
+                        </span>
+                      </div>
+                      <div>
+                        <label className="text-[8px] font-bold text-slate-400 uppercase block mb-1">Lectura Final</label>
+                        <input 
+                          type="text" 
+                          placeholder="0,00"
+                          className="w-full p-3 rounded-xl border border-slate-200 bg-white text-right text-xs font-black outline-none focus:border-zinc-900 transition-all text-slate-800" 
+                          value={l.lecturaFinalInput ?? ''} 
+                          onChange={(e) => handleReadingChange(l.manguera_id, e.target.value)} 
+                          onBlur={() => handleReadingBlur(l.manguera_id)}
+                        />
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* Columna Derecha en Desktop / Arriba en Móvil (Se ve al final en móvil gracias a flex-col-reverse): Resumen y Acciones */}
                 <div className="space-y-6">
-                  {/* Resumen General del Cierre Pendiente (Con Total Abonos de Cartera integrado) */}
-                  <div className="bg-zinc-900 rounded-[2.5rem] p-8 text-white shadow-xl space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-yellow-500 flex items-center gap-2">
-                      <ShieldCheck size={16} /> Resumen del Cierre Reportado
+                  {/* Destinos de Recaudo */}
+                  {editDestinosRecaudo.map((destino) => {
+                    const esLubricantes = destino.nombre === 'Lubricantes';
+
+                    return (
+                      <div key={destino.destino_recaudo_id} className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4">
+                        <h3 className="text-xs font-black uppercase mb-6 flex items-center gap-2 text-slate-800">
+                          <Banknote size={16} /> {destino.nombre}
+                          {esLubricantes && <span className="text-[9px] font-bold text-slate-400 ml-auto">(Automático)</span>}
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          {Object.keys(destino.pagos).map((medio) => (
+                            <div key={medio} className="space-y-1">
+                              <label className="text-[9px] font-bold text-slate-400 uppercase">{medio}</label>
+                              <input 
+                                type="text" 
+                                readOnly={esLubricantes}
+                                disabled={esLubricantes}
+                                className={`w-full p-3 rounded-xl text-xs font-black text-right outline-none transition-all ${
+                                  esLubricantes 
+                                    ? 'bg-slate-100 border border-slate-200 text-slate-700 cursor-not-allowed' 
+                                    : 'bg-slate-50 border border-slate-200 focus:border-zinc-900 text-slate-800'
+                                }`} 
+                                value={esLubricantes ? formatPesos(destino.pagos[medio]) : (destino.pagosInputs?.[medio] ?? '')} 
+                                placeholder="0,00"
+                                onChange={(e) => handlePaymentChange(destino.destino_recaudo_id, medio, e.target.value)} 
+                                onBlur={() => handlePaymentBlur(destino.destino_recaudo_id, medio)}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Total Abonos de Cartera */}
+                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-3">
+                    <h3 className="text-xs font-black uppercase flex items-center gap-2 text-slate-800">
+                      <Users size={16} /> Total Abonos de Cartera
                     </h3>
-                    <div className="space-y-2 text-[10px] font-bold">
-                      <div className="flex justify-between bg-zinc-800/40 p-3 rounded-xl border border-white/5">
-                        <span className="text-zinc-400 uppercase">Total Ventas Combustible:</span>
-                        <span className="text-white">${Number(revisionData.datos_cierre_pendiente?.total_ventas_combustible || 0).toLocaleString()}</span>
+                    <input
+                      type="text"
+                      readOnly
+                      disabled
+                      className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-sm font-black text-slate-700 text-right outline-none cursor-not-allowed"
+                      value={formatPesos((revisionData.abonos || []).reduce((acc, a) => acc + Number(a.monto || 0), 0))}
+                    />
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">
+                      {revisionData.abonos?.length || 0} abono(s) registrado(s) en este turno
+                    </p>
+                  </div>
+
+                  {/* Otros Movimientos y Observaciones */}
+                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4">
+                    <h3 className="text-xs font-black uppercase flex items-center gap-2 text-slate-800">
+                      <FileText size={16} /> Ajustes y Observaciones
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase">Otros Movimientos</label>
+                        <input 
+                          type="text"
+                          placeholder="0,00"
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-black text-right text-slate-800 outline-none focus:border-zinc-900 transition-all"
+                          value={otrosMovimientosInput}
+                          onChange={(e) => handleOtrosMovimientosChange(e.target.value)}
+                          onBlur={handleOtrosMovimientosBlur}
+                        />
                       </div>
-                      <div className="flex justify-between bg-zinc-800/40 p-3 rounded-xl border border-white/5">
-                        <span className="text-zinc-400 uppercase">Total Ventas Lubricantes:</span>
-                        <span className="text-white">${Number(revisionData.datos_cierre_pendiente?.total_ventas_lubricantes || 0).toLocaleString()}</span>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase">Detalle Movimientos</label>
+                        <input 
+                          type="text"
+                          placeholder="Ej. Ajuste de caja"
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-zinc-900 transition-all"
+                          value={otrosDetalle}
+                          onChange={(e) => setOtrosDetalle(e.target.value)}
+                        />
                       </div>
-                      <div className="flex justify-between bg-zinc-800/40 p-3 rounded-xl border border-white/5">
-                        <span className="text-zinc-400 uppercase flex items-center gap-1.5"><Users size={12} className="text-yellow-500" /> Total Abonos de Cartera:</span>
-                        <span className="text-yellow-400 font-black">${Number(revisionData.datos_cierre_pendiente?.total_abonos || 0).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between bg-zinc-800/40 p-3 rounded-xl border border-white/5 pt-3 border-t border-zinc-700">
-                        <span className="text-zinc-300 uppercase font-black">Total Dinero Recaudado:</span>
-                        <span className="text-emerald-400 font-black text-xs">${Number(revisionData.datos_cierre_pendiente?.total_dinero_recaudado || 0).toLocaleString()}</span>
-                      </div>
+                    </div>
+
+                    <div className="space-y-1 pt-2">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase">Observación de Cierre</label>
+                      <textarea 
+                        rows="2"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-zinc-900 transition-all resize-none"
+                        value={observacionCierre}
+                        onChange={(e) => setObservacionCierre(e.target.value)}
+                      />
                     </div>
                   </div>
 
-                  {/* Botones de Aprobación o Devolución */}
-                  <div className="grid grid-cols-2 gap-4 pt-2">
-                    <button
-                      onClick={handleAprobar}
-                      disabled={actionLoading}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white py-5 rounded-[2rem] font-black uppercase text-xs transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
-                    >
-                      {actionLoading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />} 
-                      Aprobar Turno
-                    </button>
-                    <button
-                      onClick={() => setShowDevolverModal(true)}
-                      disabled={actionLoading}
-                      className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 py-5 rounded-[2rem] font-black uppercase text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
-                    >
-                      <XCircle size={18} /> Devolver Turno
-                    </button>
-                  </div>
                 </div>
 
               </div>
-            </div>
+
+              <button 
+                type="submit" 
+                disabled={actionLoading} 
+                className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white py-5 rounded-[2rem] font-black uppercase text-xs hover:bg-emerald-500 transition-all shadow-xl disabled:opacity-50"
+              >
+                {actionLoading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                Guardar Cambios y Aprobar Turno
+              </button>
+            </form>
           ) : null}
         </div>
       ) : (
-        /* VISTA DE LISTADO DE TURNOS PENDIENTES */
         <div className="space-y-6">
           <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -409,7 +523,7 @@ export const ShiftApprovalsPage = () => {
                         </td>
                         <td className="p-4 text-right">
                           <button className="px-4 py-2 bg-slate-100 group-hover:bg-zinc-900 group-hover:text-white rounded-xl text-slate-700 transition-all inline-flex items-center gap-1.5 text-[9px] font-black uppercase">
-                            <Eye size={14} /> Revisar
+                            <Eye size={14} /> Modificar y Revisar
                           </button>
                         </td>
                       </tr>
@@ -418,47 +532,6 @@ export const ShiftApprovalsPage = () => {
                 </table>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Modal para Devolver Turno */}
-      {showDevolverModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-[2.5rem] w-full max-w-md p-8 space-y-6 shadow-2xl text-white">
-            <div className="space-y-2">
-              <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2 text-red-400">
-                <AlertTriangle size={18} /> Devolver Turno al Islero
-              </h3>
-              <p className="text-[10px] text-zinc-400 font-bold uppercase leading-relaxed">
-                Ingrese el motivo o la observación de la devolución para que el islero pueda corregir la información reportada.
-              </p>
-            </div>
-
-            <textarea
-              rows={4}
-              value={observacionDevolucion}
-              onChange={(e) => setObservacionDevolucion(e.target.value)}
-              placeholder="Escriba la observación detallada aquí..."
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-[10px] font-bold uppercase outline-none focus:border-yellow-500 transition-all text-white placeholder-zinc-600 resize-none"
-            />
-
-            <div className="flex gap-3 justify-end pt-2">
-              <button
-                onClick={() => { setShowDevolverModal(false); setObservacionDevolucion(''); }}
-                className="px-5 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-black uppercase rounded-2xl transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDevolver}
-                disabled={actionLoading}
-                className="px-6 py-3 bg-red-600 hover:bg-red-500 text-white text-[10px] font-black uppercase rounded-2xl transition-colors shadow-lg disabled:opacity-50 flex items-center gap-2"
-              >
-                {actionLoading && <Loader2 className="animate-spin" size={14} />}
-                Confirmar Devolución
-              </button>
-            </div>
           </div>
         </div>
       )}

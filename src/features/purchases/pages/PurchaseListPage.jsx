@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as XLSX from 'xlsx'; // Importación para Excel
+import * as XLSX from 'xlsx';
 import { 
   ShoppingBag, Search, Plus, Loader2, 
   Calendar, Eye, Edit3, CheckCircle2, 
-  Clock, Wallet, Download // Importamos el icono de descarga
+  Clock, Wallet, Download 
 } from 'lucide-react';
 import { purchaseService } from '../services/purchaseService';
 import { useToast } from '../../../context/ToastContext';
 import { getTodayStr } from '../../../shared/utils/dateUtils';
+import { GeneralPaymentModal } from '../components/GeneralPaymentModal'; 
 
 export const PurchaseListPage = () => {
 
@@ -17,6 +18,8 @@ export const PurchaseListPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState(getTodayStr());
   const [endDate, setEndDate] = useState(getTodayStr());
+  
+  const [isGeneralModalOpen, setIsGeneralModalOpen] = useState(false);
 
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -52,14 +55,12 @@ export const PurchaseListPage = () => {
     );
   });
 
-  // FUNCIÓN DE EXPORTACIÓN
   const handleExport = () => {
     if (filteredPurchases.length === 0) {
       showToast("No hay datos para exportar", "info");
       return;
     }
 
-    // Mapeamos los datos para que el Excel tenga nombres de columna claros
     const dataToExport = filteredPurchases.map(p => ({
       'Documento': p.numero_documento || 'S/N',
       'Fecha': p.fecha_compra,
@@ -76,7 +77,6 @@ export const PurchaseListPage = () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Compras");
     
-    // Generar archivo y descargar
     XLSX.writeFile(workbook, `Reporte_Compras_${startDate}_al_${endDate}.xlsx`);
     showToast("Archivo Excel generado con éxito", "success");
   };
@@ -114,10 +114,18 @@ export const PurchaseListPage = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {/* BOTÓN NUEVO: ABONO A PROVEEDOR */}
+          <button 
+            onClick={() => setIsGeneralModalOpen(true)}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-blue-700 transition-all shadow-md"
+          >
+            <Wallet size={16} /> Abono a proveedor
+          </button>
+
           {/* BOTÓN EXPORTAR */}
           <button 
             onClick={handleExport}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-emerald-700 transition-all shadow-md"
+            className="flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-emerald-700 transition-all shadow-md"
           >
             <Download size={16} /> <span className="hidden sm:inline">Exportar</span>
           </button>
@@ -162,7 +170,6 @@ export const PurchaseListPage = () => {
         </div>
       </header>
 
-      {/* ... Resto del componente (Tabla) se mantiene igual ... */}
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -252,6 +259,15 @@ export const PurchaseListPage = () => {
           </table>
         </div>
       </div>
+
+      {/* RENDERIZADO DEL MODAL DE ABONO GENERAL */}
+      <GeneralPaymentModal 
+        isOpen={isGeneralModalOpen}
+        onClose={() => setIsGeneralModalOpen(false)}
+        onSave={() => {
+          fetchPurchases();
+        }}
+      />
     </div>
   );
 };

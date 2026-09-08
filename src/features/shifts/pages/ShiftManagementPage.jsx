@@ -5,21 +5,18 @@ import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
 import { OpenShiftModal } from '../components/OpenShiftModal';
 import { SearchClientModal } from '../components/SearchClientModal';
-import { IsleroMisTurnosPage } from './IsleroMisTurnosPage'; // <-- Importamos el componente limpio
+import { IsleroMisTurnosPage } from './IsleroMisTurnosPage';
 
 export const ShiftManagementPage = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   
   // Estados generales
-  const [currentView, setCurrentView] = useState('gestion'); // 'gestion' | 'mis_turnos'
+  const [currentView, setCurrentView] = useState('gestion'); 
   const [currentShift, setCurrentShift] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isOpeningModal, setIsOpeningModal] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-
-  // Estado para la alerta de turnos devueltos
-  const [hasReturnedShifts, setHasReturnedShifts] = useState(false);
 
   const checkShiftStatus = async () => {
     setLoading(true);
@@ -30,13 +27,6 @@ export const ShiftManagementPage = () => {
         setCurrentShift(res.data);
       } else {
         setCurrentShift(null);
-      }
-
-      // 2. Consultar turnos devueltos para activar la alerta en el botón "Mis Turnos"
-      const returnedRes = await shiftService.getIsleroReturnedTurns();
-      if (returnedRes && returnedRes.status) {
-        const returnedItems = returnedRes.data?.items || returnedRes.data || [];
-        setHasReturnedShifts(returnedItems.length > 0);
       }
     } catch (e) {
       showToast("Error al verificar información del turno", "error");
@@ -84,21 +74,13 @@ export const ShiftManagementPage = () => {
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gestión de turnos y lecturas</p>
             </div>
 
-            {/* Botón "Mis Turnos" con indicador de alerta condicional */}
+            {/* Botón "Mis Turnos" */}
             <button
               onClick={() => setCurrentView('mis_turnos')}
               className="relative inline-flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-800 px-5 py-3 rounded-2xl font-black uppercase text-[10px] tracking-wider hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm self-start md:self-auto"
             >
               <History size={16} className="text-yellow-500" /> 
               Mis Turnos
-              
-              {/* Alerta si existen turnos devueltos */}
-              {hasReturnedShifts && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                </span>
-              )}
             </button>
           </header>
 

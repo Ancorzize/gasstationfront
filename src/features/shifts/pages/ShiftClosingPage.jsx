@@ -48,11 +48,13 @@ export const ShiftClosingPage = () => {
       return acc + (galonesVendidos * l.precio_galon);
     }, 0);
     
-    const totalEsperado = totalCombustible + summary.totales_sistema.ventas_lubricantes  - summary.totales_sistema.creditos;
+    const abonos = (summary.abonos_recibidos || []).reduce((acc, a) => acc + Number(a.monto || 0), 0);
+
+    const totalEsperado = totalCombustible + summary.totales_sistema.ventas_lubricantes  - summary.totales_sistema.creditos + abonos;
 
     const totalReportado = formData.destinos_recaudo.reduce((acc, d) => {
       return acc + Object.values(d.pagos).reduce((sum, val) => sum + val, 0);
-    }, 0);
+    }, 0) + abonos;
                     
     return { totalEsperado, totalReportado, balance: totalReportado - totalEsperado };
   }, [summary, formData]);

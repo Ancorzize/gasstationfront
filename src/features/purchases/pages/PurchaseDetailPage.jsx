@@ -68,7 +68,6 @@ export const PurchaseDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [loadingPagos, setLoadingPagos] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const [isPrinting, setIsPrinting] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
@@ -173,19 +172,9 @@ export const PurchaseDetailPage = () => {
 
   useEffect(() => { fetchPurchase(); }, [id]);
 
-  const handlePrint = async () => {
-    setIsPrinting(true);
-    try {
-      const token = localStorage.getItem('token'); 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/compras/${id}/pdf`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/pdf' }
-      });
-      if (!response.ok) throw new Error('Error al generar PDF');
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
-    } catch (e) { showToast("No se pudo generar el PDF", "error"); }
-    finally { setIsPrinting(false); }
+  // Impresión nativa del navegador
+  const handlePrint = () => {
+    window.print();
   };
 
   if (loading) return (
@@ -225,8 +214,8 @@ export const PurchaseDetailPage = () => {
               </button>
             </>
           )}
-          <button onClick={handlePrint} disabled={isPrinting} className="flex items-center gap-2 px-5 py-2 bg-zinc-900 text-white rounded-xl font-black text-[10px] uppercase hover:bg-zinc-800 transition-all shadow-md disabled:opacity-50">
-            {isPrinting ? <Loader2 className="animate-spin" size={16} /> : <Printer size={16} />} Imprimir Factura
+          <button onClick={handlePrint} className="flex items-center gap-2 px-5 py-2 bg-zinc-900 text-white rounded-xl font-black text-[10px] uppercase hover:bg-zinc-800 transition-all shadow-md">
+            <Printer size={16} /> Imprimir Factura
           </button>
         </div>
       </header>
