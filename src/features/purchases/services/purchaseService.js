@@ -84,4 +84,9 @@ export const purchaseService = {
     });
     return res.json();
   },
+
+  getSupplierDebt: async (proveedorId) => {
+    const res = await fetch(`${API_URL}/compras/proveedores/${proveedorId}/deuda`, { headers: getHeaders() });
+    return res.json();
+  },
 };

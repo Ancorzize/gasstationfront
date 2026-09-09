@@ -1,8 +1,41 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, ArrowLeft, Banknote, Droplets, Users, Send } from 'lucide-react';
+import { Loader2, ArrowLeft, Banknote, Droplets, Users, Send, CreditCard } from 'lucide-react';
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
+
+// Funciones auxiliares para formatear y parsear números estilo colombiano (609.477,99)
+const formatNumberInput = (value) => {
+  if (value === null || value === undefined || value === '') return '';
+  
+  // Convertimos a string por si viene como número
+  const stringValue = String(value);
+  
+  // Separamos la parte entera de la decimal usando el punto original o la coma
+  const parts = stringValue.includes('.') ? stringValue.split('.') : stringValue.split(',');
+  
+  let entera = parts[0].replace(/\D/g, ''); // Solo números en la parte entera
+  
+  if (entera !== '') {
+    entera = Number(entera).toLocaleString('es-CO');
+  }
+  
+  if (parts.length > 1) {
+    // La parte decimal son los dígitos que siguen al punto/coma original
+    const decimal = parts[1].replace(/\D/g, '');
+    return `${entera},${decimal}`;
+  }
+  
+  return entera;
+};
+
+const parseNumberInput = (value) => {
+  if (!value) return 0;
+  // Reemplazamos los puntos de miles por nada y la coma decimal por un punto estándar para JavaScript
+  const cleanValue = String(value).replace(/\./g, '').replace(',', '.');
+  const parsed = parseFloat(cleanValue);
+  return isNaN(parsed) ? 0 : parsed;
+};
 
 export const ShiftClosingPage = () => {
   const { id } = useParams();
@@ -44,26 +77,51 @@ export const ShiftClosingPage = () => {
     if (!summary) return { totalEsperado: 0, totalReportado: 0, balance: 0 };
     
     const totalCombustible = formData.lecturas_finales.reduce((acc, l) => {
-      const galonesVendidos = Math.max(0, l.lectura_final - l.lectura_inicial);
-      return acc + (galonesVendidos * l.precio_galon);
+      const inicial = Number(l.lectura_inicial) || 0;
+      const final = Number(l.lectura_final) || 0;
+      const galonesVendidos = Math.max(0, final - inicial);
+      const galonesRedondeados = Math.round(galonesVendidos * 100) / 100;
+      return acc + (galonesRedondeados * Number(l.precio_galon || 0));
     }, 0);
     
+    const ventasLubricantes = Number(summary.totales_sistema?.ventas_lubricantes || 0);
     const abonos = (summary.abonos_recibidos || []).reduce((acc, a) => acc + Number(a.monto || 0), 0);
+    const creditos = Number(summary.totales_sistema?.creditos || summary.totales_pago_sugeridos?.creditos || 0);
 
-    const totalEsperado = totalCombustible + summary.totales_sistema.ventas_lubricantes  - summary.totales_sistema.creditos + abonos;
+    let totalEsperado = (totalCombustible + ventasLubricantes) - creditos + abonos;
+
+    // Si el total esperado en valor absoluto es menor a 100 pesos, lo fijamos en 0
+    if (Math.abs(totalEsperado) < 100) {
+      totalEsperado = 0;
+    }
 
     const totalReportado = formData.destinos_recaudo.reduce((acc, d) => {
-      return acc + Object.values(d.pagos).reduce((sum, val) => sum + val, 0);
+      return acc + Object.values(d.pagos).reduce((sum, val) => sum + (Number(val) || 0), 0);
     }, 0) + abonos;
-                    
-    return { totalEsperado, totalReportado, balance: totalReportado - totalEsperado };
+
+    let balance = totalReportado - totalEsperado;
+
+    // Si el balance en valor absoluto es menor a 100 pesos, lo fijamos en 0
+    if (Math.abs(balance) < 100) {
+      balance = 0;
+    }
+                
+    return { 
+      totalEsperado: Math.round(totalEsperado), 
+      totalReportado: Math.round(totalReportado), 
+      balance: Math.round(balance) 
+    };
   }, [summary, formData]);
 
-  const handleReadingChange = (mangueraId, value) => {
+  const handleReadingChange = (mangueraId, rawValue) => {
+    // Permitimos dígitos, puntos y comas
+    const filteredValue = rawValue.replace(/[^0-9,]/g, '');
+    const numericValue = parseNumberInput(filteredValue);
+
     setFormData(prev => ({
       ...prev,
       lecturas_finales: prev.lecturas_finales.map(l => 
-        l.manguera_id === mangueraId ? { ...l, lectura_final: parseFloat(value) || 0 } : l
+        l.manguera_id === mangueraId ? { ...l, lectura_final: numericValue } : l
       )
     }));
   };
@@ -91,7 +149,6 @@ export const ShiftClosingPage = () => {
         observacion_cierre: '' 
       };
       
-      // CAMBIO PRINCIPAL: Se solicita el cierre en lugar de ejecutar el cierre definitivo directo
       const res = await shiftService.requestCloseShift(id, payload);
       if (res.status) {
         showToast("Cierre solicitado exitosamente. Pendiente de aprobación.", "success");
@@ -107,6 +164,8 @@ export const ShiftClosingPage = () => {
   };
 
   if (!summary) return <div className="p-20 text-center"><Loader2 className="animate-spin mx-auto" /></div>;
+
+  const creditosTotales = Number(summary.totales_sistema?.creditos || summary.totales_pago_sugeridos?.creditos || 0);
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-6xl mx-auto pb-20">
@@ -137,15 +196,26 @@ export const ShiftClosingPage = () => {
           {/* Mangueras */}
           <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm">
             <h3 className="text-xs font-black text-slate-800 uppercase mb-6 flex items-center gap-2"><Droplets size={16} /> Mangueras</h3>
-            {summary.lecturas?.map((l, index) => (
-              <div key={l.manguera_id} className="mb-4 p-4 bg-slate-50 rounded-2xl grid grid-cols-2 gap-4 items-center">
-                <div>
-                    <p className="text-[9px] font-bold uppercase">{l.manguera.nombre}</p>
-                    <p className="text-[10px] font-black">${l.precio_galon.toLocaleString()}</p>
+            {summary.lecturas?.map((l, index) => {
+              const currentVal = formData.lecturas_finales[index]?.lectura_final ?? '';
+              const displayVal = formatNumberInput(currentVal);
+
+              return (
+                <div key={l.manguera_id} className="mb-4 p-4 bg-slate-50 rounded-2xl grid grid-cols-2 gap-4 items-center">
+                  <div>
+                      <p className="text-[9px] font-bold uppercase">{l.manguera.nombre}</p>
+                      <p className="text-[10px] font-black">${l.precio_galon.toLocaleString()}</p>
+                  </div>
+                  <input 
+                    type="text" 
+                    inputMode="decimal"
+                    className="p-3 rounded-xl border text-right font-black outline-none focus:ring-2 focus:ring-zinc-900 bg-white" 
+                    value={displayVal} 
+                    onChange={(e) => handleReadingChange(l.manguera_id, e.target.value)} 
+                  />
                 </div>
-                <input type="number" step="0.01" className="p-3 rounded-xl border text-right font-black outline-none focus:ring-2 focus:ring-zinc-900" value={formData.lecturas_finales[index]?.lectura_final || ''} onChange={(e) => handleReadingChange(l.manguera_id, e.target.value)} />
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="space-y-6">
@@ -180,6 +250,25 @@ export const ShiftClosingPage = () => {
                 </div>
               );
             })}
+
+            {/* Créditos Totales */}
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm">
+              <h3 className="text-xs font-black uppercase mb-4 flex items-center gap-2 text-slate-800">
+                <CreditCard size={16} /> Créditos Totales
+              </h3>
+              <div className="relative">
+                <input
+                  type="text"
+                  readOnly
+                  disabled
+                  className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-sm font-black text-slate-700 text-right outline-none cursor-not-allowed"
+                  value={`$ ${creditosTotales.toLocaleString()}`}
+                />
+              </div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase mt-2 tracking-widest text-right">
+                Total de créditos acumulados en el turno
+              </p>
+            </div>
 
             {/* Total Abonos de Cartera */}
             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm">

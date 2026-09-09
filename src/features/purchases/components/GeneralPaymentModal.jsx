@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Wallet, DollarSign, Loader2, CheckCircle2 } from 'lucide-react';
+import { X, Wallet, DollarSign, Loader2, CheckCircle2, AlertCircle, FileText } from 'lucide-react';
 import { purchaseService } from '../services/purchaseService';
 import { supplierService } from '../../suppliers/services/supplierService'; 
 import { useToast } from '../../../context/ToastContext';
@@ -11,9 +11,11 @@ export const GeneralPaymentModal = ({ isOpen, onClose, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [loadingCajas, setLoadingCajas] = useState(true);
   const [loadingProveedores, setLoadingProveedores] = useState(false);
+  const [loadingDeuda, setLoadingDeuda] = useState(false);
   
   const [cajas, setCajas] = useState([]);
   const [proveedores, setProveedores] = useState([]);
+  const [deudaProveedor, setDeudaProveedor] = useState(null);
   const [resultadoDistribucion, setResultadoDistribucion] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -40,15 +42,41 @@ export const GeneralPaymentModal = ({ isOpen, onClose, onSave }) => {
         observacion: ''
       });
       setMontoDisplay('');
+      setDeudaProveedor(null);
       setResultadoDistribucion(null);
     }
   }, [isOpen]);
+
+  // Efecto para consultar la deuda cuando cambia el proveedor seleccionado
+  useEffect(() => {
+    const fetchDeuda = async () => {
+      if (!formData.proveedor_id) {
+        setDeudaProveedor(null);
+        return;
+      }
+      setLoadingDeuda(true);
+      try {
+        const res = await purchaseService.getSupplierDebt(formData.proveedor_id);
+        if (res && res.status) {
+          setDeudaProveedor(res.data);
+        } else {
+          setDeudaProveedor(null);
+        }
+      } catch (e) {
+        showToast("Error al obtener la deuda del proveedor", "error");
+        setDeudaProveedor(null);
+      } finally {
+        setLoadingDeuda(false);
+      }
+    };
+
+    fetchDeuda();
+  }, [formData.proveedor_id]);
 
   const loadCajas = async () => {
     setLoadingCajas(true);
     try {
       const res = await cashService.getCurrentCash();
-      
       if (res.status && Array.isArray(res.data)) {
         setCajas(res.data);
         if (res.data.length > 0) {
@@ -56,7 +84,6 @@ export const GeneralPaymentModal = ({ isOpen, onClose, onSave }) => {
         }
       }
     } catch (e) {
-        console.log(e);
       showToast("Error al cargar las cajas", "error");
     } finally {
       setLoadingCajas(false);
@@ -66,7 +93,6 @@ export const GeneralPaymentModal = ({ isOpen, onClose, onSave }) => {
   const loadProveedores = async () => {
     setLoadingProveedores(true);
     try {
-      
       const res = await supplierService.getSuppliers({ per_page: 1000 });
       if (res.status && res.data && Array.isArray(res.data.items)) {
         setProveedores(res.data.items);
@@ -223,6 +249,68 @@ export const GeneralPaymentModal = ({ isOpen, onClose, onSave }) => {
                       ))}
                     </select>
                   </div>
+
+                  {/* Detalle de deuda del proveedor seleccionado */}
+                  {formData.proveedor_id && (
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                          <AlertCircle size={14} className="text-amber-500" /> Estado de Cuenta Actual
+                        </span>
+                        {loadingDeuda && <Loader2 className="animate-spin text-slate-400" size={14} />}
+                      </div>
+
+                      {loadingDeuda ? (
+                        <div className="py-4 text-center">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">Consultando deuda...</p>
+                        </div>
+                      ) : deudaProveedor ? (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                              <span className="text-[8px] font-bold text-slate-400 uppercase block">Deuda Total</span>
+                              <span className="text-xs font-black text-rose-600">
+                                $ {Number(deudaProveedor.total_deuda || 0).toLocaleString('es-CO')}
+                              </span>
+                            </div>
+                            <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                              <span className="text-[8px] font-bold text-slate-400 uppercase block">Compras Pendientes</span>
+                              <span className="text-xs font-black text-slate-700">
+                                {deudaProveedor.total_compras_pendientes}
+                              </span>
+                            </div>
+                          </div>
+
+                          {deudaProveedor.compras && deudaProveedor.compras.length > 0 && (
+                            <div className="space-y-1.5">
+                              <span className="text-[9px] font-black text-slate-400 uppercase block">Facturas Pendientes</span>
+                              <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                                {deudaProveedor.compras.map((compra) => (
+                                  <div key={compra.id} className="bg-white p-2.5 rounded-xl border border-slate-100 flex items-center justify-between text-[10px]">
+                                    <div className="flex items-center gap-2">
+                                      <FileText size={14} className="text-slate-400 shrink-0" />
+                                      <div>
+                                        <span className="font-black text-slate-800 uppercase block">Doc: #{compra.numero_documento}</span>
+                                        <span className="text-[8px] text-slate-400 font-bold">Vence: {compra.fecha_vencimiento ? new Date(compra.fecha_vencimiento).toLocaleDateString() : 'N/A'}</span>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="font-black text-rose-600 block">$ {Number(compra.saldo_pendiente || 0).toLocaleString('es-CO')}</span>
+                                      <span className="text-[8px] font-bold text-amber-600 uppercase">Pendiente</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="py-2 text-center text-slate-400">
+                          <p className="text-[10px] font-bold uppercase">Sin deudas registradas para este proveedor</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Caja Destino */}
                   <div className="space-y-1">

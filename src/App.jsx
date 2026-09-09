@@ -53,7 +53,7 @@ import { SaleInvoiceView } from "./features/sales/pages/SaleInvoiceView";
 import { FuelInvoiceView } from "./features/sales/pages/FuelInvoiceView";
 
 function App() {
-  useInactivityTimeout(30);
+  useInactivityTimeout(300);
 
   return (
     <ToastProvider>

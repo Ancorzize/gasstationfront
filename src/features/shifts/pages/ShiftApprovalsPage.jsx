@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, ShieldCheck, CheckCircle, Eye, 
-  MapPin, ArrowLeft, Loader2, Droplets, Banknote, Users, Save, FileText 
+  MapPin, ArrowLeft, Loader2, Droplets, Banknote, Users, Save, FileText, CreditCard 
 } from 'lucide-react';
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
@@ -224,7 +224,7 @@ export const ShiftApprovalsPage = () => {
   };
 
   const calculatedValues = useMemo(() => {
-    if (!revisionData) return { totalEsperado: 0, totalReportado: 0, balance: 0 };
+    if (!revisionData) return { totalEsperado: 0, totalReportado: 0, balance: 0, totalCreditos: 0 };
     
     const totalCombustible = editLecturas.reduce((acc, l) => {
       const final = l.lectura_final !== '' ? Number(l.lectura_final) : l.lectura_inicial;
@@ -233,19 +233,24 @@ export const ShiftApprovalsPage = () => {
     }, 0);
 
     const abonos = (revisionData.abonos || []).reduce((acc, a) => acc + Number(a.monto || 0), 0);
-  
     const ventasLubricantes = Number(revisionData.resumen?.total_ventas_lubricantes || 0);
     const totalCreditos = Number(revisionData.resumen?.total_creditos || 0);
-    const totalEsperado = totalCombustible + ventasLubricantes - totalCreditos + abonos;
+    
+    let totalEsperado = totalCombustible + ventasLubricantes - totalCreditos + abonos;
+
+    if (Math.abs(totalEsperado) < 100) {
+      totalEsperado = 0;
+    }
 
     const totalReportado = editDestinosRecaudo.reduce((acc, d) => {
       return acc + Object.values(d.pagos).reduce((sum, val) => sum + Number(val || 0), 0);
     }, 0) + Number(otrosMovimientos || 0) + abonos;
-                    
+                
     return { 
       totalEsperado: Number(totalEsperado || 0), 
       totalReportado: Number(totalReportado || 0), 
-      balance: Number(totalReportado || 0) - Number(totalEsperado || 0) 
+      balance: Number(totalReportado || 0) - Number(totalEsperado || 0),
+      totalCreditos: Number(totalCreditos || 0)
     };
   }, [revisionData, editLecturas, editDestinosRecaudo, otrosMovimientos]);
 
@@ -282,15 +287,20 @@ export const ShiftApprovalsPage = () => {
             {loadingRevision ? null : (
               <div className={`p-5 rounded-[2rem] shadow-md border flex items-center justify-between transition-colors ${calculatedValues.balance === 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-900' : calculatedValues.balance < 0 ? 'bg-rose-50 border-rose-100 text-rose-900' : 'bg-blue-50 border-blue-100 text-blue-900'}`}>
                 <div>
-                  <h4 className="text-[10px] md:text-xs font-black uppercase tracking-wider">Balance del Turno (Editable)</h4>
+                  <h4 className="text-[10px] md:text-xs font-black uppercase tracking-wider">Balance del Turno (Control de Saldo)</h4>
                   <p className="text-[9px] md:text-[10px] font-bold opacity-75">
                     Esperado: {formatPesos(calculatedValues.totalEsperado)} | Reportado: {formatPesos(calculatedValues.totalReportado)}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm md:text-xl font-black">
-                    {calculatedValues.balance >= 0 ? 'Sobrante' : 'Faltante'}: {formatPesos(Math.abs(calculatedValues.balance))}
+                    {calculatedValues.balance >= 0 ? 'Sobrante' : 'Faltante (Negativo)'}: {formatPesos(Math.abs(calculatedValues.balance))}
                   </p>
+                  {calculatedValues.balance < 0 && (
+                    <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[8px] font-black bg-rose-200 text-rose-800 uppercase tracking-widest">
+                      Alerta: Saldo negativo detectado
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -371,6 +381,23 @@ export const ShiftApprovalsPage = () => {
                       </div>
                     );
                   })}
+
+                  {/* Sección de Créditos */}
+                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-3">
+                    <h3 className="text-xs font-black uppercase flex items-center gap-2 text-slate-800">
+                      <CreditCard size={16} /> Total Créditos del Turno
+                    </h3>
+                    <input
+                      type="text"
+                      readOnly
+                      disabled
+                      className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-sm font-black text-slate-700 text-right outline-none cursor-not-allowed"
+                      value={formatPesos(calculatedValues.totalCreditos)}
+                    />
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">
+                      {revisionData.creditos?.length || 0} crédito(s) registrado(s) en este turno
+                    </p>
+                  </div>
 
                   {/* Total Abonos de Cartera */}
                   <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-3">
