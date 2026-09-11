@@ -6,7 +6,25 @@ import {
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
 
-// Funciones auxiliares de formateo en pesos colombianos
+// Formato a 3 decimales para Mangueras y Lecturas
+const formatLectura = (value) => {
+  if (value === '' || value === null || value === undefined) return '';
+  const num = Number(value);
+  if (isNaN(num)) return '';
+  
+  const parts = num.toFixed(3).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${parts[0]},${parts[1]}`;
+};
+
+const parseLectura = (str) => {
+  if (!str) return '';
+  const clean = str.toString().replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
+  const num = parseFloat(clean);
+  return isNaN(num) ? '' : num;
+};
+
+// Funciones auxiliares de formateo en pesos colombianos (mantiene 2 decimales)
 const formatPesos = (value) => {
   if (value === '' || value === null || value === undefined) return '';
   const num = Number(value);
@@ -78,7 +96,7 @@ export const ShiftApprovalsPage = () => {
             return {
               manguera_id: l.manguera_id,
               lectura_final: valFinal,
-              lecturaFinalInput: valFinal !== '' ? formatPesos(valFinal) : '',
+              lecturaFinalInput: valFinal !== '' ? formatLectura(valFinal) : '',
               lectura_inicial: parseFloat(l.lectura_inicial || 0),
               precio_galon: parseFloat(l.precio_galon || 0),
               manguera: l.manguera
@@ -133,7 +151,7 @@ export const ShiftApprovalsPage = () => {
   const handleReadingChange = (mangueraId, rawValue) => {
     setEditLecturas(prev => prev.map(l => {
       if (l.manguera_id !== mangueraId) return l;
-      const parsedNum = parsePesos(rawValue);
+      const parsedNum = parseLectura(rawValue);
       return {
         ...l,
         lectura_final: parsedNum === '' ? '' : parsedNum,
@@ -148,7 +166,7 @@ export const ShiftApprovalsPage = () => {
       const num = l.lectura_final;
       return {
         ...l,
-        lecturaFinalInput: num !== '' && !isNaN(num) ? formatPesos(num) : ''
+        lecturaFinalInput: num !== '' && !isNaN(num) ? formatLectura(num) : ''
       };
     }));
   };
@@ -245,7 +263,7 @@ export const ShiftApprovalsPage = () => {
     const totalReportado = editDestinosRecaudo.reduce((acc, d) => {
       return acc + Object.values(d.pagos).reduce((sum, val) => sum + Number(val || 0), 0);
     }, 0) + Number(otrosMovimientos || 0) + abonos;
-                
+            
     return { 
       totalEsperado: Number(totalEsperado || 0), 
       totalReportado: Number(totalReportado || 0), 
@@ -315,7 +333,7 @@ export const ShiftApprovalsPage = () => {
             <form onSubmit={handleAprobar} className="space-y-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 
-                {/* Mangueras */}
+                {/* Mangueras (Con formato a 3 decimales) */}
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4">
                   <h3 className="text-xs font-black text-slate-800 uppercase mb-6 flex items-center gap-2">
                     <Droplets size={16} /> Mangueras y Lecturas (Modificables)
@@ -328,14 +346,14 @@ export const ShiftApprovalsPage = () => {
                           <p className="text-[10px] font-black text-slate-800">{formatPesos(l.precio_galon)} /gal</p>
                         </div>
                         <span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-2.5 py-0.5 rounded-full border border-yellow-200">
-                          Inicial: {formatPesos(l.lectura_inicial)}
+                          Inicial: {formatLectura(l.lectura_inicial)}
                         </span>
                       </div>
                       <div>
                         <label className="text-[8px] font-bold text-slate-400 uppercase block mb-1">Lectura Final</label>
                         <input 
                           type="text" 
-                          placeholder="0,00"
+                          placeholder="0,000"
                           className="w-full p-3 rounded-xl border border-slate-200 bg-white text-right text-xs font-black outline-none focus:border-zinc-900 transition-all text-slate-800" 
                           value={l.lecturaFinalInput ?? ''} 
                           onChange={(e) => handleReadingChange(l.manguera_id, e.target.value)} 

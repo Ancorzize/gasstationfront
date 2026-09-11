@@ -4,7 +4,7 @@ import { Loader2, ArrowLeft, Banknote, Droplets, Users, Send, CreditCard } from 
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
 
-// Funciones auxiliares estilo colombiano (ej: 4.123.334,234)
+// Funciones auxiliares estilo colombiano ajustadas a 3 decimales (ej: 4.123.334,234)
 const formatPesos = (value) => {
   if (value === '' || value === null || value === undefined) return '';
   const stringValue = String(value);
@@ -17,7 +17,8 @@ const formatPesos = (value) => {
   }
   
   if (parts.length > 1) {
-    const decimal = parts[1].replace(/[^\d]/g, '');
+    // Permite y limita hasta 3 dígitos decimales
+    const decimal = parts[1].replace(/[^\d]/g, '').slice(0, 3);
     return `${entera},${decimal}`;
   }
   
@@ -88,7 +89,8 @@ export const ShiftClosingPage = () => {
       const inicial = Number(l.lectura_inicial) || 0;
       const final = l.lectura_final !== '' ? Number(l.lectura_final) : inicial;
       const galonesVendidos = Math.max(0, final - inicial);
-      const galonesRedondeados = Math.round(galonesVendidos * 100) / 100;
+      // Redondeo ajustado a 3 decimales (multiplicando y dividiendo por 1000)
+      const galonesRedondeados = Math.round(galonesVendidos * 1000) / 1000;
       return acc + (galonesRedondeados * Number(l.precio_galon || 0));
     }, 0);
     
@@ -260,7 +262,7 @@ export const ShiftClosingPage = () => {
                       <p className="text-[10px] font-black text-slate-800">${Number(l.precio_galon).toLocaleString('es-CO')} /gal</p>
                     </div>
                     <span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-2.5 py-0.5 rounded-full border border-yellow-200">
-                      Inicial: {Number(l.lectura_inicial).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      Inicial: {Number(l.lectura_inicial).toLocaleString('es-CO', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
                     </span>
                   </div>
                   <div>
@@ -268,7 +270,7 @@ export const ShiftClosingPage = () => {
                     <input 
                       type="text" 
                       inputMode="decimal"
-                      placeholder="0,00"
+                      placeholder="0,000"
                       className="w-full p-3 rounded-xl border border-slate-200 text-right font-black outline-none focus:border-zinc-900 bg-white text-xs text-slate-800" 
                       value={l.lecturaFinalInput ?? ''} 
                       onChange={(e) => handleReadingChange(l.manguera_id, e.target.value)} 
@@ -305,7 +307,7 @@ export const ShiftClosingPage = () => {
                               : 'bg-slate-50 border border-slate-200 focus:border-zinc-900 text-slate-800'
                           }`} 
                           value={esLubricantes ? Number(destino.pagos[medio]).toLocaleString('es-CO') : (destino.pagosInputs?.[medio] ?? '')} 
-                          placeholder="0,00"
+                          placeholder="0,000"
                           onChange={(e) => handlePaymentChange(destino.destino_recaudo_id, medio, e.target.value)} 
                           onBlur={() => handlePaymentBlur(destino.destino_recaudo_id, medio)}
                         />
