@@ -4,37 +4,31 @@ import { Loader2, ArrowLeft, Banknote, Droplets, Users, Send, CreditCard } from 
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
 
-// Funciones auxiliares para formatear y parsear números estilo colombiano (609.477,99)
-const formatNumberInput = (value) => {
-  if (value === null || value === undefined || value === '') return '';
-  
-  // Convertimos a string por si viene como número
+// Funciones auxiliares estilo colombiano (ej: 4.123.334,234)
+const formatPesos = (value) => {
+  if (value === '' || value === null || value === undefined) return '';
   const stringValue = String(value);
   
-  // Separamos la parte entera de la decimal usando el punto original o la coma
-  const parts = stringValue.includes('.') ? stringValue.split('.') : stringValue.split(',');
-  
-  let entera = parts[0].replace(/\D/g, ''); // Solo números en la parte entera
+  const parts = stringValue.split(',');
+  let entera = parts[0].replace(/[^\d]/g, '');
   
   if (entera !== '') {
     entera = Number(entera).toLocaleString('es-CO');
   }
   
   if (parts.length > 1) {
-    // La parte decimal son los dígitos que siguen al punto/coma original
-    const decimal = parts[1].replace(/\D/g, '');
+    const decimal = parts[1].replace(/[^\d]/g, '');
     return `${entera},${decimal}`;
   }
   
   return entera;
 };
 
-const parseNumberInput = (value) => {
-  if (!value) return 0;
-  // Reemplazamos los puntos de miles por nada y la coma decimal por un punto estándar para JavaScript
-  const cleanValue = String(value).replace(/\./g, '').replace(',', '.');
-  const parsed = parseFloat(cleanValue);
-  return isNaN(parsed) ? 0 : parsed;
+const parsePesos = (str) => {
+  if (!str) return '';
+  const clean = String(str).replace(/\./g, '').replace(',', '.');
+  const num = parseFloat(clean);
+  return isNaN(num) ? '' : num;
 };
 
 export const ShiftClosingPage = () => {
@@ -56,17 +50,31 @@ export const ShiftClosingPage = () => {
         const data = res.data;
         setSummary(data);
         setFormData({
-          lecturas_finales: data.lecturas.map(l => ({ 
-            manguera_id: l.manguera_id, 
-            lectura_final: l.lectura_sugerida,
-            lectura_inicial: l.lectura_inicial,
-            precio_galon: l.precio_galon 
-          })),
-          destinos_recaudo: data.destinos_recaudo.map(d => ({
-            destino_recaudo_id: d.destino_recaudo_id,
-            nombre: d.nombre,
-            pagos: { ...d.pagos }
-          }))
+          lecturas_finales: data.lecturas.map(l => {
+            const val = l.lectura_sugerida !== null && l.lectura_sugerida !== undefined ? l.lectura_sugerida : '';
+            const formattedVal = val !== '' ? formatPesos(String(val).replace('.', ',')) : '';
+            return { 
+              manguera_id: l.manguera_id, 
+              lectura_final: val,
+              lecturaFinalInput: formattedVal,
+              lectura_inicial: l.lectura_inicial,
+              precio_galon: l.precio_galon 
+            };
+          }),
+          destinos_recaudo: data.destinos_recaudo.map(d => {
+            const initialPagos = { ...d.pagos };
+            const pagosInputs = {};
+            Object.keys(initialPagos).forEach(medio => {
+              const val = initialPagos[medio];
+              pagosInputs[medio] = val ? formatPesos(String(val).replace('.', ',')) : '';
+            });
+            return {
+              destino_recaudo_id: d.destino_recaudo_id,
+              nombre: d.nombre,
+              pagos: initialPagos,
+              pagosInputs: pagosInputs
+            };
+          })
         });
       }
     };
@@ -78,7 +86,7 @@ export const ShiftClosingPage = () => {
     
     const totalCombustible = formData.lecturas_finales.reduce((acc, l) => {
       const inicial = Number(l.lectura_inicial) || 0;
-      const final = Number(l.lectura_final) || 0;
+      const final = l.lectura_final !== '' ? Number(l.lectura_final) : inicial;
       const galonesVendidos = Math.max(0, final - inicial);
       const galonesRedondeados = Math.round(galonesVendidos * 100) / 100;
       return acc + (galonesRedondeados * Number(l.precio_galon || 0));
@@ -90,7 +98,6 @@ export const ShiftClosingPage = () => {
 
     let totalEsperado = (totalCombustible + ventasLubricantes) - creditos + abonos;
 
-    // Si el total esperado en valor absoluto es menor a 100 pesos, lo fijamos en 0
     if (Math.abs(totalEsperado) < 100) {
       totalEsperado = 0;
     }
@@ -101,7 +108,6 @@ export const ShiftClosingPage = () => {
 
     let balance = totalReportado - totalEsperado;
 
-    // Si el balance en valor absoluto es menor a 100 pesos, lo fijamos en 0
     if (Math.abs(balance) < 100) {
       balance = 0;
     }
@@ -114,26 +120,67 @@ export const ShiftClosingPage = () => {
   }, [summary, formData]);
 
   const handleReadingChange = (mangueraId, rawValue) => {
-    // Permitimos dígitos, puntos y comas
-    const filteredValue = rawValue.replace(/[^0-9,]/g, '');
-    const numericValue = parseNumberInput(filteredValue);
+    const filtered = rawValue.replace(/[^0-9,.-]/g, '').replace(/\./g, ',');
+    const parts = filtered.split(',');
+    const cleanValue = parts.length > 1 ? `${parts[0]},${parts.slice(1).join('')}` : parts[0];
 
     setFormData(prev => ({
       ...prev,
-      lecturas_finales: prev.lecturas_finales.map(l => 
-        l.manguera_id === mangueraId ? { ...l, lectura_final: numericValue } : l
-      )
+      lecturas_finales: prev.lecturas_finales.map(l => {
+        if (l.manguera_id !== mangueraId) return l;
+        return {
+          ...l,
+          lecturaFinalInput: cleanValue,
+          lectura_final: parsePesos(cleanValue)
+        };
+      })
     }));
   };
 
-  const handlePaymentChange = (destinoId, medio, value) => {
+  const handleReadingBlur = (mangueraId) => {
     setFormData(prev => ({
       ...prev,
-      destinos_recaudo: prev.destinos_recaudo.map(d => 
-        d.destino_recaudo_id === destinoId 
-          ? { ...d, pagos: { ...d.pagos, [medio]: value } } 
-          : d
-      )
+      lecturas_finales: prev.lecturas_finales.map(l => {
+        if (l.manguera_id !== mangueraId) return l;
+        const num = l.lectura_final;
+        return {
+          ...l,
+          lecturaFinalInput: num !== '' && !isNaN(num) ? formatPesos(String(num).replace('.', ',')) : ''
+        };
+      })
+    }));
+  };
+
+  const handlePaymentChange = (destinoId, medio, rawValue) => {
+    const filtered = rawValue.replace(/[^0-9,.-]/g, '').replace(/\./g, ',');
+    const parts = filtered.split(',');
+    const cleanValue = parts.length > 1 ? `${parts[0]},${parts.slice(1).join('')}` : parts[0];
+
+    setFormData(prev => ({
+      ...prev,
+      destinos_recaudo: prev.destinos_recaudo.map(d => {
+        if (d.destino_recaudo_id !== destinoId) return d;
+        const numericVal = parsePesos(cleanValue);
+        return {
+          ...d,
+          pagos: { ...d.pagos, [medio]: numericVal === '' ? 0 : numericVal },
+          pagosInputs: { ...d.pagosInputs, [medio]: cleanValue }
+        };
+      })
+    }));
+  };
+
+  const handlePaymentBlur = (destinoId, medio) => {
+    setFormData(prev => ({
+      ...prev,
+      destinos_recaudo: prev.destinos_recaudo.map(d => {
+        if (d.destino_recaudo_id !== destinoId) return d;
+        const num = d.pagos[medio];
+        return {
+          ...d,
+          pagosInputs: { ...d.pagosInputs, [medio]: num ? formatPesos(String(num).replace('.', ',')) : '' }
+        };
+      })
     }));
   };
 
@@ -142,8 +189,14 @@ export const ShiftClosingPage = () => {
     setLoading(true);
     try {
       const payload = { 
-        lecturas_finales: formData.lecturas_finales.map(({manguera_id, lectura_final}) => ({manguera_id, lectura_final})),
-        destinos_recaudo: formData.destinos_recaudo,
+        lecturas_finales: formData.lecturas_finales.map(({manguera_id, lectura_final}) => ({
+          manguera_id, 
+          lectura_final: lectura_final === '' ? 0 : Number(lectura_final)
+        })),
+        destinos_recaudo: formData.destinos_recaudo.map(d => ({
+          destino_recaudo_id: d.destino_recaudo_id,
+          pagos: d.pagos
+        })),
         otros_movimientos: 0,
         otros_movimientos_detalle: null,
         observacion_cierre: '' 
@@ -168,7 +221,7 @@ export const ShiftClosingPage = () => {
   const creditosTotales = Number(summary.totales_sistema?.creditos || summary.totales_pago_sugeridos?.creditos || 0);
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-6xl mx-auto pb-20">
+    <div className="p-4 md:p-8 space-y-6 max-w-6xl mx-auto pb-20 text-left">
       
       <div className="sticky top-0 z-40 bg-slate-50/90 dark:bg-zinc-950/90 backdrop-blur-md pt-2 pb-4 space-y-4 -mx-4 px-4 md:mx-0 md:px-0">
         <header className="flex items-center justify-between">
@@ -182,10 +235,10 @@ export const ShiftClosingPage = () => {
         <div className={`p-5 rounded-[2rem] shadow-md border flex items-center justify-between transition-colors ${calculatedValues.balance === 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-900' : calculatedValues.balance < 0 ? 'bg-rose-50 border-rose-100 text-rose-900' : 'bg-blue-50 border-blue-100 text-blue-900'}`}>
           <div>
             <h4 className="text-[10px] md:text-xs font-black uppercase tracking-wider">Balance del Turno</h4>
-            <p className="text-[9px] md:text-[10px] font-bold opacity-75">Esperado: ${calculatedValues.totalEsperado.toLocaleString()} | Reportado: ${calculatedValues.totalReportado.toLocaleString()}</p>
+            <p className="text-[9px] md:text-[10px] font-bold opacity-75">Esperado: ${calculatedValues.totalEsperado.toLocaleString('es-CO')} | Reportado: ${calculatedValues.totalReportado.toLocaleString('es-CO')}</p>
           </div>
           <div className="text-right">
-            <p className="text-sm md:text-xl font-black">{calculatedValues.balance >= 0 ? 'Sobrante' : 'Faltante'}: ${Math.abs(calculatedValues.balance).toLocaleString()}</p>
+            <p className="text-sm md:text-xl font-black">{calculatedValues.balance >= 0 ? 'Sobrante' : 'Faltante'}: ${Math.abs(calculatedValues.balance).toLocaleString('es-CO')}</p>
           </div>
         </div>
       </div>
@@ -196,23 +249,32 @@ export const ShiftClosingPage = () => {
           {/* Mangueras */}
           <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm">
             <h3 className="text-xs font-black text-slate-800 uppercase mb-6 flex items-center gap-2"><Droplets size={16} /> Mangueras</h3>
-            {summary.lecturas?.map((l, index) => {
-              const currentVal = formData.lecturas_finales[index]?.lectura_final ?? '';
-              const displayVal = formatNumberInput(currentVal);
+            {formData.lecturas_finales.map((l, index) => {
+              const summaryItem = summary.lecturas[index];
 
               return (
-                <div key={l.manguera_id} className="mb-4 p-4 bg-slate-50 rounded-2xl grid grid-cols-2 gap-4 items-center">
-                  <div>
-                      <p className="text-[9px] font-bold uppercase">{l.manguera.nombre}</p>
-                      <p className="text-[10px] font-black">${l.precio_galon.toLocaleString()}</p>
+                <div key={l.manguera_id} className="mb-4 p-4 bg-slate-50 rounded-2xl space-y-2 border border-slate-100">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-[9px] font-bold uppercase text-slate-600">{summaryItem?.manguera?.nombre || `Manguera #${l.manguera_id}`}</p>
+                      <p className="text-[10px] font-black text-slate-800">${Number(l.precio_galon).toLocaleString('es-CO')} /gal</p>
+                    </div>
+                    <span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-2.5 py-0.5 rounded-full border border-yellow-200">
+                      Inicial: {Number(l.lectura_inicial).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
                   </div>
-                  <input 
-                    type="text" 
-                    inputMode="decimal"
-                    className="p-3 rounded-xl border text-right font-black outline-none focus:ring-2 focus:ring-zinc-900 bg-white" 
-                    value={displayVal} 
-                    onChange={(e) => handleReadingChange(l.manguera_id, e.target.value)} 
-                  />
+                  <div>
+                    <label className="text-[8px] font-bold text-slate-400 uppercase block mb-1">Lectura Final</label>
+                    <input 
+                      type="text" 
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      className="w-full p-3 rounded-xl border border-slate-200 text-right font-black outline-none focus:border-zinc-900 bg-white text-xs text-slate-800" 
+                      value={l.lecturaFinalInput ?? ''} 
+                      onChange={(e) => handleReadingChange(l.manguera_id, e.target.value)} 
+                      onBlur={() => handleReadingBlur(l.manguera_id)}
+                    />
+                  </div>
                 </div>
               );
             })}
@@ -224,7 +286,7 @@ export const ShiftClosingPage = () => {
 
               return (
                 <div key={destino.destino_recaudo_id} className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm">
-                  <h3 className="text-xs font-black uppercase mb-6 flex items-center gap-2">
+                  <h3 className="text-xs font-black uppercase mb-6 flex items-center gap-2 text-slate-800">
                     <Banknote size={16} /> {destino.nombre}
                     {esLubricantes && <span className="text-[9px] font-bold text-slate-400 ml-auto">(Automático)</span>}
                   </h3>
@@ -234,15 +296,18 @@ export const ShiftClosingPage = () => {
                         <label className="text-[9px] font-bold text-slate-400 uppercase">{medio}</label>
                         <input 
                           type="text" 
+                          inputMode="decimal"
                           readOnly={esLubricantes}
                           disabled={esLubricantes}
                           className={`w-full p-3 rounded-xl text-xs font-black text-right outline-none ${
                             esLubricantes 
                               ? 'bg-slate-100 border border-slate-200 text-slate-700 cursor-not-allowed' 
-                              : 'bg-slate-50'
+                              : 'bg-slate-50 border border-slate-200 focus:border-zinc-900 text-slate-800'
                           }`} 
-                          value={destino.pagos[medio].toLocaleString()} 
-                          onChange={(e) => handlePaymentChange(destino.destino_recaudo_id, medio, parseInt(e.target.value.replace(/\D/g, "") || 0))} 
+                          value={esLubricantes ? Number(destino.pagos[medio]).toLocaleString('es-CO') : (destino.pagosInputs?.[medio] ?? '')} 
+                          placeholder="0,00"
+                          onChange={(e) => handlePaymentChange(destino.destino_recaudo_id, medio, e.target.value)} 
+                          onBlur={() => handlePaymentBlur(destino.destino_recaudo_id, medio)}
                         />
                       </div>
                     ))}
@@ -262,7 +327,7 @@ export const ShiftClosingPage = () => {
                   readOnly
                   disabled
                   className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-sm font-black text-slate-700 text-right outline-none cursor-not-allowed"
-                  value={`$ ${creditosTotales.toLocaleString()}`}
+                  value={`$ ${creditosTotales.toLocaleString('es-CO')}`}
                 />
               </div>
               <p className="text-[10px] font-bold text-slate-400 uppercase mt-2 tracking-widest text-right">
@@ -281,7 +346,7 @@ export const ShiftClosingPage = () => {
                   readOnly
                   disabled
                   className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-sm font-black text-slate-700 text-right outline-none cursor-not-allowed"
-                  value={`$ ${(summary.abonos_recibidos || []).reduce((acc, a) => acc + Number(a.monto || 0), 0).toLocaleString()}`}
+                  value={`$ ${(summary.abonos_recibidos || []).reduce((acc, a) => acc + Number(a.monto || 0), 0).toLocaleString('es-CO')}`}
                 />
               </div>
               <p className="text-[10px] font-bold text-slate-400 uppercase mt-2 tracking-widest text-right">
