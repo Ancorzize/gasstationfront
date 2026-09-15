@@ -235,6 +235,14 @@ export const ShiftEditClosingPage = () => {
                       )
                     : '',
 
+                lecturaFinalInput:
+                  valFinalRaw !== ''
+                    ? formatDisplayNumber(
+                        valFinalRaw,
+                        3
+                      )
+                    : '',
+
                 precio_galon:
                   Number(
                     l.precio_galon || 0
@@ -434,25 +442,33 @@ export const ShiftEditClosingPage = () => {
 
   const handleReadingChange = (
     mangueraId,
-    value
+    rawValue
   ) => {
-
-    const formatted =
-      formatInputNumber(
-        value,
-        3
-      );
-
     setLecturas((prev) =>
       prev.map((l) =>
         l.manguera_id === mangueraId
           ? {
               ...l,
-              lectura_final:
-                formatted,
+              lecturaFinalInput: rawValue,
+              lectura_final: rawValue,
             }
           : l
       )
+    );
+  };
+
+  const handleReadingBlur = (mangueraId) => {
+    setLecturas((prev) =>
+      prev.map((l) => {
+        if (l.manguera_id !== mangueraId) return l;
+        const num = parseInputNumber(l.lecturaFinalInput);
+        const formatted = num !== 0 ? formatDisplayNumber(num, 3) : l.lecturaFinalInput;
+        return {
+          ...l,
+          lectura_final: formatted,
+          lecturaFinalInput: formatted,
+        };
+      })
     );
   };
 
@@ -811,13 +827,14 @@ export const ShiftEditClosingPage = () => {
                   type="text"
                   inputMode="decimal"
                   className="p-3 rounded-xl border border-slate-200 text-right font-black text-sm outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
-                  value={l.lectura_final}
+                  value={l.lecturaFinalInput ?? l.lectura_final}
                   onChange={(e) =>
                     handleReadingChange(
                       l.manguera_id,
                       e.target.value
                     )
                   }
+                  onBlur={() => handleReadingBlur(l.manguera_id)}
                 />
 
               </div>

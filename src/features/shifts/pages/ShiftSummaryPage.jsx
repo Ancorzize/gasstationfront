@@ -1,8 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, ArrowLeft, Fuel, Package, CreditCard, Receipt, Calculator, ChevronRight, AlertCircle, Clock, ShieldAlert } from 'lucide-react';
-import { shiftService } from '../services/shiftService';
-import { useToast } from '../../../context/ToastContext';
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  Loader2,
+  ArrowLeft,
+  Fuel,
+  Package,
+  CreditCard,
+  Receipt,
+  Calculator,
+  ChevronRight,
+  AlertCircle,
+  Clock,
+  ShieldAlert,
+  FileText,
+} from "lucide-react";
+import { shiftService } from "../services/shiftService";
+import { useToast } from "../../../context/ToastContext";
+import { ShiftOperationsSection } from "../components/ShiftOperationsSection";
 
 export const ShiftSummaryPage = () => {
   const { id } = useParams();
@@ -23,99 +37,158 @@ export const ShiftSummaryPage = () => {
     }
   };
 
-  useEffect(() => { fetchSummary(); }, [id]);
+  useEffect(() => {
+    fetchSummary();
+  }, [id]);
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-      <Loader2 className="animate-spin text-zinc-900" size={40} />
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Calculando balance del sistema...</p>
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="animate-spin text-zinc-900" size={40} />
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
+          Calculando balance del sistema...
+        </p>
+      </div>
+    );
 
   const totales = summary?.totales_sistema || {};
-  const totalEsperadoCaja = (totales.total_sistema || 0);
+  const totalCombustible = Number(totales.ventas_combustible || 0);
+  const totalLubricantes = Number(totales.ventas_lubricantes || 0);
+  const totalCreditos = Number(totales.creditos || 0);
+  const totalAbonos = Number(totales.abonos || 0);
+
+  let totalEsperadoCaja =
+    totalCombustible + totalLubricantes - totalCreditos + totalAbonos;
+  if (Math.abs(totalEsperadoCaja) < 100) {
+    totalEsperadoCaja = 0;
+  }
+
   const turno = summary?.turno || {};
   const estadoActual = turno.estado;
 
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-zinc-900 transition-colors">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-slate-400 hover:text-zinc-900 transition-colors"
+        >
           <ArrowLeft size={20} />
-          <span className="text-[10px] font-black uppercase tracking-widest">Volver</span>
+          <span className="text-[10px] font-black uppercase tracking-widest">
+            Volver
+          </span>
         </button>
         <div className="text-right">
-          <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">Resumen de Control</h2>
+          <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">
+            Resumen de Control
+          </h2>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            Turno: {turno?.estacion?.nombre} #{id} | Estado: <span className="uppercase text-zinc-900">{estadoActual}</span>
+            Turno: {turno?.estacion?.nombre} #{id} | Estado:{" "}
+            <span className="uppercase text-zinc-900">{estadoActual}</span>
           </p>
         </div>
       </div>
 
-      {estadoActual === 'pendiente_cierre' && (
+      {estadoActual === "pendiente_cierre" && (
         <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 flex items-center gap-4 text-amber-800 shadow-sm">
           <Clock size={24} className="shrink-0" />
           <div>
-            <h4 className="text-xs font-black uppercase tracking-wider">Pendiente de aprobación administrativa</h4>
-            <p className="text-xs mt-1 font-medium">Ya has solicitado el cierre de este turno. No se puede modificar mientras el administrador esté realizando la revisión.</p>
+            <h4 className="text-xs font-black uppercase tracking-wider">
+              Pendiente de aprobación administrativa
+            </h4>
+            <p className="text-xs mt-1 font-medium">
+              Ya has solicitado el cierre de este turno. No se puede modificar
+              mientras el administrador esté realizando la revisión.
+            </p>
           </div>
         </div>
       )}
 
-      {estadoActual === 'devuelto' && (
+      {estadoActual === "devuelto" && (
         <div className="bg-red-50 border border-red-200 rounded-3xl p-6 flex items-start gap-4 text-red-800 shadow-sm">
           <ShieldAlert size={24} className="shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <h4 className="text-xs font-black uppercase tracking-wider">Turno Devuelto por el Administrador</h4>
-            <p className="text-xs font-bold">Motivo: {turno.observacion_devolucion || 'Sin especificar'}</p>
-            <p className="text-[11px] text-red-600">Puedes corregir los datos ingresando nuevamente al formulario de cierre de este turno.</p>
+            <h4 className="text-xs font-black uppercase tracking-wider">
+              Turno Devuelto por el Administrador
+            </h4>
+            <p className="text-xs font-bold">
+              Motivo: {turno.observacion_devolucion || "Sin especificar"}
+            </p>
+            <p className="text-[11px] text-red-600">
+              Puedes corregir los datos ingresando nuevamente al formulario de
+              cierre de este turno.
+            </p>
           </div>
         </div>
       )}
 
-      {estadoActual === 'cerrado' && (
+      {estadoActual === "cerrado" && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 flex items-center gap-4 text-emerald-800 shadow-sm">
           <AlertCircle size={24} className="shrink-0" />
           <div>
-            <h4 className="text-xs font-black uppercase tracking-wider">Turno Cerrado Definitivamente</h4>
-            <p className="text-xs mt-1 font-medium">Este turno ha sido aprobado y cerrado por la administración. No permite modificaciones.</p>
+            <h4 className="text-xs font-black uppercase tracking-wider">
+              Turno Cerrado Definitivamente
+            </h4>
+            <p className="text-xs mt-1 font-medium">
+              Este turno ha sido aprobado y cerrado por la administración. No
+              permite modificaciones.
+            </p>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Fuel} label="Combustible" value={totales.ventas_combustible} color="bg-blue-600" />
-        <StatCard icon={Package} label="Lubricantes" value={totales.ventas_lubricantes} color="bg-zinc-900" />
-        <StatCard icon={CreditCard} label="Créditos" value={totales.creditos} color="bg-red-500" />
-        <StatCard icon={Receipt} label="Abonos" value={totales.abonos} color="bg-emerald-600" />
-      </div>
-
       <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
         <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
-          <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight">Detalle de Mangueras</h3>
+          <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight">
+            Detalle de Mangueras
+          </h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="text-left border-b border-slate-50">
-                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Manguera</th>
-                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Inicial</th>
-                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Precio Galón</th>
-                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Vendido (Gal)</th>
-                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Subtotal</th>
+                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                  Manguera
+                </th>
+                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                  Inicial
+                </th>
+                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                  Precio Galón
+                </th>
+                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                  Vendido (Gal)
+                </th>
+                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">
+                  Subtotal
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {summary?.lecturas?.map((l) => (
-                <tr key={l.id} className="hover:bg-slate-50/50 transition-colors text-xs font-bold">
+                <tr
+                  key={l.id}
+                  className="hover:bg-slate-50/50 transition-colors text-xs font-bold"
+                >
                   <td className="p-5 uppercase text-left">
                     <p className="text-slate-800">{l.manguera?.nombre}</p>
-                    <p className="text-[9px] text-slate-400 italic">{l.manguera?.bomba?.nombre} | {l.manguera?.producto?.nombre}</p>
+                    <p className="text-[9px] text-slate-400 italic">
+                      {l.manguera?.bomba?.nombre} |{" "}
+                      {l.manguera?.producto?.nombre}
+                    </p>
                   </td>
-                  <td className="p-5 text-slate-600 text-left">{Number(l.lectura_inicial).toLocaleString()}</td>
-                  <td className="p-5 text-slate-600 text-left">$ {Number(l.precio_galon).toLocaleString()}</td>
-                  <td className="p-5 text-zinc-900 font-black text-left">{Number(l.galones_vendidos_sistema).toLocaleString()}</td>
-                  <td className="p-5 text-right font-black text-slate-800">$ {Number(l.total_venta_sistema).toLocaleString()}</td>
+                  <td className="p-5 text-slate-600 text-left">
+                    {Number(l.lectura_inicial).toLocaleString()}
+                  </td>
+                  <td className="p-5 text-slate-600 text-left">
+                    $ {Number(l.precio_galon).toLocaleString()}
+                  </td>
+                  <td className="p-5 text-zinc-900 font-black text-left">
+                    {Number(l.galones_vendidos_sistema).toLocaleString()}
+                  </td>
+                  <td className="p-5 text-right font-black text-slate-800">
+                    $ {Number(l.total_venta_sistema).toLocaleString()}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -123,41 +196,36 @@ export const ShiftSummaryPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white rounded-[2rem] border border-slate-100 p-6 shadow-sm">
-          <h3 className="text-xs font-black text-slate-800 uppercase mb-4">Productos Vendidos</h3>
-          {summary?.ventas_productos?.map(p => (
-            <div key={p.id} className="flex justify-between text-xs py-2 border-b border-slate-50 font-bold">
-              <span>{p.nombre} (x{p.cantidad})</span>
-              <span>$ {Number(p.total).toLocaleString()}</span>
-            </div>
-          ))}
-        </div>
-        <div className="bg-white rounded-[2rem] border border-slate-100 p-6 shadow-sm">
-          <h3 className="text-xs font-black text-slate-800 uppercase mb-4">Abonos Recibidos</h3>
-          {summary?.abonos_recibidos?.map(a => (
-            <div key={a.id} className="flex justify-between text-xs py-2 border-b border-slate-50 font-bold">
-              <span>{a.cliente}</span>
-              <span>$ {Number(a.monto).toLocaleString()}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <ShiftOperationsSection
+        turnoId={id}
+        turnoEstado={estadoActual}
+        onOperationsChanged={fetchSummary}
+      />
 
       <div className="bg-zinc-900 rounded-[3rem] p-8 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl shadow-zinc-200">
         <div className="space-y-1 text-center md:text-left">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Total Esperado en Caja</p>
-          <h4 className="text-4xl font-black tracking-tighter italic">$ {totalEsperadoCaja.toLocaleString()}</h4>
-          <p className="text-[9px] text-zinc-500 max-w-sm uppercase leading-tight mt-2">El total excluye créditos pendientes. {summary?.nota}</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+            Total Esperado en Caja
+          </p>
+          <h4 className="text-4xl font-black tracking-tighter italic">
+            $ {totalEsperadoCaja.toLocaleString()}
+          </h4>
+          <p className="text-[9px] text-zinc-500 max-w-sm uppercase leading-tight mt-2">
+            El total excluye créditos pendientes. {summary?.nota}
+          </p>
         </div>
-        
+
         {/* Renderizamos CTA según estado: Si está devuelto o abierto, permite ir a corregir/cerrar */}
-        {(estadoActual === 'abierto' || estadoActual === 'devuelto') && (
-          <button 
+        {(estadoActual === "abierto" || estadoActual === "devuelto") && (
+          <button
             onClick={() => navigate(`/turnos-islero/${id}/cerrar`)}
             className="w-full md:w-auto flex items-center justify-center gap-3 bg-white text-zinc-900 px-10 py-5 rounded-2xl font-black uppercase text-xs hover:scale-105 transition-transform"
           >
-            <Calculator size={18} /> {estadoActual === 'devuelto' ? 'Corregir Cierre' : 'Registrar Pagos y Cerrar'} <ChevronRight size={18} />
+            <Calculator size={18} />{" "}
+            {estadoActual === "devuelto"
+              ? "Corregir Cierre"
+              : "Registrar Pagos y Cerrar"}{" "}
+            <ChevronRight size={18} />
           </button>
         )}
       </div>
@@ -167,12 +235,18 @@ export const ShiftSummaryPage = () => {
 
 const StatCard = ({ icon: Icon, label, value, color }) => (
   <div className="bg-white rounded-[2rem] p-6 border border-slate-100 space-y-4 text-left">
-    <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center text-white`}>
+    <div
+      className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center text-white`}
+    >
       <Icon size={20} />
     </div>
     <div>
-      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{label}</p>
-      <p className="text-sm font-black text-slate-800">$ {Number(value || 0).toLocaleString()}</p>
+      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+        {label}
+      </p>
+      <p className="text-sm font-black text-slate-800">
+        $ {Number(value || 0).toLocaleString()}
+      </p>
     </div>
   </div>
 );

@@ -127,4 +127,18 @@ export const shiftService = {
     });
     return res.json();
   },
+
+  getShiftOperations: async (id) => {
+    const res = await fetch(`${API_URL}/turnos-islero/${id}/operaciones`, { 
+      headers: getHeaders() 
+    });
+    return res.json();
+  },
+
+  getShiftOperationsByType: async (id, tipo) => {
+    const res = await fetch(`${API_URL}/turnos-islero/${id}/operaciones/${tipo}`, { 
+      headers: getHeaders() 
+    });
+    return res.json();
+  },
 };

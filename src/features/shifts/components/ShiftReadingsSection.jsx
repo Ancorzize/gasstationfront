@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Fuel, ShieldAlert, Printer, Calendar, User, MapPin, Banknote, ArrowLeft } from 'lucide-react';
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
+import { ShiftOperationsSection } from './ShiftOperationsSection';
 
 export const ShiftReadingsSection = ({ turnoId, onBack }) => {
   const [loading, setLoading] = useState(false);
@@ -269,6 +270,18 @@ export const ShiftReadingsSection = ({ turnoId, onBack }) => {
                   </div>
                 )}
               </div>
+
+              <ShiftOperationsSection 
+                turnoId={turnoId} 
+                turnoEstado={turnoDetalle?.estado} 
+                onOperationsChanged={() => {
+                  if (turnoId) {
+                    shiftService.getShiftDetail(turnoId).then(res => {
+                      if (res.status) setTurnoDetalle(res.data);
+                    });
+                  }
+                }} 
+              />
             </>
           ) : (
             <div className="py-12 text-center text-slate-400">

@@ -48,5 +48,23 @@ export const portfolioService = {
       })
     });
     return res.json();
+  },
+
+  updateAbono: async (id, data) => {
+    const res = await fetch(`${API_URL}/cartera/abonos/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  },
+
+  anularAbono: async (id, motivo) => {
+    const res = await fetch(`${API_URL}/cartera/abonos/${id}/anular`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ motivo_anulacion: motivo })
+    });
+    return res.json();
   }
 };

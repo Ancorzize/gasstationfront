@@ -35,15 +35,18 @@ export const CashSessionPage = () => {
       const res = await cashService.getCurrentCash();
       if (res.status === true) {
         setCashSessions(res.data || []);
-        const [sumRes, movRes] = await Promise.all([
-          cashService.getSummary(),
-          cashService.getMovements({ 
-            ...(cajaIdToKeep ? { caja_id: cajaIdToKeep } : {}),
-            fecha: getTodayStr() 
-          })
-        ]);
+        const sumRes = await cashService.getSummary();
         if (sumRes.status) setSummary(sumRes.data || []);
-        if (movRes.status) setMovements(movRes.data.items || []);
+
+        if (cajaIdToKeep) {
+          const movRes = await cashService.getMovements({ 
+            caja_id: cajaIdToKeep,
+            fecha: getTodayStr() 
+          });
+          if (movRes.status) setMovements(movRes.data.items || []);
+        } else {
+          setMovements([]);
+        }
       }
     } catch (e) {
       showToast("Error al sincronizar datos de caja", "error");
@@ -59,7 +62,7 @@ export const CashSessionPage = () => {
   const handleCajaClick = async (id) => {
     if (selectedCajaId === id) {
       setSelectedCajaId(null);
-      await loadInitialData(null);
+      setMovements([]);
     } else {
       setSelectedCajaId(id);
       setLoadingMovements(true);
@@ -71,6 +74,7 @@ export const CashSessionPage = () => {
         setMovements(res.status ? (res.data.items || []) : []);
       } catch (e) {
         showToast("Error al filtrar movimientos", "error");
+        setMovements([]);
       } finally {
         setLoadingMovements(false);
       }
@@ -170,39 +174,50 @@ export const CashSessionPage = () => {
         <div className="text-center p-12 border-2 border-dashed border-slate-100 rounded-[3rem] text-slate-400 font-black uppercase text-xs">No hay cajas abiertas</div>
       )}
 
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden text-left">
         <div className="p-6 border-b flex justify-between items-center bg-slate-50/50">
-          <h3 className="text-xs font-black text-slate-500 uppercase">{selectedCajaId ? 'Movimientos filtrados' : 'Auditoría General'}</h3>
-          {selectedCajaId && <button onClick={() => handleCajaClick(selectedCajaId)} className="text-[9px] font-black text-red-500 bg-red-50 px-3 py-1 rounded-lg flex items-center gap-1"><X size={12}/> Quitar filtro</button>}
+          <h3 className="text-xs font-black text-slate-500 uppercase">Movimientos filtrados</h3>
+          {selectedCajaId && (
+            <button 
+              onClick={() => handleCajaClick(selectedCajaId)} 
+              className="text-[9px] font-black text-red-500 bg-red-50 px-3 py-1 rounded-lg flex items-center gap-1 hover:bg-red-100 transition-all"
+            >
+              <X size={12}/> Quitar filtro
+            </button>
+          )}
         </div>
         
-        {loadingMovements ? (
-            <div className="p-20 text-center text-slate-400"><Loader2 className="animate-spin mx-auto" /></div>
+        {!selectedCajaId ? (
+          <div className="p-12 text-center text-slate-400 font-bold uppercase text-xs">
+            Seleccione una caja para ver los movimientos
+          </div>
+        ) : loadingMovements ? (
+          <div className="p-20 text-center text-slate-400"><Loader2 className="animate-spin mx-auto text-zinc-900" /></div>
         ) : (
-            <table className="w-full text-left">
-              <tbody className="divide-y divide-slate-50">
-                {movements.length > 0 ? movements.map((mov) => (
-                  <tr key={mov.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${mov.tipo_movimiento === 'ingreso' ? 'bg-emerald-50 text-emerald-500' : 'bg-red-50 text-red-500'}`}>
-                          {mov.tipo_movimiento === 'ingreso' ? <ArrowUpCircle size={20} /> : <ArrowDownCircle size={20} />}
-                        </div>
-                        <div>
-                          <p className="text-xs font-black text-slate-700 uppercase">{mov.descripcion}</p>
-                          <p className="text-[9px] font-bold text-slate-400 uppercase">{mov.categoria_movimiento}</p>
-                        </div>
+          <table className="w-full text-left">
+            <tbody className="divide-y divide-slate-50">
+              {movements.length > 0 ? movements.map((mov) => (
+                <tr key={mov.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${mov.tipo_movimiento === 'ingreso' ? 'bg-emerald-50 text-emerald-500' : 'bg-red-50 text-red-500'}`}>
+                        {mov.tipo_movimiento === 'ingreso' ? <ArrowUpCircle size={20} /> : <ArrowDownCircle size={20} />}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-right font-black text-sm text-slate-700">
-                      {mov.tipo_movimiento === 'ingreso' ? '+' : '-'} $ {Number(mov.monto).toLocaleString()}
-                    </td>
-                  </tr>
-                )) : (
-                    <tr><td colSpan="2" className="text-center py-10 text-[10px] font-black text-slate-400 uppercase">No hay movimientos registrados</td></tr>
-                )}
-              </tbody>
-            </table>
+                      <div>
+                        <p className="text-xs font-black text-slate-700 uppercase">{mov.descripcion}</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase">{mov.categoria_movimiento}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right font-black text-sm text-slate-700">
+                    {mov.tipo_movimiento === 'ingreso' ? '+' : '-'} $ {Number(mov.monto).toLocaleString()}
+                  </td>
+                </tr>
+              )) : (
+                <tr><td colSpan="2" className="text-center py-10 text-[10px] font-black text-slate-400 uppercase">No hay movimientos registrados para esta caja</td></tr>
+              )}
+            </tbody>
+          </table>
         )}
       </div>
 

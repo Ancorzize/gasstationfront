@@ -55,5 +55,24 @@ export const salesService = {
       console.error(`Error al anular venta ${id}:`, error);
       throw error;
     }
+  },
+  updateSale: async (id, payload) => {
+    try {
+      const response = await fetch(`${API_URL}/ventas/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      
+      if (response.status === 403) {
+        throw new Error("No tienes permisos para editar ventas.");
+      }
+      
+      return data;
+    } catch (error) {
+      console.error(`Error al actualizar venta ${id}:`, error);
+      throw error;
+    }
   }
 };

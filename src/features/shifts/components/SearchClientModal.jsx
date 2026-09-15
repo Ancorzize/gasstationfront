@@ -7,7 +7,7 @@ import { clientService } from '../../clients/services/clientService';
 export const SearchClientModal = ({ isOpen, onClose }) => {
   const [documento, setDocumento] = useState('');
   const [loading, setLoading] = useState(false);
-  const [client, setClient] = useState(null);
+  const [clientsList, setClientsList] = useState([]);
   const [searched, setSearched] = useState(false);
   
   const navigate = useNavigate();
@@ -21,15 +21,15 @@ export const SearchClientModal = ({ isOpen, onClose }) => {
 
     setLoading(true);
     setSearched(true);
-    setClient(null);
+    setClientsList([]);
 
     try {
-      const response = await clientService.getClients({ search: documento.trim() });
+      const response = await clientService.getClients({ search: documento.trim(), page: 1, per_page: 10 });
 
       if (response.status && response.data?.items?.length > 0) {
-        setClient(response.data.items[0]);
+        setClientsList(response.data.items);
       } else {
-        showToast("No se encontró ningún cliente con ese documento", "error");
+        showToast("No se encontró ningún cliente con ese criterio de búsqueda", "error");
       }
     } catch (error) {
       showToast("Error al buscar el cliente", "error");
@@ -58,11 +58,11 @@ export const SearchClientModal = ({ isOpen, onClose }) => {
 
         <form onSubmit={handleSearch} className="space-y-4">
           <div>
-            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Número de Cédula / Documento</label>
+            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Nombre o Documento del Cliente</label>
             <div className="flex gap-2">
               <input 
                 type="text" 
-                placeholder="Ej. 1089483"
+                placeholder="Ej. EDS PLATA VIEJA AMBULANCIAS o 1089483"
                 value={documento}
                 onChange={(e) => setDocumento(e.target.value)}
                 className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-2 focus:ring-zinc-900"
@@ -76,22 +76,29 @@ export const SearchClientModal = ({ isOpen, onClose }) => {
           </div>
         </form>
 
-        {searched && !loading && client && (
-          <div className="space-y-3 pt-2">
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Resultado encontrado:</p>
-            <div 
-              onClick={() => handleSelectClient(client.id)}
-              className="p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-2xl flex items-center justify-between cursor-pointer transition-all group"
-            >
-              <div>
-                <p className="text-xs font-black text-slate-800 uppercase">{client.nombre} {client.apellidos}</p>
-                <p className="text-[10px] font-bold text-slate-500 mt-0.5">Doc: {client.documento}</p>
+        {searched && !loading && clientsList.length > 0 && (
+          <div className="space-y-3 pt-2 max-h-60 overflow-y-auto pr-1">
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+              {clientsList.length} cliente(s) encontrado(s):
+            </p>
+            {clientsList.map((client) => (
+              <div 
+                key={client.id}
+                onClick={() => handleSelectClient(client.id)}
+                className="p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-2xl flex items-center justify-between cursor-pointer transition-all group"
+              >
+                <div>
+                  <p className="text-xs font-black text-slate-800 uppercase">{client.nombre} {client.apellidos || ''}</p>
+                  <p className="text-[10px] font-bold text-slate-500 mt-0.5">Doc: {client.documento}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-xl">
+                    Cupo disp: ${Number(client.cupo_disponible || 0).toLocaleString()}
+                  </span>
+                  <ChevronRight size={16} className="text-slate-400 group-hover:translate-x-1 transition-transform" />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-xl">Cupo disp: ${Number(client.cupo_disponible || 0).toLocaleString()}</span>
-                <ChevronRight size={16} className="text-slate-400 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
