@@ -16,12 +16,14 @@ import {
 } from "lucide-react";
 import { shiftService } from "../services/shiftService";
 import { useToast } from "../../../context/ToastContext";
+import { usePermissions } from "../../../hooks/usePermissions";
 import { ShiftOperationsSection } from "../components/ShiftOperationsSection";
 
 export const ShiftSummaryPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -137,64 +139,66 @@ export const ShiftSummaryPage = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
-        <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
-          <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight">
-            Detalle de Mangueras
-          </h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left border-b border-slate-50">
-                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                  Manguera
-                </th>
-                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                  Inicial
-                </th>
-                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                  Precio Galón
-                </th>
-                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                  Vendido (Gal)
-                </th>
-                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">
-                  Subtotal
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {summary?.lecturas?.map((l) => (
-                <tr
-                  key={l.id}
-                  className="hover:bg-slate-50/50 transition-colors text-xs font-bold"
-                >
-                  <td className="p-5 uppercase text-left">
-                    <p className="text-slate-800">{l.manguera?.nombre}</p>
-                    <p className="text-[9px] text-slate-400 italic">
-                      {l.manguera?.bomba?.nombre} |{" "}
-                      {l.manguera?.producto?.nombre}
-                    </p>
-                  </td>
-                  <td className="p-5 text-slate-600 text-left">
-                    {Number(l.lectura_inicial).toLocaleString()}
-                  </td>
-                  <td className="p-5 text-slate-600 text-left">
-                    $ {Number(l.precio_galon).toLocaleString()}
-                  </td>
-                  <td className="p-5 text-zinc-900 font-black text-left">
-                    {Number(l.galones_vendidos_sistema).toLocaleString()}
-                  </td>
-                  <td className="p-5 text-right font-black text-slate-800">
-                    $ {Number(l.total_venta_sistema).toLocaleString()}
-                  </td>
+      {hasPermission("vender_combustible") && (summary?.lecturas?.length > 0) && (
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
+          <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight">
+              Detalle de Mangueras
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left border-b border-slate-50">
+                  <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    Manguera
+                  </th>
+                  <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    Inicial
+                  </th>
+                  <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    Precio Galón
+                  </th>
+                  <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    Vendido (Gal)
+                  </th>
+                  <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">
+                    Subtotal
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {summary?.lecturas?.map((l) => (
+                  <tr
+                    key={l.id}
+                    className="hover:bg-slate-50/50 transition-colors text-xs font-bold"
+                  >
+                    <td className="p-5 uppercase text-left">
+                      <p className="text-slate-800">{l.manguera?.nombre}</p>
+                      <p className="text-[9px] text-slate-400 italic">
+                        {l.manguera?.bomba?.nombre} |{" "}
+                        {l.manguera?.producto?.nombre}
+                      </p>
+                    </td>
+                    <td className="p-5 text-slate-600 text-left">
+                      {Number(l.lectura_inicial).toLocaleString()}
+                    </td>
+                    <td className="p-5 text-slate-600 text-left">
+                      $ {Number(l.precio_galon).toLocaleString()}
+                    </td>
+                    <td className="p-5 text-zinc-900 font-black text-left">
+                      {Number(l.galones_vendidos_sistema).toLocaleString()}
+                    </td>
+                    <td className="p-5 text-right font-black text-slate-800">
+                      $ {Number(l.total_venta_sistema).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       <ShiftOperationsSection
         turnoId={id}

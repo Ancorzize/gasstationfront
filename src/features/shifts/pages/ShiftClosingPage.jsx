@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, ArrowLeft, Banknote, Droplets, Users, Send, CreditCard } from 'lucide-react';
 import { shiftService } from '../services/shiftService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 // Funciones auxiliares estilo colombiano ajustadas a 3 decimales (ej: 4.123.334,234)
 const formatPesos = (value) => {
@@ -36,13 +37,16 @@ export const ShiftClosingPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     lecturas_finales: [],
     destinos_recaudo: []
   });
+
+  const showManguerasSection = hasPermission('vender_combustible') && Array.isArray(summary?.lecturas) && summary.lecturas.length > 0;
 
   useEffect(() => {
     const loadSummary = async () => {
@@ -246,41 +250,43 @@ export const ShiftClosingPage = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className={showManguerasSection ? "grid grid-cols-1 lg:grid-cols-2 gap-8" : "space-y-6 max-w-2xl mx-auto"}>
           
-          {/* Mangueras */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm">
-            <h3 className="text-xs font-black text-slate-800 uppercase mb-6 flex items-center gap-2"><Droplets size={16} /> Mangueras</h3>
-            {formData.lecturas_finales.map((l, index) => {
-              const summaryItem = summary.lecturas[index];
+          {/* Mangueras (solo si el usuario puede vender combustible y existen mangueras asignadas) */}
+          {showManguerasSection && (
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm">
+              <h3 className="text-xs font-black text-slate-800 uppercase mb-6 flex items-center gap-2"><Droplets size={16} /> Mangueras</h3>
+              {formData.lecturas_finales.map((l, index) => {
+                const summaryItem = summary.lecturas[index];
 
-              return (
-                <div key={l.manguera_id} className="mb-4 p-4 bg-slate-50 rounded-2xl space-y-2 border border-slate-100">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-[9px] font-bold uppercase text-slate-600">{summaryItem?.manguera?.nombre || `Manguera #${l.manguera_id}`}</p>
-                      <p className="text-[10px] font-black text-slate-800">${Number(l.precio_galon).toLocaleString('es-CO')} /gal</p>
+                return (
+                  <div key={l.manguera_id} className="mb-4 p-4 bg-slate-50 rounded-2xl space-y-2 border border-slate-100">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-[9px] font-bold uppercase text-slate-600">{summaryItem?.manguera?.nombre || `Manguera #${l.manguera_id}`}</p>
+                        <p className="text-[10px] font-black text-slate-800">${Number(l.precio_galon).toLocaleString('es-CO')} /gal</p>
+                      </div>
+                      <span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-2.5 py-0.5 rounded-full border border-yellow-200">
+                        Inicial: {Number(l.lectura_inicial).toLocaleString('es-CO', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
+                      </span>
                     </div>
-                    <span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-2.5 py-0.5 rounded-full border border-yellow-200">
-                      Inicial: {Number(l.lectura_inicial).toLocaleString('es-CO', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
-                    </span>
+                    <div>
+                      <label className="text-[8px] font-bold text-slate-400 uppercase block mb-1">Lectura Final</label>
+                      <input 
+                        type="text" 
+                        inputMode="decimal"
+                        placeholder="0,000"
+                        className="w-full p-3 rounded-xl border border-slate-200 text-right font-black outline-none focus:border-zinc-900 bg-white text-xs text-slate-800" 
+                        value={l.lecturaFinalInput ?? ''} 
+                        onChange={(e) => handleReadingChange(l.manguera_id, e.target.value)} 
+                        onBlur={() => handleReadingBlur(l.manguera_id)}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-[8px] font-bold text-slate-400 uppercase block mb-1">Lectura Final</label>
-                    <input 
-                      type="text" 
-                      inputMode="decimal"
-                      placeholder="0,000"
-                      className="w-full p-3 rounded-xl border border-slate-200 text-right font-black outline-none focus:border-zinc-900 bg-white text-xs text-slate-800" 
-                      value={l.lecturaFinalInput ?? ''} 
-                      onChange={(e) => handleReadingChange(l.manguera_id, e.target.value)} 
-                      onBlur={() => handleReadingBlur(l.manguera_id)}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           <div className="space-y-6">
             {formData.destinos_recaudo.map((destino) => {

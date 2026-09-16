@@ -28,6 +28,7 @@ import { productService } from "../../products/services/productService";
 import { clientService } from "../../clients/services/clientService";
 import { cashService } from "../../cash/services/cashService";
 import { useToast } from "../../../context/ToastContext";
+import { usePermissions } from "../../../hooks/usePermissions";
 
 export const ShiftOperationsSection = ({
   turnoId,
@@ -35,11 +36,47 @@ export const ShiftOperationsSection = ({
   onOperationsChanged,
 }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+
+  const canSeeCombustible = hasPermission("vender_combustible");
+  const canSeeLubricantes = hasPermission("vender_lubricantes");
+  const canSeeCreditos = hasPermission("crear_ventas") || hasPermission("vender_combustible") || hasPermission("vender_lubricantes");
+  const canSeeAbonos = hasPermission("registrar_abonos_cartera");
+
+  const canEditAnularSale = hasPermission("vender_lubricantes") || hasPermission("anular_ventas");
+  const canEditAnularAbono = hasPermission("registrar_abonos_cartera") || hasPermission("anular_abonos_cartera");
+
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [loadingItems, setLoadingItems] = useState(false);
 
   const [summaryData, setSummaryData] = useState(null);
-  const [activeType, setActiveType] = useState("lubricantes"); // combustible | lubricantes | creditos | abonos
+  const [activeType, setActiveType] = useState(() => {
+    if (canSeeLubricantes) return "lubricantes";
+    if (canSeeCombustible) return "combustible";
+    if (canSeeCreditos) return "creditos";
+    if (canSeeAbonos) return "abonos";
+    return "lubricantes";
+  }); // combustible | lubricantes | creditos | abonos
+
+  useEffect(() => {
+    if (activeType === "lubricantes" && !canSeeLubricantes) {
+      if (canSeeCombustible) setActiveType("combustible");
+      else if (canSeeCreditos) setActiveType("creditos");
+      else if (canSeeAbonos) setActiveType("abonos");
+    } else if (activeType === "combustible" && !canSeeCombustible) {
+      if (canSeeLubricantes) setActiveType("lubricantes");
+      else if (canSeeCreditos) setActiveType("creditos");
+      else if (canSeeAbonos) setActiveType("abonos");
+    } else if (activeType === "creditos" && !canSeeCreditos) {
+      if (canSeeLubricantes) setActiveType("lubricantes");
+      else if (canSeeCombustible) setActiveType("combustible");
+      else if (canSeeAbonos) setActiveType("abonos");
+    } else if (activeType === "abonos" && !canSeeAbonos) {
+      if (canSeeLubricantes) setActiveType("lubricantes");
+      else if (canSeeCombustible) setActiveType("combustible");
+      else if (canSeeCreditos) setActiveType("creditos");
+    }
+  }, [canSeeCombustible, canSeeLubricantes, canSeeCreditos, canSeeAbonos]);
   const [items, setItems] = useState([]);
 
   // Modales
@@ -614,112 +651,120 @@ export const ShiftOperationsSection = ({
       {/* Tarjetas de Resumen por Categoría */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Combustibles */}
-        <div
-          onClick={() => setActiveType("combustible")}
-          className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-            activeType === "combustible"
-              ? "bg-blue-50 border-blue-400 ring-2 ring-blue-400/20"
-              : "bg-slate-50 border-slate-100 hover:border-slate-300"
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[9px] font-black uppercase tracking-wider text-blue-700 flex items-center gap-1">
-              <Fuel size={14} /> Combustible
-            </span>
-            <span className="text-[9px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border">
-              {resumen.combustible?.cantidad || 0}
-            </span>
+        {canSeeCombustible && (
+          <div
+            onClick={() => setActiveType("combustible")}
+            className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+              activeType === "combustible"
+                ? "bg-blue-50 border-blue-400 ring-2 ring-blue-400/20"
+                : "bg-slate-50 border-slate-100 hover:border-slate-300"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] font-black uppercase tracking-wider text-blue-700 flex items-center gap-1">
+                <Fuel size={14} /> Combustible
+              </span>
+              <span className="text-[9px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border">
+                {resumen.combustible?.cantidad || 0}
+              </span>
+            </div>
+            <p className="text-sm md:text-base font-black text-slate-800">
+              $ {Number(resumen.combustible?.total || 0).toLocaleString("es-CO")}
+            </p>
+            <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">
+              Solo consulta
+            </p>
           </div>
-          <p className="text-sm md:text-base font-black text-slate-800">
-            $ {Number(resumen.combustible?.total || 0).toLocaleString("es-CO")}
-          </p>
-          <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">
-            Solo consulta
-          </p>
-        </div>
+        )}
 
         {/* Lubricantes */}
-        <div
-          onClick={() => setActiveType("lubricantes")}
-          className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-            activeType === "lubricantes"
-              ? "bg-zinc-900 text-white border-zinc-900 ring-2 ring-zinc-900/20"
-              : "bg-slate-50 border-slate-100 hover:border-slate-300"
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span
-              className={`text-[9px] font-black uppercase tracking-wider flex items-center gap-1 ${activeType === "lubricantes" ? "text-zinc-300" : "text-slate-700"}`}
+        {canSeeLubricantes && (
+          <div
+            onClick={() => setActiveType("lubricantes")}
+            className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+              activeType === "lubricantes"
+                ? "bg-zinc-900 text-white border-zinc-900 ring-2 ring-zinc-900/20"
+                : "bg-slate-50 border-slate-100 hover:border-slate-300"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span
+                className={`text-[9px] font-black uppercase tracking-wider flex items-center gap-1 ${activeType === "lubricantes" ? "text-zinc-300" : "text-slate-700"}`}
+              >
+                <Droplets size={14} /> Lubricantes (POS)
+              </span>
+              <span
+                className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${activeType === "lubricantes" ? "bg-zinc-800 text-white border-zinc-700" : "bg-white text-slate-400"}`}
+              >
+                {resumen.lubricantes?.cantidad || 0}
+              </span>
+            </div>
+            <p
+              className={`text-sm md:text-base font-black ${activeType === "lubricantes" ? "text-white" : "text-slate-800"}`}
             >
-              <Droplets size={14} /> Lubricantes (POS)
-            </span>
-            <span
-              className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${activeType === "lubricantes" ? "bg-zinc-800 text-white border-zinc-700" : "bg-white text-slate-400"}`}
+              $ {Number(resumen.lubricantes?.total || 0).toLocaleString("es-CO")}
+            </p>
+            <p
+              className={`text-[8px] font-bold uppercase mt-1 ${activeType === "lubricantes" ? "text-zinc-400" : "text-slate-400"}`}
             >
-              {resumen.lubricantes?.cantidad || 0}
-            </span>
+              Editables / Anulables
+            </p>
           </div>
-          <p
-            className={`text-sm md:text-base font-black ${activeType === "lubricantes" ? "text-white" : "text-slate-800"}`}
-          >
-            $ {Number(resumen.lubricantes?.total || 0).toLocaleString("es-CO")}
-          </p>
-          <p
-            className={`text-[8px] font-bold uppercase mt-1 ${activeType === "lubricantes" ? "text-zinc-400" : "text-slate-400"}`}
-          >
-            Editables / Anulables
-          </p>
-        </div>
+        )}
 
         {/* Créditos */}
-        <div
-          onClick={() => setActiveType("creditos")}
-          className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-            activeType === "creditos"
-              ? "bg-rose-50 border-rose-400 ring-2 ring-rose-400/20"
-              : "bg-slate-50 border-slate-100 hover:border-slate-300"
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[9px] font-black uppercase tracking-wider text-rose-700 flex items-center gap-1">
-              <CreditCard size={14} /> Créditos
-            </span>
-            <span className="text-[9px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border">
-              {resumen.creditos?.cantidad || 0}
-            </span>
+        {canSeeCreditos && (
+          <div
+            onClick={() => setActiveType("creditos")}
+            className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+              activeType === "creditos"
+                ? "bg-rose-50 border-rose-400 ring-2 ring-rose-400/20"
+                : "bg-slate-50 border-slate-100 hover:border-slate-300"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] font-black uppercase tracking-wider text-rose-700 flex items-center gap-1">
+                <CreditCard size={14} /> Créditos
+              </span>
+              <span className="text-[9px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border">
+                {resumen.creditos?.cantidad || 0}
+              </span>
+            </div>
+            <p className="text-sm md:text-base font-black text-slate-800">
+              $ {Number(resumen.creditos?.total || 0).toLocaleString("es-CO")}
+            </p>
+            <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">
+              Editables / Anulables
+            </p>
           </div>
-          <p className="text-sm md:text-base font-black text-slate-800">
-            $ {Number(resumen.creditos?.total || 0).toLocaleString("es-CO")}
-          </p>
-          <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">
-            Editables / Anulables
-          </p>
-        </div>
+        )}
 
         {/* Abonos */}
-        <div
-          onClick={() => setActiveType("abonos")}
-          className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-            activeType === "abonos"
-              ? "bg-emerald-50 border-emerald-400 ring-2 ring-emerald-400/20"
-              : "bg-slate-50 border-slate-100 hover:border-slate-300"
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1">
-              <Receipt size={14} /> Abonos Cartera
-            </span>
-            <span className="text-[9px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border">
-              {resumen.abonos?.cantidad || 0}
-            </span>
+        {canSeeAbonos && (
+          <div
+            onClick={() => setActiveType("abonos")}
+            className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+              activeType === "abonos"
+                ? "bg-emerald-50 border-emerald-400 ring-2 ring-emerald-400/20"
+                : "bg-slate-50 border-slate-100 hover:border-slate-300"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1">
+                <Receipt size={14} /> Abonos Cartera
+              </span>
+              <span className="text-[9px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border">
+                {resumen.abonos?.cantidad || 0}
+              </span>
+            </div>
+            <p className="text-sm md:text-base font-black text-slate-800">
+              $ {Number(resumen.abonos?.total || 0).toLocaleString("es-CO")}
+            </p>
+            <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">
+              Editables / Anulables
+            </p>
           </div>
-          <p className="text-sm md:text-base font-black text-slate-800">
-            $ {Number(resumen.abonos?.total || 0).toLocaleString("es-CO")}
-          </p>
-          <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">
-            Editables / Anulables
-          </p>
-        </div>
+        )}
       </div>
 
       {/* Listado de la categoría activa */}
@@ -844,7 +889,7 @@ export const ShiftOperationsSection = ({
                         </span>
                       </td>
                       <td className="p-3 text-center">
-                        {activeType === "combustible" || isReadOnly ? (
+                        {activeType === "combustible" || isReadOnly || (isAbono && !canEditAnularAbono) || (!isAbono && !canEditAnularSale) ? (
                           <span className="text-[8px] font-bold text-slate-400 uppercase italic">
                             Solo Lectura
                           </span>

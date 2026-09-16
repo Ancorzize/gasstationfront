@@ -24,8 +24,8 @@ const menuGroups = [
     items: [
       { icon: Play, label: 'Turnos', permission: 'ver_turnos_islero', path: '/operacion/turnos' },
       { icon: CheckCircle2, label: 'Aprobación de Turnos', permission: 'aprobar_cierres_turnos_islero', path: '/turnos/aprobaciones' },
-      { icon: Fuel, label: 'Ventas Combustible', permission: 'crear_ventas', path: '/ventas/nueva' },
-      { icon: Package, label: 'Ventas Lubricantes', permission: 'crear_ventas', path: '/ventas/lubricantes' },
+      { icon: Fuel, label: 'Ventas Combustible', permission: 'vender_combustible', path: '/ventas/nueva' },
+      { icon: Package, label: 'Ventas Lubricantes', permission: 'vender_lubricantes', path: '/ventas/lubricantes' },
       { icon: ShoppingBag, label: 'Ventas Realizadas', permission: 'ver_ventas', path: '/ventas' },
     ]
   },
@@ -46,7 +46,7 @@ const menuGroups = [
   {
     title: "Finanzas",
     items: [
-      { icon: Landmark, label: 'Cartera', permission: 'ver_cartera', path: '/cartera' },
+      { icon: Landmark, label: 'Cartera', permission: ['ver_cartera', 'registrar_abonos_cartera'], path: '/cartera' },
       { icon: ClipboardList, label: 'Mov. Cartera', permission: 'ver_movimientos_cartera', path: '/cartera/movimientos' },
       { icon: Target, label: 'Destinos Recaudo', permission: 'ver_destinos_recaudo', path: '/destinos-recaudo' }, 
       { icon: Wallet, label: 'Caja', permission: 'ver_caja_menu', path: '/caja' },

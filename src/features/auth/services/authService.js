@@ -17,8 +17,7 @@ export const authService = {
       if (result.status === true) {
         localStorage.setItem('token', result.data.token);
         localStorage.setItem('user', JSON.stringify(result.data.user));
-        
-        localStorage.setItem('permissions', JSON.stringify(result.data.permissions || []));
+        localStorage.removeItem('permissions');
         
         return result; 
       } else {

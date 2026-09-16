@@ -3,9 +3,13 @@ import { X, Play, Loader2, MapPin, Droplets, AlertTriangle, CheckCircle2, Info }
 import { shiftService } from '../services/shiftService';
 import { stationService } from '../../stations/services/stationService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const OpenShiftModal = ({ isOpen, onClose, onSave }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const requiereCombustible = hasPermission('vender_combustible');
+
   const [loading, setLoading] = useState(false);
   const [loadingHoses, setLoadingHoses] = useState(false);
   
@@ -33,10 +37,10 @@ export const OpenShiftModal = ({ isOpen, onClose, onSave }) => {
   };
 
   useEffect(() => {
-    if (formData.estacion_id) {
+    if (formData.estacion_id && requiereCombustible) {
       loadHoses(formData.estacion_id);
     }
-  }, [formData.estacion_id]);
+  }, [formData.estacion_id, requiereCombustible]);
 
   const loadHoses = async (id) => {
     setLoadingHoses(true);
@@ -80,7 +84,7 @@ export const OpenShiftModal = ({ isOpen, onClose, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (selectedHoses.length === 0) return showToast("Selecciona al menos una manguera", "error");
+    if (requiereCombustible && selectedHoses.length === 0) return showToast("Selecciona al menos una manguera", "error");
 
     setLoading(true);
     try {
@@ -103,7 +107,7 @@ export const OpenShiftModal = ({ isOpen, onClose, onSave }) => {
          
         } else {
           showToast(res.message, "error");
-          if (res.message.includes("asignadas")) loadHoses(formData.estacion_id);
+          if (res.message.includes("asignadas") && requiereCombustible) loadHoses(formData.estacion_id);
         }
       }
     } catch (error) {
@@ -126,7 +130,9 @@ export const OpenShiftModal = ({ isOpen, onClose, onSave }) => {
             </div>
             <div>
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Abrir Nuevo Turno</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Configuración de mangueras e isla</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                {requiereCombustible ? "Configuración de mangueras e isla" : "Operaciones de lubricantes y cartera"}
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:bg-white rounded-xl transition-colors"><X size={24} /></button>
@@ -150,8 +156,7 @@ export const OpenShiftModal = ({ isOpen, onClose, onSave }) => {
             </div>
           </div>
 
-       
-          {formData.estacion_id && (
+          {formData.estacion_id && requiereCombustible && (
             <div className="space-y-4">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">2. Mangueras Disponibles</label>
               
@@ -193,7 +198,6 @@ export const OpenShiftModal = ({ isOpen, onClose, onSave }) => {
                           </div>
                         </div>
 
-              
                         {isSelected && h.requiere_lectura_inicial && (
                           <div className="mt-4 pt-4 border-t border-slate-100">
                             <div className="flex items-center justify-between gap-4">
@@ -220,8 +224,19 @@ export const OpenShiftModal = ({ isOpen, onClose, onSave }) => {
             </div>
           )}
 
+          {formData.estacion_id && !requiereCombustible && (
+            <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl flex items-center gap-3">
+              <Info size={20} className="text-emerald-600 flex-shrink-0" />
+              <p className="text-[11px] font-bold text-emerald-800">
+                Turno de Operaciones habilitado para Lubricantes y Abonos de Cartera (sin selección de mangueras).
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">3. Observaciones</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+              {requiereCombustible ? "3. Observaciones" : "2. Observaciones"}
+            </label>
             <textarea
               className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-medium outline-none focus:border-zinc-900 h-20 resize-none"
               placeholder="Notas sobre el estado de la isla..."
@@ -240,11 +255,11 @@ export const OpenShiftModal = ({ isOpen, onClose, onSave }) => {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={loading || selectedHoses.length === 0}
+            disabled={loading || (requiereCombustible && selectedHoses.length === 0)}
             className="flex-[2] bg-zinc-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase shadow-xl shadow-zinc-200 hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {loading ? <Loader2 className="animate-spin" size={18} /> : <Play size={18} fill="currentColor" />}
-            Abrir Turno con {selectedHoses.length} mangueras
+            {requiereCombustible ? `Abrir Turno con ${selectedHoses.length} mangueras` : "Abrir Turno"}
           </button>
         </footer>
       </div>

@@ -435,48 +435,50 @@ export const ShiftApprovalsPage = () => {
           ) : revisionData ? (
             <>
               <form id="approvals-form" onSubmit={handleAprobar} className="space-y-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Mangueras (Con formato a 3 decimales) */}
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4">
-                  <h3 className="text-xs font-black text-slate-800 uppercase mb-6 flex items-center gap-2">
-                    <Droplets size={16} /> Mangueras y Lecturas (Modificables)
-                  </h3>
-                  {editLecturas.map((l) => (
-                    <div
-                      key={l.manguera_id}
-                      className="mb-4 p-4 bg-slate-50 rounded-2xl space-y-2 border border-slate-100"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-[9px] font-bold uppercase text-slate-600">
-                            {l.manguera?.nombre || `Manguera #${l.manguera_id}`}
-                          </p>
-                          <p className="text-[10px] font-black text-slate-800">
-                            {formatPesos(l.precio_galon)} /gal
-                          </p>
+              <div className={editLecturas.length > 0 ? "grid grid-cols-1 lg:grid-cols-2 gap-8" : "space-y-6 max-w-2xl mx-auto"}>
+                {/* Mangueras (solo si existen mangueras asignadas) */}
+                {editLecturas.length > 0 && (
+                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4">
+                    <h3 className="text-xs font-black text-slate-800 uppercase mb-6 flex items-center gap-2">
+                      <Droplets size={16} /> Mangueras y Lecturas (Modificables)
+                    </h3>
+                    {editLecturas.map((l) => (
+                      <div
+                        key={l.manguera_id}
+                        className="mb-4 p-4 bg-slate-50 rounded-2xl space-y-2 border border-slate-100"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-[9px] font-bold uppercase text-slate-600">
+                              {l.manguera?.nombre || `Manguera #${l.manguera_id}`}
+                            </p>
+                            <p className="text-[10px] font-black text-slate-800">
+                              {formatPesos(l.precio_galon)} /gal
+                            </p>
+                          </div>
+                          <span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-2.5 py-0.5 rounded-full border border-yellow-200">
+                            Inicial: {formatLectura(l.lectura_inicial)}
+                          </span>
                         </div>
-                        <span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-2.5 py-0.5 rounded-full border border-yellow-200">
-                          Inicial: {formatLectura(l.lectura_inicial)}
-                        </span>
+                        <div>
+                          <label className="text-[8px] font-bold text-slate-400 uppercase block mb-1">
+                            Lectura Final
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="0,000"
+                            className="w-full p-3 rounded-xl border border-slate-200 bg-white text-right text-xs font-black outline-none focus:border-zinc-900 transition-all text-slate-800"
+                            value={l.lecturaFinalInput ?? ""}
+                            onChange={(e) =>
+                              handleReadingChange(l.manguera_id, e.target.value)
+                            }
+                            onBlur={() => handleReadingBlur(l.manguera_id)}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="text-[8px] font-bold text-slate-400 uppercase block mb-1">
-                          Lectura Final
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="0,000"
-                          className="w-full p-3 rounded-xl border border-slate-200 bg-white text-right text-xs font-black outline-none focus:border-zinc-900 transition-all text-slate-800"
-                          value={l.lecturaFinalInput ?? ""}
-                          onChange={(e) =>
-                            handleReadingChange(l.manguera_id, e.target.value)
-                          }
-                          onBlur={() => handleReadingBlur(l.manguera_id)}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="space-y-6">
                   {/* Destinos de Recaudo */}
