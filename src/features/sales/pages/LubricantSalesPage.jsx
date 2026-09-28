@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, ShoppingCart, Trash2, Plus, Minus, 
-  User, Save, Loader2, Package, X, Check, AlertTriangle 
+  User, Save, Loader2, Package, X, Check, AlertTriangle, FileText, UserPlus 
 } from 'lucide-react';
 import { fuelSalesService } from '../services/fuelSalesService';
 import { productService } from '../../products/services/productService';
 import { clientService } from '../../clients/services/clientService';
+import { ClientModal } from '../../clients/components/ClientModal';
 import { useToast } from '../../../context/ToastContext';
 
 export const LubricantSalesPage = () => {
@@ -17,12 +18,14 @@ export const LubricantSalesPage = () => {
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [mobileStockError, setMobileStockError] = useState('');
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   
   const [cart, setCart] = useState([]);
   const [saleData, setSaleData] = useState({
     tipo_venta: 'contado',
     metodo_pago: 'efectivo',
     cliente_id: null,
+    factura_electronica: false,
     observacion: 'Venta lubricantes'
   });
 
@@ -107,9 +110,19 @@ export const LubricantSalesPage = () => {
   }, []);
 
   const selectClient = (client) => {
-    setSaleData({ ...saleData, cliente_id: client.id });
-    setClientSearchTerm(client.nombre || client.razon_social);
+    setSaleData(prev => ({ ...prev, cliente_id: client.id }));
+    const name = `${client.nombre || ''} ${client.apellidos || ''}`.trim() || client.razon_social || client.documento;
+    setClientSearchTerm(name);
     setShowClientList(false);
+  };
+
+  const handleClientCreated = (newClient) => {
+    if (newClient && newClient.id) {
+      setSaleData(prev => ({ ...prev, cliente_id: newClient.id }));
+      const name = `${newClient.nombre || ''} ${newClient.apellidos || ''}`.trim() || newClient.documento;
+      setClientSearchTerm(name);
+      showToast("Cliente registrado y seleccionado para la venta", "success");
+    }
   };
 
   const triggerStockError = (msg) => {
@@ -174,13 +187,15 @@ export const LubricantSalesPage = () => {
 
   const handleSubmit = async () => {
     if (cart.length === 0) return showToast("El carrito está vacío", "error");
-    if (saleData.tipo_venta === 'credito' && !saleData.cliente_id) return showToast("Seleccione un cliente", "error");
+    if (saleData.tipo_venta === 'credito' && !saleData.cliente_id) return showToast("Seleccione un cliente para la venta a crédito", "error");
+    if (saleData.factura_electronica && !saleData.cliente_id) return showToast("Seleccione o registre un cliente para la factura electrónica", "error");
 
     setLoading(true);
     
     const payload = {
       cliente_id: saleData.cliente_id,
       tipo_venta: saleData.tipo_venta,
+      factura_electronica: Boolean(saleData.factura_electronica),
       observacion: saleData.observacion,
       detalles: cart.map(item => {
         const subtotal = item.precio_venta * item.cantidad;
@@ -214,7 +229,7 @@ export const LubricantSalesPage = () => {
       } else {
         showToast(res.message, "error");
       }
-    } catch (e) {
+    } catch {
       showToast("Error al procesar la venta", "error");
     } finally {
       setLoading(false);
@@ -227,7 +242,6 @@ export const LubricantSalesPage = () => {
       const termTrimmed = searchTerm.trim().toLowerCase();
       if (!termTrimmed) return;
 
-      // Se agrega validación con codigo_barras además de codigo, sku y nombre
       const exactMatch = products.find(p => 
         (p.codigo && p.codigo.toLowerCase() === termTrimmed) ||
         (p.codigo_barras && p.codigo_barras.toLowerCase() === termTrimmed) ||
@@ -252,7 +266,6 @@ export const LubricantSalesPage = () => {
   return (
     <div className="p-2 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-8 text-left relative">
       
-      {/* Alerta flotante superior exclusiva para dispositivos móviles */}
       {mobileStockError && (
         <div className="block md:hidden col-span-full bg-red-600 text-white px-4 py-3 rounded-2xl shadow-lg flex items-center justify-between text-xs font-black uppercase animate-bounce z-50">
           <div className="flex items-center gap-2">
@@ -265,7 +278,7 @@ export const LubricantSalesPage = () => {
         </div>
       )}
 
-      {/* Columna Izquierda: Buscador y Listado de Productos más grandes */}
+      {/* Columna Izquierda: Buscador y Listado de Productos */}
       <div className="lg:col-span-7 space-y-3 md:space-y-6">
         <header className="hidden md:block">
           <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight italic">Lubricantes y Tienda</h2>
@@ -328,7 +341,7 @@ export const LubricantSalesPage = () => {
         </div>
       </div>
 
-      {/* Columna Derecha: Carrito en Estilo Blanco, Amplio y Sin Espacios Innecesarios */}
+      {/* Columna Derecha: Carrito */}
       <div className="lg:col-span-5">
         <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] p-3.5 md:p-6 text-slate-900 border border-slate-200 shadow-xl flex flex-col h-auto lg:sticky lg:top-8">
           
@@ -369,6 +382,39 @@ export const LubricantSalesPage = () => {
           </div>
 
           <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
+            
+            {/* Toggle Facturación Electrónica */}
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className={`p-1.5 rounded-xl ${saleData.factura_electronica ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                  <FileText size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-800 uppercase leading-none">Factura Electrónica</p>
+                  <p className="text-[8px] text-slate-500 font-bold uppercase mt-0.5">Emitir factura DIAN adquirente</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={saleData.factura_electronica}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setSaleData(prev => ({
+                      ...prev,
+                      factura_electronica: checked,
+                      cliente_id: checked ? prev.cliente_id : (prev.tipo_venta === 'contado' ? null : prev.cliente_id)
+                    }));
+                    if (!checked && saleData.tipo_venta === 'contado') {
+                      setClientSearchTerm('');
+                    }
+                  }}
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
             <div className="grid grid-cols-2 gap-2.5">
               <div className="space-y-1">
                 <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Tipo de Venta</label>
@@ -377,8 +423,12 @@ export const LubricantSalesPage = () => {
                   value={saleData.tipo_venta}
                   onChange={(e) => {
                     const val = e.target.value;
-                    setSaleData({...saleData, tipo_venta: val, cliente_id: val === 'contado' ? null : saleData.cliente_id});
-                    if (val === 'contado') setClientSearchTerm('');
+                    setSaleData(prev => ({
+                      ...prev, 
+                      tipo_venta: val, 
+                      cliente_id: (val === 'contado' && !prev.factura_electronica) ? null : prev.cliente_id
+                    }));
+                    if (val === 'contado' && !saleData.factura_electronica) setClientSearchTerm('');
                   }}
                 >
                   <option value="contado">Contado</option>
@@ -401,14 +451,25 @@ export const LubricantSalesPage = () => {
               </div>
             </div>
 
-            {saleData.tipo_venta === 'credito' && (
+            {(saleData.tipo_venta === 'credito' || saleData.factura_electronica) && (
               <div className="space-y-1 relative" ref={clientListRef}>
-                <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Buscar Cliente (Nit/Nombre)</label>
+                <div className="flex justify-between items-center ml-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase">
+                    {saleData.factura_electronica ? 'Cliente Factura Electrónica' : 'Buscar Cliente'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsClientModalOpen(true)}
+                    className="text-[9px] font-black text-blue-600 hover:text-blue-800 uppercase flex items-center gap-1"
+                  >
+                    <UserPlus size={12} /> Nuevo Cliente
+                  </button>
+                </div>
                 <div className="relative">
                   <User className="absolute left-4 top-3.5 text-slate-400" size={16} />
                   <input
                     type="text"
-                    placeholder="Escribe para buscar..."
+                    placeholder="Documento o nombre del cliente..."
                     className="w-full pl-11 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black outline-none focus:border-zinc-900 transition-all uppercase text-slate-800 placeholder-slate-400 shadow-sm"
                     value={clientSearchTerm}
                     onFocus={() => setShowClientList(true)}
@@ -422,7 +483,6 @@ export const LubricantSalesPage = () => {
                   {!searchingClients && saleData.cliente_id && <Check className="absolute right-4 top-3.5 text-emerald-600" size={16} />}
                 </div>
 
-                {/* Listado de clientes resaltado y pegado abajo */}
                 {showClientList && clientSearchTerm.length >= 3 && (
                   <div className="absolute z-50 w-full mt-1.5 bg-white border border-slate-300 rounded-2xl shadow-2xl p-2 max-h-56 overflow-y-auto left-0 top-full">
                     {clients.length > 0 ? (
@@ -434,14 +494,26 @@ export const LubricantSalesPage = () => {
                           onClick={() => selectClient(c)}
                         >
                           <div>
-                            <p className="text-slate-900 font-black">{c.nombre || c.razon_social}</p>
+                            <p className="text-slate-900 font-black">{c.nombre} {c.apellidos || ''}</p>
                             <p className="text-[9px] text-slate-500 mt-0.5">{c.documento} {c.cupo_disponible ? `| Cupo: $${Number(c.cupo_disponible).toLocaleString()}` : ''}</p>
                           </div>
                           {saleData.cliente_id === c.id && <Check size={16} className="text-emerald-600" />}
                         </button>
                       ))
                     ) : !searchingClients ? (
-                      <p className="p-4 text-[10px] text-slate-400 uppercase italic text-center font-bold">No se encontraron clientes</p>
+                      <div className="p-3 text-center space-y-1">
+                        <p className="text-[10px] text-slate-400 uppercase italic font-bold">No se encontró cliente con "{clientSearchTerm}"</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowClientList(false);
+                            setIsClientModalOpen(true);
+                          }}
+                          className="text-[10px] font-black text-blue-600 uppercase underline"
+                        >
+                          Crear cliente "{clientSearchTerm}"
+                        </button>
+                      </div>
                     ) : null}
                   </div>
                 )}
@@ -474,6 +546,13 @@ export const LubricantSalesPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal para Crear Cliente Nuevo */}
+      <ClientModal
+        isOpen={isClientModalOpen}
+        onClose={() => setIsClientModalOpen(false)}
+        onSave={handleClientCreated}
+      />
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,ShoppingBag,ArrowDownCircle,CheckCircle2,
@@ -72,7 +73,8 @@ const menuGroups = [
       { icon: UserRoundPlus, label: 'Administración', permission: 'ver_usuarios', path: '/usuarios' },
       { icon: Shield, label: 'Roles y Permisos', permission: 'ver_roles', path: '/roles' },
       { icon: UserCircle, label: 'Perfil', permission: null, path: '/perfil' },
-      { icon: Settings, label: 'Configuración', permission: 'ver_configuracion_empresa', path: '/configuracion' }
+      { icon: Settings, label: 'Configuración Empresa', permission: 'ver_configuracion_empresa', path: '/configuracion' },
+      { icon: ReceiptText, label: 'Facturación Electrónica', permission: 'ver_configuracion_empresa', path: '/facturacion' }
     ]
   }
 ];
@@ -80,7 +82,6 @@ const menuGroups = [
 export const Sidebar = () => {
   const [isExpanded, setIsExpanded] = useState(window.innerWidth > 768);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [activeItem, setActiveItem] = useState('Dashboard');
   const [user, setUser] = useState({ name: 'Usuario', email: '' });
   const { hasPermission, loading } = usePermissions();
   const navigate = useNavigate();
@@ -109,7 +110,6 @@ export const Sidebar = () => {
 
   const handleItemClick = (item) => {
     if (window.innerWidth <= 768) setIsMobileOpen(false); 
-    setActiveItem(item.label);
     navigate(item.path);
   };
 

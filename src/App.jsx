@@ -13,6 +13,9 @@ import { UnitListPage } from "./features/units/pages/UnitListPage";
 import { ProductListPage } from "./features/products/pages/ProductListPage";
 import { ServiceListPage } from "./features/services/pages/ServiceListPage";
 import { CompanySettingsPage } from "./features/settings/pages/CompanySettingsPage";
+import { InvoicingSettingsPage } from "./features/settings/pages/InvoicingSettingsPage";
+import { CatalogMappingsPage } from "./features/settings/pages/CatalogMappingsPage";
+import { ResolucionesFacturacionPage } from "./features/settings/pages/ResolucionesFacturacionPage";
 import { ProfilePage } from "./features/profile/pages/ProfilePage";
 import { WarehouseListPage } from "./features/warehouses/pages/WarehouseListPage";
 import { InventoryMovementsPage } from "./features/inventory/pages/InventoryMovementsPage";
@@ -156,6 +159,33 @@ function App() {
             element={
               <MainLayout>
                 <CompanySettingsPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/facturacion"
+            element={
+              <MainLayout>
+                <InvoicingSettingsPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/facturacion/mapeos"
+            element={
+              <MainLayout>
+                <InvoicingSettingsPage initialTab="catalogos" />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/facturacion/resoluciones"
+            element={
+              <MainLayout>
+                <InvoicingSettingsPage initialTab="resoluciones" />
               </MainLayout>
             }
           />

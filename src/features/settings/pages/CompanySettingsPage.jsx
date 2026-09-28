@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { 
-  Building2, MapPin, Receipt, Globe, 
-  Save, Loader2, Image as ImageIcon, Percent, UploadCloud, X, Mail, Phone
+  Building2, MapPin, Globe, 
+  Save, Loader2, Image as ImageIcon, Percent, UploadCloud, FileText
 } from 'lucide-react';
 import { companyService } from '../services/companyService';
 import { useToast } from '../../../context/ToastContext';
@@ -16,10 +16,11 @@ export const CompanySettingsPage = () => {
   const [formData, setFormData] = useState({
     nombre_empresa: '', nombre_comercial: '', nit: '', dv: '',
     email: '', telefono: '', direccion: '', logo_url: '',
-    pais_id: '', departamento_id: '', ciudad_id: '',
-    responsable_iva: false, regimen: '', porcentaje_iva: 0, maneja_iva_incluido: false,
+    tipo_persona: '1', tipo_documento: '31',
+    pais_id: '', departamento_id: '', ciudad_id: '', codigo_postal: '',
+    responsable_iva: false, regimen: '', tipo_regimen: '48', responsabilidades_fiscales: [], porcentaje_iva: 0, maneja_iva_incluido: false,
     prefijo_factura: '', numero_resolucion: '', fecha_resolucion: '',
-    rango_desde: 1, rango_hasta: 1000, fecha_vencimiento: '',
+    rango_desde: 1, rango_hasta: 1000, fecha_vencimiento: '', matricula_mercantil: '',
     moneda: 'COP', simbolo_moneda: '$', decimales: 0
   });
 
@@ -41,9 +42,24 @@ export const CompanySettingsPage = () => {
 
       if (configRes.data) {
         const config = configRes.data;
-        setFormData(prev => ({ ...prev, ...config }));
+        let respFisc = [];
+        if (Array.isArray(config.responsabilidades_fiscales)) {
+          respFisc = config.responsabilidades_fiscales;
+        } else if (typeof config.responsabilidades_fiscales === 'string') {
+          try { respFisc = JSON.parse(config.responsabilidades_fiscales); } catch { respFisc = []; }
+        }
+
+        setFormData(prev => ({ 
+          ...prev, 
+          ...config,
+          tipo_persona: config.tipo_persona || '1',
+          tipo_documento: config.tipo_documento || '31',
+          tipo_regimen: config.tipo_regimen || '48',
+          codigo_postal: config.codigo_postal || '',
+          matricula_mercantil: config.matricula_mercantil || '',
+          responsabilidades_fiscales: respFisc
+        }));
         
-    
         if (config.logo?.src) {
           setPreviewUrl(config.logo.src);
         }
@@ -51,7 +67,7 @@ export const CompanySettingsPage = () => {
         if (config.pais_id) loadDepartments(config.pais_id);
         if (config.departamento_id) loadCities(config.departamento_id);
       }
-    } catch (error) { showToast("Error al cargar datos", "error"); }
+    } catch { showToast("Error al cargar datos", "error"); }
     finally { setLoading(false); }
   };
 
@@ -82,6 +98,16 @@ export const CompanySettingsPage = () => {
     }
   };
 
+  const handleResponsabilidadToggle = (code) => {
+    setFormData(prev => {
+      const current = Array.isArray(prev.responsabilidades_fiscales) ? prev.responsabilidades_fiscales : [];
+      const updated = current.includes(code)
+        ? current.filter(item => item !== code)
+        : [...current, code];
+      return { ...prev, responsabilidades_fiscales: updated };
+    });
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -96,20 +122,20 @@ export const CompanySettingsPage = () => {
     setSaving(true);
 
     const dataToSend = new FormData();
-    
-
     dataToSend.append('_method', 'PUT');
 
     Object.keys(formData).forEach(key => {
-
       if (['logo', 'pais', 'departamento', 'ciudad', 'id', 'created_at', 'updated_at'].includes(key)) return;
 
       const value = formData[key];
 
       if (value !== null && value !== '') {
-     
         if (typeof value === 'boolean') {
           dataToSend.append(key, value ? '1' : '0');
+        } else if (Array.isArray(value)) {
+          value.forEach((val, idx) => {
+            dataToSend.append(`${key}[${idx}]`, val);
+          });
         } else {
           dataToSend.append(key, value);
         }
@@ -132,7 +158,7 @@ export const CompanySettingsPage = () => {
       } else {
         showToast(res.message || "Error al actualizar", "error");
       }
-    } catch (error) {
+    } catch {
       showToast("Error de comunicación con el servidor", "error");
     } finally {
       setSaving(false);
@@ -152,7 +178,7 @@ export const CompanySettingsPage = () => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Configuración de Empresa</h2>
-          <p className="text-slate-500 text-sm italic">Parámetros corporativos</p>
+          <p className="text-slate-500 text-sm italic">Parámetros corporativos y fiscales</p>
         </div>
         <button 
           form="config-form" disabled={saving}
@@ -168,8 +194,7 @@ export const CompanySettingsPage = () => {
           { id: 'general', label: 'General', icon: Building2 },
           { id: 'logo', label: 'Logo', icon: ImageIcon },
           { id: 'ubicacion', label: 'Ubicación', icon: Globe },
-          { id: 'impuestos', label: 'Impuestos', icon: Percent },
-          { id: 'facturacion', label: 'Facturación DIAN', icon: Receipt },
+          { id: 'impuestos', label: 'Impuestos y Fiscal', icon: Percent },
         ].map(tab => (
           <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${
@@ -196,6 +221,27 @@ export const CompanySettingsPage = () => {
                   <input name="nombre_comercial" value={formData.nombre_comercial} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none" />
                 </div>
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Tipo de Persona</label>
+                  <select name="tipo_persona" value={formData.tipo_persona} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none">
+                    <option value="1">1 - Persona Jurídica</option>
+                    <option value="2">2 - Persona Natural</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Tipo de Documento Fiscal</label>
+                  <select name="tipo_documento" value={formData.tipo_documento} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none">
+                    <option value="31">31 - NIT (Número de Identificación Tributaria)</option>
+                    <option value="13">13 - Cédula de Ciudadanía</option>
+                    <option value="22">22 - Cédula de Extranjería</option>
+                    <option value="42">42 - Documento Identificación Extranjero</option>
+                    <option value="50">50 - NIT de otro país</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2 space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">NIT / Identificación</label>
@@ -253,9 +299,15 @@ export const CompanySettingsPage = () => {
                   </select>
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Dirección</label>
-                <input name="direccion" value={formData.direccion} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2 space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Dirección</label>
+                  <input name="direccion" value={formData.direccion} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Código Postal</label>
+                  <input name="codigo_postal" value={formData.codigo_postal} onChange={handleChange} placeholder="Ej: 661002" maxLength={10} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none" />
+                </div>
               </div>
             </div>
           )}
@@ -266,54 +318,54 @@ export const CompanySettingsPage = () => {
                 <input type="checkbox" name="responsable_iva" id="iva_check" checked={formData.responsable_iva} onChange={handleChange} className="w-5 h-5 accent-zinc-900" />
                 <label htmlFor="iva_check" className="text-xs font-black text-slate-700 uppercase cursor-pointer">¿Responsable de IVA?</label>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Porcentaje IVA (%)</label>
                   <input type="number" name="porcentaje_iva" value={formData.porcentaje_iva} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none" />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Régimen</label>
-                  <input name="regimen" value={formData.regimen} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none" />
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Tipo de Régimen Fiscal</label>
+                  <select name="tipo_regimen" value={formData.tipo_regimen} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none">
+                    <option value="48">48 - Responsable de IVA</option>
+                    <option value="49">49 - No Responsable de IVA</option>
+                    <option value="05">05 - Régimen Simple de Tributación</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Matrícula Mercantil</label>
+                  <input name="matricula_mercantil" value={formData.matricula_mercantil} onChange={handleChange} placeholder="Ej: 12345678" maxLength={50} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none" />
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Responsabilidades Fiscales (DIAN)</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                  {[
+                    { code: 'O-13', label: 'O-13 Gran Contribuyente' },
+                    { code: 'O-15', label: 'O-15 Autorretenedor' },
+                    { code: 'O-23', label: 'O-23 Agente de Retención IVA' },
+                    { code: 'O-47', label: 'O-47 Régimen Simple de Tributación' },
+                    { code: 'R-99-PN', label: 'R-99-PN No Responsable / Persona Natural' },
+                  ].map((resp) => {
+                    const isChecked = Array.isArray(formData.responsabilidades_fiscales) && formData.responsabilidades_fiscales.includes(resp.code);
+                    return (
+                      <label key={resp.code} className="flex items-center gap-3 text-xs font-semibold text-slate-700 cursor-pointer p-2 rounded-xl hover:bg-white transition-all">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleResponsabilidadToggle(resp.code)}
+                          className="w-4 h-4 accent-zinc-900 rounded"
+                        />
+                        <span>{resp.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="flex items-center gap-4 p-5 bg-blue-50/50 rounded-3xl border border-blue-100">
                 <input type="checkbox" name="maneja_iva_incluido" id="iva_inc" checked={formData.maneja_iva_incluido} onChange={handleChange} className="w-5 h-5 accent-blue-600" />
                 <label htmlFor="iva_inc" className="text-xs font-black text-blue-800 uppercase cursor-pointer">¿Precios incluyen IVA?</label>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'facturacion' && (
-            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Prefijo</label>
-                  <input name="prefijo_factura" value={formData.prefijo_factura} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Resolución DIAN</label>
-                  <input name="numero_resolucion" value={formData.numero_resolucion} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Rango Desde</label>
-                  <input type="number" name="rango_desde" value={formData.rango_desde} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Rango Hasta</label>
-                  <input type="number" name="rango_hasta" value={formData.rango_hasta} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha Resolución</label>
-                  <input type="date" name="fecha_resolucion" value={formData.fecha_resolucion} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha Vencimiento</label>
-                  <input type="date" name="fecha_vencimiento" value={formData.fecha_vencimiento} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none" />
-                </div>
               </div>
             </div>
           )}
