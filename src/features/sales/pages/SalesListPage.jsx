@@ -9,6 +9,8 @@ import {
 import { salesService } from '../services/salesService';
 import { useToast } from '../../../context/ToastContext';
 import { getTodayStr } from '../../../shared/utils/dateUtils';
+import { NotaCreditoModal } from '../components/NotaCreditoModal';
+import { NotaDebitoModal } from '../components/NotaDebitoModal';
 
 export const SalesListPage = () => {
   const [sales, setSales] = useState([]);
@@ -21,6 +23,10 @@ export const SalesListPage = () => {
   const [saleToAnular, setSaleToAnular] = useState(null);
   const [motivoAnulacion, setMotivoAnulacion] = useState('');
   const [submittingAnular, setSubmittingAnular] = useState(false);
+
+  // Estados para Modales de Nota Crédito y Nota Débito
+  const [saleForNC, setSaleForNC] = useState(null);
+  const [saleForND, setSaleForND] = useState(null);
 
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -392,6 +398,24 @@ export const SalesListPage = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Modal Nota Crédito */}
+      {saleForNC && (
+        <NotaCreditoModal 
+          sale={saleForNC}
+          onClose={() => setSaleForNC(null)}
+          onSuccess={() => fetchSales()}
+        />
+      )}
+
+      {/* Modal Nota Débito */}
+      {saleForND && (
+        <NotaDebitoModal 
+          sale={saleForND}
+          onClose={() => setSaleForND(null)}
+          onSuccess={() => fetchSales()}
+        />
+      )}
     </div>
   );
 };

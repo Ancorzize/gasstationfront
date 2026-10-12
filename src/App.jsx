@@ -54,6 +54,10 @@ import { ShiftApprovalsPage } from "./features/shifts/pages/ShiftApprovalsPage";
 import { ShiftEditClosingPage } from "./features/shifts/pages/ShiftEditClosingPage";
 import { SaleInvoiceView } from "./features/sales/pages/SaleInvoiceView";
 import { FuelInvoiceView } from "./features/sales/pages/FuelInvoiceView";
+import { PayrollEmployeesPage } from "./features/payroll/pages/PayrollEmployeesPage";
+import { PayrollPeriodsPage } from "./features/payroll/pages/PayrollPeriodsPage";
+import { PayrollSettlementsPage } from "./features/payroll/pages/PayrollSettlementsPage";
+import { ElectronicPayrollPage } from "./features/payroll/pages/ElectronicPayrollPage";
 
 function App() {
   useInactivityTimeout(300);
@@ -69,6 +73,42 @@ function App() {
             element={
               <MainLayout>
                 <DashboardPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/nomina/empleados"
+            element={
+              <MainLayout>
+                <PayrollEmployeesPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/nomina/periodos"
+            element={
+              <MainLayout>
+                <PayrollPeriodsPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/nomina/liquidaciones"
+            element={
+              <MainLayout>
+                <PayrollSettlementsPage />
+              </MainLayout>
+            }
+          />
+
+          <Route
+            path="/nomina/electronica"
+            element={
+              <MainLayout>
+                <ElectronicPayrollPage />
               </MainLayout>
             }
           />

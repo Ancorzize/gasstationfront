@@ -22,5 +22,71 @@ export const documentosElectronicosService = {
     });
 
     return res.json();
+  },
+
+  reintentarMasivoDS: async () => {
+    const res = await fetch(`${API_URL}/documentos-electronicos/reintentar-ds-rechazados`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+
+    return res.json();
+  },
+
+  getDocumentoById: async (id) => {
+    const res = await fetch(`${API_URL}/documentos-electronicos/${id}`, {
+      headers: getHeaders()
+    });
+    return res.json();
+  },
+
+  prepararNC: async (payload) => {
+    const res = await fetch(`${API_URL}/documentos-electronicos/preparar-nc`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  transmitirNC: async (id) => {
+    const res = await fetch(`${API_URL}/documentos-electronicos/${id}/transmitir-nc`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+    return res.json();
+  },
+
+  reintentarNC: async (id) => {
+    const res = await fetch(`${API_URL}/documentos-electronicos/${id}/reintentar-nc`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+    return res.json();
+  },
+
+  prepararND: async (payload) => {
+    const res = await fetch(`${API_URL}/documentos-electronicos/preparar-nd`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  transmitirND: async (id) => {
+    const res = await fetch(`${API_URL}/documentos-electronicos/${id}/transmitir-nd`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+    return res.json();
+  },
+
+  reintentarND: async (id) => {
+    const res = await fetch(`${API_URL}/documentos-electronicos/${id}/reintentar-nd`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+    return res.json();
   }
 };

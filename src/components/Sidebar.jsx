@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, ReceiptText, ArrowLeftRight, Package, Tag, Layers, Warehouse,Box,ShoppingBag,ArrowDownCircle,CheckCircle2,
-  Wrench, Users, Wallet, Truck, TrendingUp, Fuel, BarChart3, Ruler, UserRoundPlus,Receipt, Target, Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X, Landmark, ClipboardList, Crosshair as Pump, Droplets, Play
+  Wrench, Users, Wallet, Truck, TrendingUp, Fuel, BarChart3, Ruler, UserRoundPlus,Receipt, Target, Settings, Shield, UserCircle, LogOut, ChevronLeft, Menu, X, Landmark, ClipboardList, Crosshair as Pump, Droplets, Play,
+  Calendar, Calculator, Send
 } from 'lucide-react';
 import logoEmpresa from '../images/logoGranjas.png';
 import { authService } from '../features/auth/services/authService';
@@ -55,6 +56,15 @@ const menuGroups = [
       { icon: BarChart3, label: 'Histórico Turnos', permission: 'ver_reportes_turnos_islero', path: '/turnos/historico' },
       { icon: ArrowDownCircle, label: 'Gastos', permission: 'ver_gastos', path: '/gastos' },
       { icon: Layers, label: 'Categorías Gasto', permission: 'ver_categorias_gasto', path: '/gastos/categorias' },
+    ]
+  },
+  {
+    title: "Nómina",
+    items: [
+      { icon: Users, label: 'Empleados', permission: 'ver_empleados', path: '/nomina/empleados' },
+      { icon: Calendar, label: 'Períodos', permission: 'ver_periodos_nomina', path: '/nomina/periodos' },
+      { icon: Calculator, label: 'Liquidaciones', permission: 'ver_liquidaciones_nomina', path: '/nomina/liquidaciones' },
+      { icon: Send, label: 'Nómina Electrónica', permission: 'ver_nomina_electronica', path: '/nomina/electronica' },
     ]
   },
   {

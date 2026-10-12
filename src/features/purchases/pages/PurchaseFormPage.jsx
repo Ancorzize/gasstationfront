@@ -36,6 +36,7 @@ export const PurchaseFormPage = () => {
     fecha_vencimiento: '',
     numero_comprobante: '',
     observacion: '',
+    documento_soporte_electronico: false,
     detalles: [{ 
       producto_id: '', 
       nombre_temp: '', 
@@ -138,6 +139,7 @@ export const PurchaseFormPage = () => {
           fecha_vencimiento: p.fecha_vencimiento || '',
           numero_comprobante: p.numero_comprobante || '',
           observacion: p.observacion || '',
+          documento_soporte_electronico: Boolean(p.documento_soporte_electronico),
           detalles: detallesCalculados
         });
       }
@@ -265,7 +267,7 @@ export const PurchaseFormPage = () => {
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Datos de Facturación e Impuestos</h3>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Proveedor</label>
               <select required className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-zinc-900 transition-all"
@@ -301,6 +303,24 @@ export const PurchaseFormPage = () => {
               <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Fecha Emisión</label>
               <input required type="date" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-zinc-900 transition-all"
                 value={formData.fecha_compra} onChange={e => setFormData({...formData, fecha_compra: e.target.value})} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Doc. Soporte (DS)</label>
+              <label className={`flex items-center gap-2 px-4 py-3.5 border rounded-2xl cursor-pointer transition-all h-[50px] ${
+                formData.documento_soporte_electronico 
+                  ? 'bg-amber-50/70 border-amber-200 text-amber-900' 
+                  : 'bg-slate-50 border-slate-100 text-slate-500'
+              }`}>
+                <input 
+                  type="checkbox" 
+                  checked={formData.documento_soporte_electronico} 
+                  onChange={e => setFormData({...formData, documento_soporte_electronico: e.target.checked})}
+                  className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300"
+                />
+                <span className="text-[11px] font-black uppercase tracking-tight">
+                  {formData.documento_soporte_electronico ? 'Requerido' : 'No Requerido'}
+                </span>
+              </label>
             </div>
           </div>
 

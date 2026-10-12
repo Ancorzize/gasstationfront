@@ -52,6 +52,34 @@ export const ExpenseListPage = () => {
 
   useEffect(() => { loadData(); }, [dateRange]);
 
+  const DocumentoSoporteBadge = ({ isDs, estadoDs }) => {
+    if (!isDs) {
+      return (
+        <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase border bg-slate-100 text-slate-400 border-slate-200">
+          Sin DS
+        </span>
+      );
+    }
+    const styles = {
+      no_requerido: "bg-slate-100 text-slate-400 border-slate-200",
+      pendiente: "bg-amber-50 text-amber-600 border-amber-200",
+      emitido: "bg-emerald-50 text-emerald-600 border-emerald-200",
+      rechazado: "bg-red-50 text-red-600 border-red-200"
+    };
+    const labels = {
+      no_requerido: "Sin DS",
+      pendiente: "DS Pendiente",
+      emitido: "DS Emitido",
+      rechazado: "DS Rechazado"
+    };
+    const key = estadoDs || 'pendiente';
+    return (
+      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase border ${styles[key] || styles.pendiente}`}>
+        {labels[key] || key}
+      </span>
+    );
+  };
+
   const exportToExcel = () => {
     if (expenses.length === 0) return showToast("No hay datos para exportar", "warning");
 
@@ -64,6 +92,8 @@ export const ExpenseListPage = () => {
       'Medio Pago': exp.medio_pago,
       Valor: parseFloat(exp.valor),
       'Usuario registro': exp.usuario?.name,
+      'Doc. Soporte': exp.documento_soporte_electronico ? 'Sí' : 'No',
+      'Estado DS': exp.documento_soporte_electronico ? (exp.estado_documento_soporte || 'pendiente') : 'no_requerido',
       Estado: exp.estado,
       'Motivo anulación':exp.motivo_anulacion,
       'Usuario anulación': exp.usuario_anulacion?.name,
@@ -158,13 +188,14 @@ export const ExpenseListPage = () => {
                 <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Proveedor</th>
                 <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Medio</th>
                 <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Monto</th>
+                <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Doc. Soporte</th>
                 <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Estado</th>
                 <th className="px-6 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan="7" className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-200" size={32} /></td></tr>
+                <tr><td colSpan="8" className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-200" size={32} /></td></tr>
               ) : filteredExpenses.map((exp) => (
                 <tr key={exp.id} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="px-6 py-4"><span className="text-[10px] font-bold text-slate-500">{exp.fecha_gasto}</span></td>
@@ -173,6 +204,9 @@ export const ExpenseListPage = () => {
                   <td className="px-6 py-4"><span className="text-[10px] font-bold text-slate-400 uppercase">{exp.proveedor?.nombre || 'Gasto General'}</span></td>
                   <td className="px-6 py-4"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black text-slate-500 uppercase">{exp.medio_pago}</span></td>
                   <td className="px-6 py-4"><span className="text-xs font-black text-red-500 tracking-tighter">- ${parseFloat(exp.valor).toLocaleString('es-CO')}</span></td>
+                  <td className="px-6 py-4 text-center">
+                    <DocumentoSoporteBadge isDs={exp.documento_soporte_electronico} estadoDs={exp.estado_documento_soporte} />
+                  </td>
                   <td className="px-6 py-4"><span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${exp.estado === 'anulado'? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>{exp.estado}</span></td>
                   <td className="px-6 py-4 text-center">
                     <button 

@@ -105,6 +105,34 @@ export const PurchaseListPage = () => {
     );
   };
 
+  const DocumentoSoporteBadge = ({ isDs, estadoDs }) => {
+    if (!isDs) {
+      return (
+        <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase border bg-slate-100 text-slate-400 border-slate-200">
+          Sin DS
+        </span>
+      );
+    }
+    const styles = {
+      no_requerido: "bg-slate-100 text-slate-400 border-slate-200",
+      pendiente: "bg-amber-50 text-amber-600 border-amber-200",
+      emitido: "bg-emerald-50 text-emerald-600 border-emerald-200",
+      rechazado: "bg-red-50 text-red-600 border-red-200"
+    };
+    const labels = {
+      no_requerido: "Sin DS",
+      pendiente: "DS Pendiente",
+      emitido: "DS Emitido",
+      rechazado: "DS Rechazado"
+    };
+    const key = estadoDs || 'pendiente';
+    return (
+      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase border ${styles[key] || styles.pendiente}`}>
+        {labels[key] || key}
+      </span>
+    );
+  };
+
   return (
     <div className="p-4 md:p-8 space-y-6">
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -181,6 +209,7 @@ export const PurchaseListPage = () => {
                 <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Estatus</th>
                 <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo</th>
                 <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Pago</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Doc. Soporte</th>
                 <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Total</th>
                 <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-24">Acciones</th>
               </tr>
@@ -188,7 +217,7 @@ export const PurchaseListPage = () => {
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="py-20 text-center">
+                  <td colSpan="9" className="py-20 text-center">
                     <Loader2 className="animate-spin mx-auto text-slate-200" size={32} />
                   </td>
                 </tr>
@@ -217,6 +246,9 @@ export const PurchaseListPage = () => {
                     </td>
                     <td className="px-5 py-4 text-center">
                       <PaymentBadge status={purchase.estado_pago} />
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      <DocumentoSoporteBadge isDs={purchase.documento_soporte_electronico} estadoDs={purchase.estado_documento_soporte} />
                     </td>
                     <td className="px-5 py-4 text-right">
                       <p className="text-sm font-black text-zinc-900 tracking-tighter">
@@ -250,7 +282,7 @@ export const PurchaseListPage = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="py-20 text-center text-slate-400 text-xs font-bold uppercase italic">
+                  <td colSpan="9" className="py-20 text-center text-slate-400 text-xs font-bold uppercase italic">
                     No se encontraron resultados
                   </td>
                 </tr>

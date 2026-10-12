@@ -23,6 +23,8 @@ export const InvoicingSettingsPage = ({ initialTab = 'general' }) => {
   const currentTabParam = searchParams.get('tab') || initialTab;
   const [activeTab, setActiveTab] = useState(currentTabParam);
 
+  const [showToken, setShowToken] = useState(false);
+
   const [formData, setFormData] = useState({
     proveedor_activo: 'matias',
     ambiente: 'sandbox',
@@ -31,7 +33,10 @@ export const InvoicingSettingsPage = ({ initialTab = 'general' }) => {
     facturar_ventas_combustible: true,
     permitir_ventas_sin_datos_fiscales: true,
     reintentos_automaticos: true,
-    max_reintentos: 3
+    max_reintentos: 3,
+    matias_api_token: '',
+    matias_sandbox_url: 'https://sandbox-api.maticerts.com',
+    matias_ds_real_transmission: false
   });
 
   useEffect(() => {
@@ -65,7 +70,10 @@ export const InvoicingSettingsPage = ({ initialTab = 'general' }) => {
           facturar_ventas_combustible: res.data.facturar_ventas_combustible !== undefined ? !!res.data.facturar_ventas_combustible : true,
           permitir_ventas_sin_datos_fiscales: res.data.permitir_ventas_sin_datos_fiscales !== undefined ? !!res.data.permitir_ventas_sin_datos_fiscales : true,
           reintentos_automaticos: !!res.data.reintentos_automaticos,
-          max_reintentos: res.data.max_reintentos ? parseInt(res.data.max_reintentos, 10) : 3
+          max_reintentos: res.data.max_reintentos ? parseInt(res.data.max_reintentos, 10) : 3,
+          matias_api_token: res.data.matias_api_token || '',
+          matias_sandbox_url: res.data.matias_sandbox_url || 'https://sandbox-api.maticerts.com',
+          matias_ds_real_transmission: !!res.data.matias_ds_real_transmission
         });
       }
     } catch {
@@ -99,7 +107,10 @@ export const InvoicingSettingsPage = ({ initialTab = 'general' }) => {
         facturar_ventas_combustible: formData.facturar_ventas_combustible,
         permitir_ventas_sin_datos_fiscales: formData.permitir_ventas_sin_datos_fiscales,
         reintentos_automaticos: formData.reintentos_automaticos,
-        max_reintentos: parseInt(formData.max_reintentos, 10)
+        max_reintentos: parseInt(formData.max_reintentos, 10),
+        matias_api_token: formData.matias_api_token,
+        matias_sandbox_url: formData.matias_sandbox_url,
+        matias_ds_real_transmission: formData.matias_ds_real_transmission
       };
 
       const res = await invoicingSettingsService.updateConfig(payload);
@@ -110,7 +121,8 @@ export const InvoicingSettingsPage = ({ initialTab = 'general' }) => {
             ...prev,
             ...res.data,
             facturacion_electronica_activa: !!res.data.facturacion_electronica_activa,
-            reintentos_automaticos: !!res.data.reintentos_automaticos
+            reintentos_automaticos: !!res.data.reintentos_automaticos,
+            matias_ds_real_transmission: !!res.data.matias_ds_real_transmission
           }));
         }
       } else {
@@ -383,6 +395,66 @@ export const InvoicingSettingsPage = ({ initialTab = 'general' }) => {
                     <span>Producción (Real)</span>
                   </label>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sección: Configuración de Credenciales MATIAS API */}
+          <div className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-8 shadow-sm space-y-6">
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+              <Settings2 className="text-yellow-600" size={20} />
+              <h3 className="font-black text-slate-800 text-sm uppercase tracking-wider">Configuración de MATIAS API</h3>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Token Bearer de MATIAS API</label>
+                <div className="relative">
+                  <input 
+                    type={showToken ? "text" : "password"} 
+                    name="matias_api_token" 
+                    value={formData.matias_api_token} 
+                    onChange={handleChange} 
+                    placeholder="Token Bearer asignado por MATIAS"
+                    className="w-full pl-4 pr-24 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:border-yellow-500 outline-none" 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowToken(!showToken)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-200/80 px-3 py-1.5 rounded-xl transition-all"
+                  >
+                    {showToken ? "Ocultar" : "Mostrar"}
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-400 ml-1">
+                  El token se guarda cifrado en base de datos. Para mantener el token actual, deje '********'.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">URL de Sandbox (Pruebas)</label>
+                <input 
+                  type="text" 
+                  name="matias_sandbox_url" 
+                  value={formData.matias_sandbox_url} 
+                  onChange={handleChange} 
+                  placeholder="https://sandbox-api.maticerts.com"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:border-yellow-500 outline-none" 
+                />
+              </div>
+
+              <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-black text-slate-800 uppercase">Transmisión Real de Documento Soporte (Sandbox)</p>
+                  <p className="text-[10px] text-slate-500">Habilita el envío HTTP real a MATIAS API para Documentos Soporte en el ambiente Sandbox.</p>
+                </div>
+                <input 
+                  type="checkbox" 
+                  name="matias_ds_real_transmission" 
+                  checked={formData.matias_ds_real_transmission} 
+                  onChange={handleChange} 
+                  className="w-5 h-5 accent-zinc-900 cursor-pointer" 
+                />
               </div>
             </div>
           </div>

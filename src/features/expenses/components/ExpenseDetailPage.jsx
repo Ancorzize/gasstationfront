@@ -100,6 +100,37 @@ export const ExpenseDetailPage = () => {
             </div>
           </div>
 
+          {/* Sección Documento Soporte Electrónico (DS) */}
+          <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-4">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <FileText size={14} /> Documento Soporte Electrónico (DS)
+            </h3>
+            <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+              <div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Documento Soporte</p>
+                <p className="text-xs font-black text-slate-700 uppercase mt-0.5">
+                  {expense.documento_soporte_electronico ? 'Requerido (DS)' : 'No Requerido'}
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 text-right">Estado DS</p>
+                {expense.documento_soporte_electronico ? (
+                  <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${
+                    expense.estado_documento_soporte === 'emitido' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                    expense.estado_documento_soporte === 'rechazado' ? 'bg-red-50 text-red-600 border-red-200' :
+                    'bg-amber-50 text-amber-600 border-amber-200'
+                  }`}>
+                    DS {expense.estado_documento_soporte || 'pendiente'}
+                  </span>
+                ) : (
+                  <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase border bg-slate-100 text-slate-400 border-slate-200">
+                    Sin DS
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Sección de Anulación (Solo visible si está anulado) */}
           {expense.estado === 'anulado' && (
             <div className="bg-red-50 rounded-[2.5rem] p-8 border border-red-100 shadow-sm space-y-4">

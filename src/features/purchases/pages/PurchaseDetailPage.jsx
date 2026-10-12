@@ -379,6 +379,28 @@ export const PurchaseDetailPage = () => {
                 </span>
               </div>
             )}
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-slate-400 uppercase">
+                Doc. Soporte (DS):
+              </span>
+              {purchase.documento_soporte_electronico ? (
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase border ${
+                    purchase.estado_documento_soporte === "emitido"
+                      ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                      : purchase.estado_documento_soporte === "rechazado"
+                      ? "bg-red-50 text-red-600 border-red-100"
+                      : "bg-amber-50 text-amber-600 border-amber-100"
+                  }`}
+                >
+                  DS {purchase.estado_documento_soporte || "pendiente"}
+                </span>
+              ) : (
+                <span className="text-slate-400 font-bold uppercase text-[10px]">
+                  No Requerido
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

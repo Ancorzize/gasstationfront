@@ -18,13 +18,15 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
 
   const [formData, setFormData] = useState({
     fecha_gasto: getLocalDateString(), proveedor_id: '', categoria_gasto_id: '',
-    caja_id: '', tipo_caja: '', valor: '', descripcion: ''
+    caja_id: '', tipo_caja: '', valor: '', descripcion: '',
+    documento_soporte_electronico: false
   });
 
   useEffect(() => {
     if (isOpen) {
       loadMasters();
       setDisplayValor('');
+      setFormData(prev => ({ ...prev, documento_soporte_electronico: false }));
     }
   }, [isOpen]);
 
@@ -101,6 +103,26 @@ export const ExpenseFormModal = ({ isOpen, onClose, onSave }) => {
                   <option value="">Proveedor (Opcional)...</option>
                   {suppliers.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                 </select>
+              </div>
+
+              {/* TOGGLE DOCUMENTO SOPORTE ELECTRÓNICO */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Doc. Soporte Electrónico (DS)</label>
+                <label className={`flex items-center gap-2.5 px-3.5 py-2.5 border rounded-xl cursor-pointer transition-all ${
+                  formData.documento_soporte_electronico 
+                    ? 'bg-amber-50/70 border-amber-200 text-amber-900' 
+                    : 'bg-slate-50 border-slate-200 text-slate-500'
+                }`}>
+                  <input 
+                    type="checkbox" 
+                    checked={formData.documento_soporte_electronico} 
+                    onChange={e => setFormData({...formData, documento_soporte_electronico: e.target.checked})}
+                    className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300"
+                  />
+                  <span className="text-[10px] font-black uppercase tracking-tight">
+                    {formData.documento_soporte_electronico ? 'Requerido (DS)' : 'No Requerido'}
+                  </span>
+                </label>
               </div>
 
               <textarea required className="w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs outline-none h-16 resize-none" placeholder="Descripción del gasto..." value={formData.descripcion} onChange={e => setFormData({...formData, descripcion: e.target.value})} />
