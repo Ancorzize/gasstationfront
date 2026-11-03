@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Fuel, DollarSign, User, Loader2, CheckCircle, AlertTriangle, Check, FileText, UserPlus } from 'lucide-react';
+import { Fuel, DollarSign, User, Loader2, CheckCircle, AlertTriangle, Check, FileText, UserPlus, Wallet, X } from 'lucide-react';
 import { shiftService } from '../../shifts/services/shiftService';
 import { fuelSalesService } from '../services/fuelSalesService';
 import { clientService } from '../../clients/services/clientService';
@@ -29,6 +29,11 @@ export const FuelSalesPage = () => {
     monto: '',
     observacion: 'Venta combustible'
   });
+
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [usarAnticipo, setUsarAnticipo] = useState(false);
+  const [montoAnticipo, setMontoAnticipo] = useState('');
+  const [showClientSelect, setShowClientSelect] = useState(false);
 
   useEffect(() => {
     const loadShiftData = async () => {
@@ -78,10 +83,20 @@ export const FuelSalesPage = () => {
   }, []);
 
   const selectClient = (client) => {
+    setSelectedClient(client);
     setFormData(prev => ({ ...prev, cliente_id: client.id }));
     const name = trimClientName(client);
     setClientSearchTerm(name);
     setShowClientList(false);
+    if (Number(client.saldo_a_favor || 0) > 0) {
+      setUsarAnticipo(true);
+      const montoDespacho = parseFloat(formData.monto) || 0;
+      const max = montoDespacho > 0 ? Math.min(Number(client.saldo_a_favor), montoDespacho) : Number(client.saldo_a_favor);
+      setMontoAnticipo(max > 0 ? String(max) : '');
+    } else {
+      setUsarAnticipo(false);
+      setMontoAnticipo('');
+    }
   };
 
   const trimClientName = (c) => {
@@ -91,11 +106,26 @@ export const FuelSalesPage = () => {
 
   const handleClientCreated = (newClient) => {
     if (newClient && newClient.id) {
+      setSelectedClient(newClient);
       setFormData(prev => ({ ...prev, cliente_id: newClient.id }));
       setClientSearchTerm(trimClientName(newClient));
+      setUsarAnticipo(false);
+      setMontoAnticipo('');
       showToast("Cliente registrado y seleccionado para la venta", "success");
     }
   };
+
+  useEffect(() => {
+    if (usarAnticipo && selectedClient) {
+      const montoDespacho = parseFloat(formData.monto) || 0;
+      if (montoDespacho > 0) {
+        const max = Math.min(Number(selectedClient.saldo_a_favor || 0), montoDespacho);
+        if (Number(montoAnticipo) > max) {
+          setMontoAnticipo(max > 0 ? String(max) : '');
+        }
+      }
+    }
+  }, [formData.monto, usarAnticipo, selectedClient]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -107,9 +137,25 @@ export const FuelSalesPage = () => {
       return showToast("Debes seleccionar o registrar un cliente para emitir la factura electrónica", "error");
     }
 
+    const totalMonto = parseFloat(formData.monto) || 0;
+    const anticipoValor = (usarAnticipo && selectedClient && Number(montoAnticipo) > 0)
+      ? Math.min(Number(montoAnticipo), Number(selectedClient.saldo_a_favor || 0), totalMonto)
+      : 0;
+
+    if (usarAnticipo && !formData.cliente_id) {
+      return showToast("Debes seleccionar un cliente para aplicar anticipo", "error");
+    }
+
     setLoading(true);
     try {
-      const res = await fuelSalesService.createFuelSale(formData);
+      const payload = {
+        ...formData,
+        monto: totalMonto,
+        usar_anticipo: anticipoValor > 0,
+        monto_anticipo: anticipoValor > 0 ? anticipoValor : null,
+      };
+
+      const res = await fuelSalesService.createFuelSale(payload);
       if (res.status) {
         showToast(res.message, "success");
         navigate('/operacion/factura-combustible', { state: { saleData: res.data } });
@@ -239,7 +285,20 @@ export const FuelSalesPage = () => {
           </div>
         </div>
 
-        {(formData.tipo_venta === 'credito' || formData.tipo_venta === 'mixta' || formData.factura_electronica) && (
+        {formData.tipo_venta === 'contado' && !formData.factura_electronica && !showClientSelect && !selectedClient && (
+          <div className="flex justify-end pr-2">
+            <button
+              type="button"
+              onClick={() => setShowClientSelect(true)}
+              className="text-[10px] font-black text-teal-600 hover:text-teal-800 uppercase flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-teal-50 hover:bg-teal-100 transition-all shadow-sm"
+            >
+              <Wallet size={13} />
+              <span>Identificar cliente / Usar anticipo</span>
+            </button>
+          </div>
+        )}
+
+        {(formData.tipo_venta === 'credito' || formData.tipo_venta === 'mixta' || formData.factura_electronica || showClientSelect || selectedClient) && (
           <div className="space-y-2 relative" ref={clientListRef}>
             <div className="flex justify-between items-center px-4">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -264,7 +323,12 @@ export const FuelSalesPage = () => {
                 onChange={(e) => {
                   setClientSearchTerm(e.target.value);
                   setShowClientList(true);
-                  if (formData.cliente_id) setFormData({ ...formData, cliente_id: null });
+                  if (formData.cliente_id) {
+                    setFormData({ ...formData, cliente_id: null });
+                    setSelectedClient(null);
+                    setUsarAnticipo(false);
+                    setMontoAnticipo('');
+                  }
                 }}
               />
               {searchingClients && <Loader2 className="absolute right-4 top-4 animate-spin text-zinc-400" size={18} />}
@@ -282,8 +346,12 @@ export const FuelSalesPage = () => {
                       onClick={() => selectClient(c)}
                     >
                       <div>
-                        <p className="text-slate-800">{c.nombre} {c.apellidos || ''}</p>
-                        <p className="text-[8px] text-slate-400">{c.documento} {c.cupo_disponible ? `| Cupo: $${Number(c.cupo_disponible).toLocaleString()}` : ''}</p>
+                        <p className="text-slate-800 font-black">{c.nombre} {c.apellidos || ''}</p>
+                        <p className="text-[8px] text-slate-400">
+                          {c.documento} 
+                          {c.cupo_disponible ? ` | Cupo: $${Number(c.cupo_disponible).toLocaleString()}` : ''}
+                          {Number(c.saldo_a_favor || 0) > 0 ? ` | Saldo a favor: $${Number(c.saldo_a_favor).toLocaleString()}` : ''}
+                        </p>
                       </div>
                       {formData.cliente_id === c.id && <Check size={14} className="text-emerald-500" />}
                     </button>
@@ -303,6 +371,104 @@ export const FuelSalesPage = () => {
                     </button>
                   </div>
                 ) : null}
+              </div>
+            )}
+          </div>
+        )}
+
+        {selectedClient && (
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+            <div>
+              <p className="font-black text-slate-800 uppercase">{selectedClient.nombre} {selectedClient.apellidos || ''}</p>
+              <p className="text-[10px] text-slate-500 font-bold uppercase">{selectedClient.documento}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedClient(null);
+                setFormData(prev => ({ ...prev, cliente_id: null }));
+                setClientSearchTerm('');
+                setUsarAnticipo(false);
+                setMontoAnticipo('');
+              }}
+              className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-200/50 transition-colors"
+              title="Quitar cliente"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
+
+        {selectedClient && Number(selectedClient.saldo_a_favor || 0) > 0 && (
+          <div className="p-5 bg-teal-50/80 border border-teal-200 rounded-3xl space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-teal-600 text-white rounded-2xl shadow-sm">
+                  <Wallet size={18} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-teal-900 uppercase tracking-widest">Saldo a Favor Disponible</p>
+                  <p className="text-base font-black text-teal-700">$ {Number(selectedClient.saldo_a_favor).toLocaleString()}</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={usarAnticipo}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setUsarAnticipo(checked);
+                    if (checked) {
+                      const totalMonto = parseFloat(formData.monto) || 0;
+                      const max = totalMonto > 0 ? Math.min(Number(selectedClient.saldo_a_favor), totalMonto) : Number(selectedClient.saldo_a_favor);
+                      setMontoAnticipo(max > 0 ? String(max) : '');
+                    } else {
+                      setMontoAnticipo('');
+                    }
+                  }}
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+              </label>
+            </div>
+
+            {usarAnticipo && (
+              <div className="space-y-2 pt-3 border-t border-teal-200/60">
+                <div className="flex items-center justify-between text-[10px] font-black uppercase text-teal-900">
+                  <span>Monto de Anticipo a Aplicar</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const totalMonto = parseFloat(formData.monto) || 0;
+                      const max = totalMonto > 0 ? Math.min(Number(selectedClient.saldo_a_favor), totalMonto) : Number(selectedClient.saldo_a_favor);
+                      setMontoAnticipo(String(max));
+                    }}
+                    className="text-[9px] font-black text-teal-700 bg-teal-100 hover:bg-teal-200 px-2.5 py-1 rounded-lg transition-colors"
+                  >
+                    Aplicar Máximo {formData.monto ? `($ ${Math.min(Number(selectedClient.saldo_a_favor), parseFloat(formData.monto) || 0).toLocaleString()})` : ''}
+                  </button>
+                </div>
+                <div>
+                  <input
+                    type="number"
+                    min="0"
+                    max={formData.monto ? Math.min(Number(selectedClient.saldo_a_favor), parseFloat(formData.monto) || 0) : Number(selectedClient.saldo_a_favor)}
+                    step="any"
+                    placeholder="Monto a aplicar..."
+                    value={montoAnticipo}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      const totalMonto = parseFloat(formData.monto) || 0;
+                      const max = totalMonto > 0 ? Math.min(Number(selectedClient.saldo_a_favor), totalMonto) : Number(selectedClient.saldo_a_favor);
+                      if (totalMonto > 0 && val > max) {
+                        setMontoAnticipo(String(max));
+                      } else {
+                        setMontoAnticipo(e.target.value);
+                      }
+                    }}
+                    className="w-full px-4 py-3 bg-white border border-teal-300 rounded-2xl text-xs font-black text-teal-900 outline-none focus:border-teal-600 shadow-sm"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -342,6 +508,23 @@ export const FuelSalesPage = () => {
             onChange={(e) => setFormData({ ...formData, observacion: e.target.value })}
           />
         </div>
+
+        {usarAnticipo && Number(montoAnticipo) > 0 && formData.monto && (
+          <div className="p-5 bg-slate-50 border border-slate-200 rounded-3xl space-y-2">
+            <div className="flex justify-between text-xs font-bold text-slate-500 uppercase">
+              <span>Monto Total Despacho</span>
+              <span>$ {Number(formData.monto).toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center text-xs font-black uppercase text-teal-700 pt-1 border-t border-dashed border-teal-200">
+              <span className="flex items-center gap-1.5"><Wallet size={14} /> Anticipo Aplicado</span>
+              <span>- $ {Math.min(Number(montoAnticipo), Number(selectedClient?.saldo_a_favor || 0), parseFloat(formData.monto) || 0).toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm font-black uppercase text-slate-900 pt-1 border-t border-slate-200">
+              <span>Restante a Pagar ({formData.tipo_venta === 'credito' ? 'Crédito' : formData.metodo_pago})</span>
+              <span className="text-emerald-600 font-black">$ {Math.max(0, (parseFloat(formData.monto) || 0) - Math.min(Number(montoAnticipo), Number(selectedClient?.saldo_a_favor || 0), parseFloat(formData.monto) || 0)).toLocaleString()}</span>
+            </div>
+          </div>
+        )}
 
         <button
           type="submit"

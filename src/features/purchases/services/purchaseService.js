@@ -37,11 +37,14 @@ export const purchaseService = {
     return res.json();
   },
 
-  confirmPurchase: async (id, cajaId) => {
+  confirmPurchase: async (id, cajaId, montoAnticipo = 0) => {
     const res = await fetch(`${API_URL}/compras/${id}/confirmar`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ caja_id: cajaId })
+      body: JSON.stringify({
+        caja_id: cajaId || null,
+        monto_anticipo: montoAnticipo ? parseFloat(montoAnticipo) : 0,
+      })
     });
     return res.json();
   },
@@ -62,7 +65,7 @@ export const purchaseService = {
   },
 
   async downloadPurchasePDF(id, download = false) {
-    const token = localStorage.getItem('token'); // O donde guardes tu token
+    const token = localStorage.getItem('token');
     const url = `${import.meta.env.VITE_API_URL}/compras/${id}/pdf${download ? '?download=1' : ''}`;
     
     const response = await fetch(url, {
@@ -76,6 +79,7 @@ export const purchaseService = {
     
     return await response.blob();
   },
+
   registrarPagoProveedor: async (data) => {
     const res = await fetch(`${API_URL}/compras/pagos-general`, {
       method: 'POST',
@@ -87,6 +91,47 @@ export const purchaseService = {
 
   getSupplierDebt: async (proveedorId) => {
     const res = await fetch(`${API_URL}/compras/proveedores/${proveedorId}/deuda`, { headers: getHeaders() });
+    return res.json();
+  },
+
+  createInitialBalance: async (data) => {
+    const res = await fetch(`${API_URL}/compras/saldos-iniciales`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  },
+
+  getSupplierInitialBalances: async (proveedorId) => {
+    const res = await fetch(`${API_URL}/compras/proveedores/${proveedorId}/saldos-iniciales`, {
+      headers: getHeaders()
+    });
+    return res.json();
+  },
+
+  applyAdvance: async (purchaseId, data) => {
+    const res = await fetch(`${API_URL}/compras/${purchaseId}/aplicar-anticipo`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  },
+
+  getSupplierAdvances: async (proveedorId) => {
+    const res = await fetch(`${API_URL}/compras/proveedores/${proveedorId}/anticipos`, {
+      headers: getHeaders()
+    });
+    return res.json();
+  },
+
+  createDirectAdvance: async (data) => {
+    const res = await fetch(`${API_URL}/compras/anticipos-directos`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
     return res.json();
   },
 };

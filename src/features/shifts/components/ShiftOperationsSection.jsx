@@ -799,7 +799,8 @@ export const ShiftOperationsSection = ({
                   <th className="p-3">Documento / ID</th>
                   <th className="p-3">Fecha</th>
                   <th className="p-3">Cliente / Atendido</th>
-                  <th className="p-3">Detalle / Medios</th>
+                  <th className="p-3">Detalle</th>
+                  <th className="p-3">Medio de pago</th>
                   <th className="p-3 text-right">Monto Total</th>
                   <th className="p-3 text-center">Estado</th>
                   <th className="p-3 text-center">Acciones</th>
@@ -847,12 +848,13 @@ export const ShiftOperationsSection = ({
                       <td className="p-3">
                         {isAbono ? (
                           <div className="flex flex-col">
-                            <span className="text-[9px] uppercase text-emerald-600 font-black">
-                              Medio: {item.medio_pago}
-                            </span>
-                            {item.observacion && (
-                              <span className="text-[8px] text-slate-400 italic">
+                            {item.observacion ? (
+                              <span className="text-[9px] text-slate-600 italic">
                                 {item.observacion}
+                              </span>
+                            ) : (
+                              <span className="text-[8px] text-slate-400 italic">
+                                Abono a cartera
                               </span>
                             )}
                           </div>
@@ -873,6 +875,96 @@ export const ShiftOperationsSection = ({
                             )}
                           </div>
                         )}
+                      </td>
+                      <td className="p-3">
+                        {isAbono ? (
+                          <div className="flex flex-col">
+                            <span className="text-[9px] uppercase text-emerald-700 font-black bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 w-fit">
+                              {item.medio_pago || "Efectivo"}
+                            </span>
+                          </div>
+                        ) : (() => {
+                          const pagos = item.pagos || [];
+                          const saldoPendiente = parseFloat(item.saldo_pendiente || 0);
+                          const aplicaciones = item.aplicaciones_anticipo || [];
+                          const anticipoAplicado = aplicaciones.reduce(
+                            (acc, a) => acc + parseFloat(a.monto_aplicado || 0),
+                            0,
+                          );
+
+                          const hasPagos = pagos.length > 0;
+                          const hasCredito = saldoPendiente > 0;
+                          const hasAnticipo = anticipoAplicado > 0;
+
+                          if (!hasPagos && !hasCredito && !hasAnticipo) {
+                            return (
+                              <span className="text-[8px] font-bold text-slate-400 italic">
+                                Sin pagos registrados
+                              </span>
+                            );
+                          }
+
+                          // Venta 100% a crédito
+                          if (!hasPagos && !hasAnticipo && hasCredito) {
+                            return (
+                              <div className="flex flex-col">
+                                <span className="text-[9px] uppercase text-amber-700 font-black bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 w-fit">
+                                  Crédito: $ {saldoPendiente.toLocaleString("es-CO")}
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          // Venta con 1 solo pago que cubre el total
+                          if (pagos.length === 1 && !hasCredito && !hasAnticipo) {
+                            const p = pagos[0];
+                            return (
+                              <div className="flex flex-col">
+                                <span className="text-[9px] uppercase text-slate-800 font-black">
+                                  {p.metodo_pago || "Efectivo"}
+                                </span>
+                                <span className="text-[8px] font-bold text-slate-400">
+                                  $ {parseFloat(p.monto || 0).toLocaleString("es-CO")}
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          // Venta con pagos múltiples, mixtos, anticipos o crédito parcial
+                          return (
+                            <div className="flex flex-col gap-1 max-w-[200px]">
+                              {pagos.map((p, idx) => (
+                                <div
+                                  key={p.id || idx}
+                                  className="flex items-center justify-between gap-2 text-[9px]"
+                                >
+                                  <span className="uppercase font-black text-slate-700">
+                                    {p.metodo_pago}:
+                                  </span>
+                                  <span className="font-bold text-slate-500">
+                                    $ {parseFloat(p.monto || 0).toLocaleString("es-CO")}
+                                  </span>
+                                </div>
+                              ))}
+                              {hasAnticipo && (
+                                <div className="flex items-center justify-between gap-2 text-[9px] text-purple-700 font-black bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">
+                                  <span>Anticipo:</span>
+                                  <span>
+                                    $ {anticipoAplicado.toLocaleString("es-CO")}
+                                  </span>
+                                </div>
+                              )}
+                              {hasCredito && (
+                                <div className="flex items-center justify-between gap-2 text-[9px] text-amber-700 font-black bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                  <span>Crédito:</span>
+                                  <span>
+                                    $ {saldoPendiente.toLocaleString("es-CO")}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="p-3 text-right font-black text-slate-900 text-xs">
                         $ {total.toLocaleString("es-CO")}

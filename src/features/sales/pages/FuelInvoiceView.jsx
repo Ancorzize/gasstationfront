@@ -112,6 +112,14 @@ export const FuelInvoiceView = () => {
         {/* Métodos de Pago */}
         <div className="py-2 border-b-2 border-dashed border-black space-y-1 text-[10px] font-bold">
           <p className="font-black text-black">MÉTODOS DE PAGO</p>
+          {sale?.aplicaciones_anticipo && sale.aplicaciones_anticipo.length > 0 && (
+            sale.aplicaciones_anticipo.map((app, idx) => (
+              <div key={`app-ant-${idx}`} className="flex justify-between font-bold">
+                <span className="text-black uppercase">ANTICIPO ({app.numero_anticipo || 'SALDO A FAVOR'})</span>
+                <span className="text-black">${Number(app.monto_aplicado || 0).toLocaleString()}</span>
+              </div>
+            ))
+          )}
           {sale?.pagos && sale.pagos.length > 0 ? (
             sale.pagos.map((pago, idx) => (
               <div key={idx} className="flex justify-between font-bold">

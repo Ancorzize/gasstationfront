@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, ShoppingCart, Trash2, Plus, Minus, 
-  User, Save, Loader2, Package, X, Check, AlertTriangle, FileText, UserPlus 
+  User, Save, Loader2, Package, X, Check, AlertTriangle, FileText, UserPlus, Wallet 
 } from 'lucide-react';
 import { fuelSalesService } from '../services/fuelSalesService';
 import { productService } from '../../products/services/productService';
@@ -28,6 +28,11 @@ export const LubricantSalesPage = () => {
     factura_electronica: false,
     observacion: 'Venta lubricantes'
   });
+
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [usarAnticipo, setUsarAnticipo] = useState(false);
+  const [montoAnticipo, setMontoAnticipo] = useState('');
+  const [showClientSelect, setShowClientSelect] = useState(false);
 
   const [searchingClients, setSearchingClients] = useState(false);
   const [clients, setClients] = useState([]);
@@ -110,17 +115,29 @@ export const LubricantSalesPage = () => {
   }, []);
 
   const selectClient = (client) => {
+    setSelectedClient(client);
     setSaleData(prev => ({ ...prev, cliente_id: client.id }));
     const name = `${client.nombre || ''} ${client.apellidos || ''}`.trim() || client.razon_social || client.documento;
     setClientSearchTerm(name);
     setShowClientList(false);
+    if (Number(client.saldo_a_favor || 0) > 0) {
+      setUsarAnticipo(true);
+      const maxAplicable = Math.min(Number(client.saldo_a_favor), totals.total);
+      setMontoAnticipo(maxAplicable > 0 ? String(maxAplicable) : '');
+    } else {
+      setUsarAnticipo(false);
+      setMontoAnticipo('');
+    }
   };
 
   const handleClientCreated = (newClient) => {
     if (newClient && newClient.id) {
+      setSelectedClient(newClient);
       setSaleData(prev => ({ ...prev, cliente_id: newClient.id }));
       const name = `${newClient.nombre || ''} ${newClient.apellidos || ''}`.trim() || newClient.documento;
       setClientSearchTerm(name);
+      setUsarAnticipo(false);
+      setMontoAnticipo('');
       showToast("Cliente registrado y seleccionado para la venta", "success");
     }
   };
@@ -185,18 +202,35 @@ export const LubricantSalesPage = () => {
 
   const totals = calculateTotals();
 
+  useEffect(() => {
+    if (usarAnticipo && selectedClient) {
+      const max = Math.min(Number(selectedClient.saldo_a_favor || 0), totals.total);
+      if (Number(montoAnticipo) > max) {
+        setMontoAnticipo(max > 0 ? String(max) : '');
+      }
+    }
+  }, [totals.total, usarAnticipo, selectedClient]);
+
   const handleSubmit = async () => {
     if (cart.length === 0) return showToast("El carrito está vacío", "error");
     if (saleData.tipo_venta === 'credito' && !saleData.cliente_id) return showToast("Seleccione un cliente para la venta a crédito", "error");
     if (saleData.factura_electronica && !saleData.cliente_id) return showToast("Seleccione o registre un cliente para la factura electrónica", "error");
 
     setLoading(true);
+
+    const anticipoValor = (usarAnticipo && selectedClient && Number(montoAnticipo) > 0)
+      ? Math.min(Number(montoAnticipo), Number(selectedClient.saldo_a_favor || 0), totals.total)
+      : 0;
+
+    const montoRestante = Math.max(0, totals.total - anticipoValor);
     
     const payload = {
       cliente_id: saleData.cliente_id,
       tipo_venta: saleData.tipo_venta,
       factura_electronica: Boolean(saleData.factura_electronica),
       observacion: saleData.observacion,
+      usar_anticipo: anticipoValor > 0,
+      monto_anticipo: anticipoValor > 0 ? anticipoValor : null,
       detalles: cart.map(item => {
         const subtotal = item.precio_venta * item.cantidad;
         const ivaValor = subtotal * ((item.iva || 0) / 100);
@@ -212,10 +246,10 @@ export const LubricantSalesPage = () => {
           total: subtotal + ivaValor
         };
       }),
-      pagos: saleData.tipo_venta === 'contado' ? [
+      pagos: (saleData.tipo_venta === 'contado' && montoRestante > 0) ? [
         {
           metodo_pago: saleData.metodo_pago,
-          monto: totals.total,
+          monto: montoRestante,
           observacion: "Pago de productos/lubricantes"
         }
       ] : []
@@ -451,7 +485,20 @@ export const LubricantSalesPage = () => {
               </div>
             </div>
 
-            {(saleData.tipo_venta === 'credito' || saleData.factura_electronica) && (
+            {saleData.tipo_venta === 'contado' && !saleData.factura_electronica && !showClientSelect && !selectedClient && (
+              <div className="flex justify-end pr-1">
+                <button
+                  type="button"
+                  onClick={() => setShowClientSelect(true)}
+                  className="text-[10px] font-black text-teal-600 hover:text-teal-800 uppercase flex items-center gap-1.5 py-1 px-3 rounded-xl bg-teal-50 hover:bg-teal-100 transition-all shadow-sm"
+                >
+                  <Wallet size={13} />
+                  <span>Identificar cliente / Usar anticipo</span>
+                </button>
+              </div>
+            )}
+
+            {(saleData.tipo_venta === 'credito' || saleData.factura_electronica || showClientSelect || selectedClient) && (
               <div className="space-y-1 relative" ref={clientListRef}>
                 <div className="flex justify-between items-center ml-1">
                   <label className="text-[9px] font-black text-slate-400 uppercase">
@@ -476,7 +523,12 @@ export const LubricantSalesPage = () => {
                     onChange={(e) => {
                       setClientSearchTerm(e.target.value);
                       setShowClientList(true);
-                      if (saleData.cliente_id) setSaleData({ ...saleData, cliente_id: null });
+                      if (saleData.cliente_id) {
+                        setSaleData({ ...saleData, cliente_id: null });
+                        setSelectedClient(null);
+                        setUsarAnticipo(false);
+                        setMontoAnticipo('');
+                      }
                     }}
                   />
                   {searchingClients && <Loader2 className="absolute right-4 top-3.5 animate-spin text-slate-400" size={16} />}
@@ -495,7 +547,11 @@ export const LubricantSalesPage = () => {
                         >
                           <div>
                             <p className="text-slate-900 font-black">{c.nombre} {c.apellidos || ''}</p>
-                            <p className="text-[9px] text-slate-500 mt-0.5">{c.documento} {c.cupo_disponible ? `| Cupo: $${Number(c.cupo_disponible).toLocaleString()}` : ''}</p>
+                            <p className="text-[9px] text-slate-500 mt-0.5">
+                              {c.documento} 
+                              {c.cupo_disponible ? ` | Cupo: $${Number(c.cupo_disponible).toLocaleString()}` : ''}
+                              {Number(c.saldo_a_favor || 0) > 0 ? ` | Saldo a favor: $${Number(c.saldo_a_favor).toLocaleString()}` : ''}
+                            </p>
                           </div>
                           {saleData.cliente_id === c.id && <Check size={16} className="text-emerald-600" />}
                         </button>
@@ -520,6 +576,101 @@ export const LubricantSalesPage = () => {
               </div>
             )}
 
+            {selectedClient && (
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+                <div>
+                  <p className="font-black text-slate-800 uppercase">{selectedClient.nombre} {selectedClient.apellidos || ''}</p>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">{selectedClient.documento}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedClient(null);
+                    setSaleData(prev => ({ ...prev, cliente_id: null }));
+                    setClientSearchTerm('');
+                    setUsarAnticipo(false);
+                    setMontoAnticipo('');
+                  }}
+                  className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-200/50 transition-colors"
+                  title="Quitar cliente"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            )}
+
+            {selectedClient && Number(selectedClient.saldo_a_favor || 0) > 0 && (
+              <div className="p-4 bg-teal-50/80 border border-teal-200 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-teal-600 text-white rounded-xl shadow-sm">
+                      <Wallet size={16} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-teal-900 uppercase">Saldo a Favor Disponible</p>
+                      <p className="text-sm font-black text-teal-700">$ {Number(selectedClient.saldo_a_favor).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={usarAnticipo}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setUsarAnticipo(checked);
+                        if (checked) {
+                          const max = Math.min(Number(selectedClient.saldo_a_favor), totals.total);
+                          setMontoAnticipo(max > 0 ? String(max) : '');
+                        } else {
+                          setMontoAnticipo('');
+                        }
+                      }}
+                    />
+                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
+                  </label>
+                </div>
+
+                {usarAnticipo && (
+                  <div className="space-y-2 pt-2 border-t border-teal-200/60">
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase text-teal-900">
+                      <span>Monto de Anticipo a Aplicar</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const max = Math.min(Number(selectedClient.saldo_a_favor), totals.total);
+                          setMontoAnticipo(String(max));
+                        }}
+                        className="text-[9px] font-black text-teal-700 bg-teal-100 hover:bg-teal-200 px-2 py-0.5 rounded-lg transition-colors"
+                      >
+                        Máximo ($ {Math.min(Number(selectedClient.saldo_a_favor), totals.total).toLocaleString()})
+                      </button>
+                    </div>
+                    <div>
+                      <input
+                        type="number"
+                        min="0"
+                        max={Math.min(Number(selectedClient.saldo_a_favor), totals.total)}
+                        step="any"
+                        placeholder="Monto a aplicar..."
+                        value={montoAnticipo}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          const max = Math.min(Number(selectedClient.saldo_a_favor), totals.total);
+                          if (val > max) {
+                            setMontoAnticipo(String(max));
+                          } else {
+                            setMontoAnticipo(e.target.value);
+                          }
+                        }}
+                        className="w-full px-3.5 py-2.5 bg-white border border-teal-300 rounded-xl text-xs font-black text-teal-900 outline-none focus:border-teal-600 shadow-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-1.5 pt-1 bg-slate-50 p-3 rounded-2xl border border-slate-100">
               <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
                 <span>Subtotal</span>
@@ -530,9 +681,21 @@ export const LubricantSalesPage = () => {
                 <span>$ {totals.iva.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-end pt-1 border-t border-slate-200/60 mt-1">
-                <span className="text-[10px] font-black uppercase text-slate-800">Total a Pagar</span>
-                <span className="text-2xl font-black italic text-slate-900">$ {totals.total.toLocaleString()}</span>
+                <span className="text-[10px] font-black uppercase text-slate-800">Total Venta</span>
+                <span className="text-xl font-black italic text-slate-900">$ {totals.total.toLocaleString()}</span>
               </div>
+              {usarAnticipo && Number(montoAnticipo) > 0 && (
+                <>
+                  <div className="flex justify-between items-center text-[10px] font-black uppercase text-teal-700 pt-1 border-t border-dashed border-teal-200">
+                    <span className="flex items-center gap-1"><Wallet size={12} /> Anticipo Aplicado</span>
+                    <span>- $ {Math.min(Number(montoAnticipo), Number(selectedClient?.saldo_a_favor || 0), totals.total).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] font-black uppercase text-slate-900 pt-1 border-t border-slate-200">
+                    <span>Restante a Pagar ({saleData.tipo_venta === 'credito' ? 'Crédito' : saleData.metodo_pago})</span>
+                    <span className="text-emerald-600 font-black">$ {Math.max(0, totals.total - Math.min(Number(montoAnticipo), Number(selectedClient?.saldo_a_favor || 0), totals.total)).toLocaleString()}</span>
+                  </div>
+                </>
+              )}
             </div>
 
             <button 

@@ -11,6 +11,7 @@ import {
   PlusCircle,
   Calendar,
   FileText,
+  Wallet,
   X,
   AlertTriangle,
 } from "lucide-react";
@@ -110,7 +111,15 @@ export const CustomerStatementPage = () => {
       </div>
     );
 
-  const { cliente, movimientos, cupo_credito, saldo_credito, cupo_disponible } =
+  const {
+    cliente,
+    movimientos,
+    cupo_credito,
+    saldo_credito,
+    cupo_disponible,
+    saldo_a_favor,
+    anticipos,
+  } =
     data;
 
   return (
@@ -153,7 +162,7 @@ export const CustomerStatementPage = () => {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-5">
           <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
             <CreditCard size={28} />
@@ -194,6 +203,121 @@ export const CustomerStatementPage = () => {
               $ {Number(cupo_disponible || 0).toLocaleString()}
             </p>
           </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-5">
+          <div className="w-14 h-14 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center shrink-0">
+            <Wallet size={28} />
+          </div>
+          <div>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              Saldo a Favor
+            </p>
+            <p className="text-xl font-black text-teal-700">
+              $ {Number(saldo_a_favor || 0).toLocaleString()}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* SECCIÓN: ANTICIPOS Y SALDOS A FAVOR */}
+      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+        <div className="p-6 border-b flex items-center justify-between bg-slate-50/50">
+          <div className="flex items-center gap-2">
+            <Wallet size={16} className="text-teal-600" />
+            <h3 className="text-xs font-black text-slate-700 uppercase tracking-tight">
+              Anticipos y Saldos a Favor
+            </h3>
+          </div>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+            {anticipos?.length || 0} {anticipos?.length === 1 ? "Anticipo registrado" : "Anticipos registrados"}
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/30 border-b border-slate-50">
+                <th className="px-6 py-4">Número</th>
+                <th className="px-6 py-4">Fecha</th>
+                <th className="px-6 py-4">Origen</th>
+                <th className="px-6 py-4 text-right">Monto Original</th>
+                <th className="px-6 py-4 text-right">Saldo Disponible</th>
+                <th className="px-6 py-4">Método Pago</th>
+                <th className="px-6 py-4 text-center">Estado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {anticipos && anticipos.length > 0 ? (
+                anticipos.map((ant) => (
+                  <tr key={ant.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black text-slate-800 tracking-tight">
+                          {ant.numero}
+                        </span>
+                        {ant.observacion && (
+                          <span className="text-[9px] font-bold text-slate-400 line-clamp-1">
+                            {ant.observacion}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-slate-500">
+                        <Calendar size={14} className="text-slate-400" />
+                        <span className="text-[10px] font-bold uppercase">
+                          {ant.created_at ? new Date(ant.created_at).toLocaleDateString() : "N/A"}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase bg-slate-100 text-slate-600">
+                        {ant.origen === "abono_excedente"
+                          ? "Excedente Abono"
+                          : ant.origen === "turno_islero"
+                          ? "Turno Islero"
+                          : ant.origen || "Directo"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right text-xs font-bold text-slate-600">
+                      ${Number(ant.monto_original || 0).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 text-right text-xs font-black text-emerald-600">
+                      ${Number(ant.saldo_disponible || 0).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">
+                        {ant.metodo_pago || "N/A"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span
+                        className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase ${
+                          ant.estado === "disponible"
+                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                            : ant.estado === "agotado"
+                            ? "bg-slate-100 text-slate-500"
+                            : "bg-red-50 text-red-600"
+                        }`}
+                      >
+                        {ant.estado}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan="7"
+                    className="px-6 py-16 text-center text-[10px] font-black text-slate-300 uppercase italic"
+                  >
+                    Este cliente no registra anticipos ni saldos a favor
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

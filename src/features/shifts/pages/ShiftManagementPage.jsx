@@ -246,7 +246,7 @@ export const ShiftManagementPage = () => {
                   <div className="mt-4 pt-4 border-t border-slate-100">
                     <button
                       onClick={() =>
-                        navigate(`/turnos-islero/${currentShift.id}/resumen`)
+                        navigate(`/turnos-islero/${currentShift.id}/cerrar`)
                       }
                       className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-wider hover:bg-black transition-all flex items-center justify-center gap-2"
                     >

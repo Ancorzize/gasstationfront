@@ -102,6 +102,7 @@ export const ClientListPage = () => {
                 <tr className="bg-slate-50/50">
                   <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Información del Cliente</th>
                   <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Crédito / Saldo</th>
+                  <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Saldo a Favor</th>
                   <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Estado</th>
                   <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Acciones</th>
                 </tr>
@@ -128,6 +129,20 @@ export const ClientListPage = () => {
                         <span className="text-[9px] font-bold text-slate-300 uppercase italic">Sin crédito activo</span>
                       )}
                     </td>
+                    <td className="p-5">
+                      {Number(client.saldo_a_favor || 0) > 0 ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[10px] font-black text-emerald-600 tracking-tighter">
+                            ${Number(client.saldo_a_favor || 0).toLocaleString()}
+                          </span>
+                          <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">
+                            A favor
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] font-bold text-slate-300 tracking-tight">$0</span>
+                      )}
+                    </td>
                     <td className="p-5 text-center">
                       <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase ${
                         client.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
@@ -137,7 +152,7 @@ export const ClientListPage = () => {
                     </td>
                     <td className="p-5">
                       <div className="flex items-center justify-center gap-1">
-                        {hasPermission('ver_estado_cuenta_clientes') && client.maneja_credito && (
+                        {hasPermission('ver_estado_cuenta_clientes') && (client.maneja_credito || Number(client.saldo_a_favor || 0) > 0) && (
                           <button 
                             onClick={() => navigate(`/clientes/${client.id}/estado-cuenta`)}
                             className="p-2.5 text-slate-400 hover:text-zinc-900 hover:bg-slate-100 rounded-xl transition-all"

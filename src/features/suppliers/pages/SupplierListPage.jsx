@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Search, Edit2, Power, Truck, Loader2, Download, Plus } from 'lucide-react';
+import { Search, Edit2, Power, Truck, Loader2, Download, Plus, Layers } from 'lucide-react';
+import { InitialBalanceModal } from '../../purchases/components/InitialBalanceModal';
 import { supplierService } from '../services/supplierService';
 import { SupplierModal } from '../components/SupplierModal';
 import { useToast } from '../../../context/ToastContext';
@@ -11,6 +12,7 @@ export const SupplierListPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
+  const [isInitialBalanceModalOpen, setIsInitialBalanceModalOpen] = useState(false);
   const { showToast } = useToast();
 
   const fetchSuppliers = async () => {
@@ -51,12 +53,12 @@ export const SupplierListPage = () => {
         </div>
         
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
-            <button 
-              onClick={() => exportToExcel(filteredSuppliers, 'Proveedores_LasGranjas')}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-emerald-700 transition-all shadow-md"
-            >
-              <Download size={16} /> <span className="hidden sm:inline">Exportar</span>
-            </button>
+          <button 
+            onClick={() => exportToExcel(filteredSuppliers, 'Proveedores_LasGranjas')}
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-emerald-700 transition-all shadow-md"
+          >
+            <Download size={16} /> <span className="hidden sm:inline">Exportar</span>
+          </button>
 
           <div className="relative flex-1 md:flex-none min-w-[150px]">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
@@ -66,6 +68,13 @@ export const SupplierListPage = () => {
               value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          <button 
+            onClick={() => setIsInitialBalanceModalOpen(true)}
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-indigo-700 transition-all shadow-md"
+          >
+            <Layers size={16} /> <span className="hidden sm:inline">Saldo Inicial</span>
+          </button>
 
           <button 
             onClick={() => { setSelectedSupplier(null); setIsModalOpen(true); }}
@@ -91,6 +100,7 @@ export const SupplierListPage = () => {
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">NIT</th>
                   <th className="hidden md:table-cell p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contacto</th>
                   <th className="hidden lg:table-cell p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Saldo a Favor</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Estado</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Acciones</th>
                 </tr>
@@ -102,6 +112,15 @@ export const SupplierListPage = () => {
                     <td className="p-4 text-xs">{s.nit}</td>
                     <td className="hidden md:table-cell p-4 text-xs">{s.telefono || '---'}</td>
                     <td className="hidden lg:table-cell p-4 text-xs italic">{s.email || '---'}</td>
+                    <td className="p-4 text-right">
+                      {parseFloat(s.saldo_anticipo || 0) > 0 ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          $ {parseFloat(s.saldo_anticipo).toLocaleString('es-CO')}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-300 font-bold">$ 0</span>
+                      )}
+                    </td>
                     <td className="p-4 text-center">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
                         s.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
@@ -126,6 +145,7 @@ export const SupplierListPage = () => {
       </div>
 
       <SupplierModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={fetchSuppliers} supplierToEdit={selectedSupplier} />
+      <InitialBalanceModal isOpen={isInitialBalanceModalOpen} onClose={() => setIsInitialBalanceModalOpen(false)} onSave={fetchSuppliers} />
     </div>
   );
 };

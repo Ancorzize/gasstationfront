@@ -13,12 +13,14 @@ import {
   Save,
   FileText,
   CreditCard,
+  RotateCcw,
+  Calculator,
 } from "lucide-react";
 import { shiftService } from "../services/shiftService";
 import { useToast } from "../../../context/ToastContext";
 import { ShiftOperationsSection } from "../components/ShiftOperationsSection";
 
-// Formato a 3 decimales para Mangueras y Lecturas
+// Formato colombiano a 3 decimales para Mangueras y Lecturas (ej: 12.345,334)
 const formatLectura = (value) => {
   if (value === "" || value === null || value === undefined) return "";
   const num = Number(value);
@@ -29,13 +31,59 @@ const formatLectura = (value) => {
   return `${parts[0]},${parts[1]}`;
 };
 
-const parseLectura = (str) => {
-  if (!str) return "";
-  const clean = str
-    .toString()
+// Conversión segura de texto colombiano / numpad a número flotante estándar
+const parseLectura = (str, lecturaInicial = 0) => {
+  if (str === "" || str === null || str === undefined) return "";
+  const clean = String(str)
     .replace(/[^\d,.-]/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".");
+    .trim();
+  if (clean === "") return "";
+
+  const hasComma = clean.includes(",");
+  const dotCount = (clean.match(/\./g) || []).length;
+
+  // Caso 1: Tiene coma decimal (Formato estándar colombiano: 12.346,334 o 12346,334)
+  if (hasComma) {
+    const parts = clean.split(",");
+    const integerPart = parts[0].replace(/\./g, "");
+    const decimalPart = parts.slice(1).join("").replace(/[^\d]/g, "");
+    const num = parseFloat(`${integerPart}.${decimalPart}`);
+    return isNaN(num) ? "" : num;
+  }
+
+  // Caso 2: No tiene coma, pero tiene múltiples puntos (ej: 1.234.567) -> Puntos de miles
+  if (dotCount > 1) {
+    const num = parseFloat(clean.replace(/\./g, ""));
+    return isNaN(num) ? "" : num;
+  }
+
+  // Caso 3: No tiene coma y tiene exactamente 1 punto
+  if (dotCount === 1) {
+    const [before, after] = clean.split(".");
+
+    // Si después del punto NO hay 3 dígitos (ej: 12.5, 12346.45)
+    // o antes del punto hay más de 3 dígitos (ej: 12346.334),
+    // se distingue inequívocamente como punto decimal del teclado numérico.
+    if (after.length !== 3 || before.length > 3) {
+      const num = parseFloat(clean);
+      return isNaN(num) ? "" : num;
+    }
+
+    // Ambigüedad de 1-3 dígitos antes y 3 dígitos después (ej: 12.346)
+    // Si la lectura inicial es >= 100, 12.346 como decimal sería 12 galones (< inicial),
+    // mientras que como miles representa 12346 galones (>= inicial).
+    const asThousands = parseFloat(clean.replace(/\./g, ""));
+    const asDecimal = parseFloat(clean);
+    const inicial = Number(lecturaInicial) || 0;
+
+    if (inicial >= 100 && asDecimal < inicial && asThousands >= inicial) {
+      return asThousands;
+    }
+
+    return asDecimal;
+  }
+
+  // Caso 4: Solo dígitos (ej: 12346) -> Entero directo
   const num = parseFloat(clean);
   return isNaN(num) ? "" : num;
 };
@@ -198,14 +246,17 @@ export const ShiftApprovalsPage = () => {
   };
 
   const handleReadingChange = (mangueraId, rawValue) => {
+    // Permitir dígitos, comas, puntos y guiones sin alterar destructivamente el texto mientras se escribe
+    const filtered = rawValue.replace(/[^0-9,.-]/g, "");
+
     setEditLecturas((prev) =>
       prev.map((l) => {
         if (l.manguera_id !== mangueraId) return l;
-        const parsedNum = parseLectura(rawValue);
+        const parsedNum = parseLectura(filtered, l.lectura_inicial);
         return {
           ...l,
-          lectura_final: parsedNum === "" ? "" : parsedNum,
-          lecturaFinalInput: rawValue,
+          lectura_final: parsedNum,
+          lecturaFinalInput: filtered,
         };
       }),
     );
@@ -220,6 +271,19 @@ export const ShiftApprovalsPage = () => {
           ...l,
           lecturaFinalInput:
             num !== "" && !isNaN(num) ? formatLectura(num) : "",
+        };
+      }),
+    );
+  };
+
+  const handleClearReading = (mangueraId) => {
+    setEditLecturas((prev) =>
+      prev.map((l) => {
+        if (l.manguera_id !== mangueraId) return l;
+        return {
+          ...l,
+          lectura_final: "",
+          lecturaFinalInput: "",
         };
       }),
     );
@@ -271,13 +335,43 @@ export const ShiftApprovalsPage = () => {
   const handleAprobar = async (e) => {
     e.preventDefault();
     if (!selectedTurno) return;
+
+    // Validación de lecturas obligatorias antes de guardar y aprobar
+    if (editLecturas.length > 0) {
+      for (const l of editLecturas) {
+        if (
+          l.lectura_final === "" ||
+          l.lectura_final === null ||
+          l.lectura_final === undefined ||
+          isNaN(Number(l.lectura_final))
+        ) {
+          showToast(
+            "Debe ingresar la lectura final para todas las mangueras asignadas.",
+            "error",
+          );
+          return;
+        }
+
+        const numFinal = Number(l.lectura_final);
+        const numInicial = Number(l.lectura_inicial || 0);
+
+        if (numFinal < numInicial) {
+          showToast(
+            `La lectura final (${formatLectura(numFinal)}) no puede ser menor a la lectura inicial (${formatLectura(numInicial)}).`,
+            "error",
+          );
+          return;
+        }
+      }
+    }
+
     setActionLoading(true);
     try {
       const payload = {
         lecturas_finales: editLecturas.map(
           ({ manguera_id, lectura_final }) => ({
             manguera_id,
-            lectura_final: Number(lectura_final) || 0,
+            lectura_final: Number(lectura_final),
           }),
         ),
         destinos_recaudo: editDestinosRecaudo.map((d) => ({
@@ -316,13 +410,21 @@ export const ShiftApprovalsPage = () => {
         totalReportado: 0,
         balance: 0,
         totalCreditos: 0,
+        totalCombustible: 0,
+        ventasLubricantes: 0,
+        anticipos: 0,
+        abonos: 0,
       };
 
     const totalCombustible = editLecturas.reduce((acc, l) => {
+      const inicial = Number(l.lectura_inicial) || 0;
       const final =
-        l.lectura_final !== "" ? Number(l.lectura_final) : l.lectura_inicial;
-      const galonesVendidos = Math.max(0, final - l.lectura_inicial);
-      return acc + galonesVendidos * l.precio_galon;
+        l.lectura_final !== "" && !isNaN(Number(l.lectura_final))
+          ? Number(l.lectura_final)
+          : inicial;
+      const galonesVendidos = Math.max(0, final - inicial);
+      const galonesRedondeados = Math.round(galonesVendidos * 1000) / 1000;
+      return acc + galonesRedondeados * Number(l.precio_galon || 0);
     }, 0);
 
     const abonos = (revisionData.abonos || []).reduce(
@@ -333,9 +435,14 @@ export const ShiftApprovalsPage = () => {
       revisionData.resumen?.total_ventas_lubricantes || 0,
     );
     const totalCreditos = Number(revisionData.resumen?.total_creditos || 0);
+    const anticipos = Number(
+      revisionData.resumen?.anticipos_aplicados ||
+        revisionData.resumen?.total_anticipos ||
+        0,
+    );
 
     let totalEsperado =
-      totalCombustible + ventasLubricantes - totalCreditos + abonos;
+      totalCombustible + ventasLubricantes - totalCreditos - anticipos + abonos;
 
     if (Math.abs(totalEsperado) < 100) {
       totalEsperado = 0;
@@ -345,17 +452,30 @@ export const ShiftApprovalsPage = () => {
       editDestinosRecaudo.reduce((acc, d) => {
         return (
           acc +
-          Object.values(d.pagos).reduce((sum, val) => sum + Number(val || 0), 0)
+          Object.values(d.pagos || {}).reduce(
+            (sum, val) => sum + Number(val || 0),
+            0,
+          )
         );
       }, 0) +
       Number(otrosMovimientos || 0) +
       abonos;
 
+    let balance = Number(totalReportado || 0) - Number(totalEsperado || 0);
+    if (Math.abs(balance) < 100) {
+      balance = 0;
+    }
+
     return {
       totalEsperado: Number(totalEsperado || 0),
       totalReportado: Number(totalReportado || 0),
-      balance: Number(totalReportado || 0) - Number(totalEsperado || 0),
+      balance: balance,
       totalCreditos: Number(totalCreditos || 0),
+      totalCombustible: Number(totalCombustible || 0),
+      ventasLubricantes: Number(ventasLubricantes || 0),
+      anticipos: Number(anticipos || 0),
+      abonos: Number(abonos || 0),
+      otrosMovimientos: Number(otrosMovimientos || 0),
     };
   }, [revisionData, editLecturas, editDestinosRecaudo, otrosMovimientos]);
 
@@ -373,7 +493,7 @@ export const ShiftApprovalsPage = () => {
     <div className="p-4 md:p-8 space-y-6 max-w-6xl mx-auto pb-20 text-left">
       {selectedTurno ? (
         <div className="space-y-6">
-          <div className="sticky top-0 z-40 bg-slate-50/90 dark:bg-zinc-950/90 backdrop-blur-md pt-2 pb-4 space-y-4 -mx-4 px-4 md:mx-0 md:px-0">
+          <div className="sticky top-0 z-40 bg-slate-50/90 backdrop-blur-md pt-2 pb-4 space-y-4 -mx-4 px-4 md:mx-0 md:px-0">
             <header className="flex items-center justify-between">
               <button
                 onClick={() => {
@@ -397,23 +517,57 @@ export const ShiftApprovalsPage = () => {
 
             {loadingRevision ? null : (
               <div
-                className={`p-5 rounded-[2rem] shadow-md border flex items-center justify-between transition-colors ${calculatedValues.balance === 0 ? "bg-emerald-50 border-emerald-100 text-emerald-900" : calculatedValues.balance < 0 ? "bg-rose-50 border-rose-100 text-rose-900" : "bg-blue-50 border-blue-100 text-blue-900"}`}
+                className={`p-6 rounded-[2rem] shadow-md border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${
+                  calculatedValues.balance === 0
+                    ? "bg-emerald-50 border-emerald-100 text-emerald-950"
+                    : calculatedValues.balance < 0
+                      ? "bg-rose-50 border-rose-100 text-rose-950"
+                      : "bg-blue-50 border-blue-100 text-blue-950"
+                }`}
               >
-                <div>
-                  <h4 className="text-[10px] md:text-xs font-black uppercase tracking-wider">
-                    Balance del Turno (Control de Saldo)
-                  </h4>
-                  <p className="text-[9px] md:text-[10px] font-bold opacity-75">
-                    Esperado: {formatPesos(calculatedValues.totalEsperado)} |
-                    Reportado: {formatPesos(calculatedValues.totalReportado)}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Calculator size={18} />
+                    <h4 className="text-xs font-black uppercase tracking-wider">
+                      Balance del Turno (Control de Saldo)
+                    </h4>
+                  </div>
+                  <p className="text-xs font-bold opacity-85">
+                    Esperado: ${" "}
+                    {calculatedValues.totalEsperado.toLocaleString("es-CO")} |{" "}
+                    Reportado: ${" "}
+                    {calculatedValues.totalReportado.toLocaleString("es-CO")}
+                  </p>
+                  <p className="text-[9px] font-semibold opacity-70 uppercase tracking-tight">
+                    Combustible: $
+                    {calculatedValues.totalCombustible.toLocaleString("es-CO")}{" "}
+                    | Lubricantes: $
+                    {calculatedValues.ventasLubricantes.toLocaleString("es-CO")}{" "}
+                    | Créditos: -$
+                    {calculatedValues.totalCreditos.toLocaleString(
+                      "es-CO",
+                    )} | Anticipos: -$
+                    {calculatedValues.anticipos.toLocaleString("es-CO")} |{" "}
+                    Abonos: +${calculatedValues.abonos.toLocaleString("es-CO")}
+                    {calculatedValues.otrosMovimientos !== 0 && (
+                      <>
+                        {" "}
+                        | Otros Mov.:{" "}
+                        {calculatedValues.otrosMovimientos >= 0 ? "+" : ""}$
+                        {calculatedValues.otrosMovimientos.toLocaleString(
+                          "es-CO",
+                        )}
+                      </>
+                    )}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm md:text-xl font-black">
-                    {calculatedValues.balance >= 0
-                      ? "Sobrante"
-                      : "Faltante (Negativo)"}
-                    : {formatPesos(Math.abs(calculatedValues.balance))}
+                <div className="text-left md:text-right">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60">
+                    Diferencia
+                  </p>
+                  <p className="text-xl md:text-2xl font-black">
+                    {calculatedValues.balance >= 0 ? "Sobrante" : "Faltante"}: ${" "}
+                    {Math.abs(calculatedValues.balance).toLocaleString("es-CO")}
                   </p>
                   {calculatedValues.balance < 0 && (
                     <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[8px] font-black bg-rose-200 text-rose-800 uppercase tracking-widest">
@@ -434,202 +588,239 @@ export const ShiftApprovalsPage = () => {
             </div>
           ) : revisionData ? (
             <>
-              <form id="approvals-form" onSubmit={handleAprobar} className="space-y-8">
-              <div className={editLecturas.length > 0 ? "grid grid-cols-1 lg:grid-cols-2 gap-8" : "space-y-6 max-w-2xl mx-auto"}>
-                {/* Mangueras (solo si existen mangueras asignadas) */}
-                {editLecturas.length > 0 && (
-                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4">
-                    <h3 className="text-xs font-black text-slate-800 uppercase mb-6 flex items-center gap-2">
-                      <Droplets size={16} /> Mangueras y Lecturas (Modificables)
-                    </h3>
-                    {editLecturas.map((l) => (
-                      <div
-                        key={l.manguera_id}
-                        className="mb-4 p-4 bg-slate-50 rounded-2xl space-y-2 border border-slate-100"
-                      >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-[9px] font-bold uppercase text-slate-600">
-                              {l.manguera?.nombre || `Manguera #${l.manguera_id}`}
-                            </p>
-                            <p className="text-[10px] font-black text-slate-800">
-                              {formatPesos(l.precio_galon)} /gal
-                            </p>
+              <form
+                id="approvals-form"
+                onSubmit={handleAprobar}
+                className="space-y-8"
+              >
+                <div
+                  className={
+                    editLecturas.length > 0
+                      ? "grid grid-cols-1 lg:grid-cols-2 gap-8"
+                      : "space-y-6 max-w-2xl mx-auto"
+                  }
+                >
+                  {/* Mangueras (solo si existen mangueras asignadas) */}
+                  {editLecturas.length > 0 && (
+                    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4">
+                      <h3 className="text-xs font-black text-slate-800 uppercase mb-6 flex items-center gap-2">
+                        <Droplets size={16} /> Mangueras y Lecturas
+                        (Modificables)
+                      </h3>
+                      {editLecturas.map((l) => {
+                        const inicial = Number(l.lectura_inicial) || 0;
+                        const final =
+                          l.lectura_final !== "" &&
+                          !isNaN(Number(l.lectura_final))
+                            ? Number(l.lectura_final)
+                            : inicial;
+                        const galones = Math.max(0, final - inicial);
+                        const galonesRedondeados =
+                          Math.round(galones * 1000) / 1000;
+                        const subtotalManguera =
+                          galonesRedondeados * Number(l.precio_galon || 0);
+
+                        return (
+                          <div
+                            key={l.manguera_id}
+                            className="mb-4 p-4 bg-slate-50 rounded-2xl space-y-3 border border-slate-100"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="text-[10px] font-black uppercase text-slate-800">
+                                  {l.manguera?.nombre ||
+                                    `Manguera #${l.manguera_id}`}
+                                </p>
+                                <p className="text-[10px] font-black text-slate-700 mt-0.5">
+                                  $
+                                  {Number(l.precio_galon).toLocaleString(
+                                    "es-CO",
+                                  )}{" "}
+                                  /gal
+                                </p>
+                              </div>
+                              <span className="text-[9px] font-black text-yellow-700 bg-yellow-50 px-2.5 py-1 rounded-full border border-yellow-200">
+                                Inicial: {formatLectura(l.lectura_inicial)}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-[8px] font-bold text-slate-400 uppercase">
+                                    Lectura Final
+                                  </label>
+                                  {l.lecturaFinalInput !== "" && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleClearReading(l.manguera_id)
+                                      }
+                                      className="text-[9px] font-bold text-rose-500 hover:text-rose-700 flex items-center gap-1 transition-colors"
+                                      title="Limpiar lectura final de esta manguera"
+                                    >
+                                      <RotateCcw size={10} /> Limpiar
+                                    </button>
+                                  )}
+                                </div>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  placeholder="0,000"
+                                  className="w-full p-3 rounded-xl border border-slate-200 bg-white text-right text-xs font-black outline-none focus:border-zinc-900 transition-all text-slate-800"
+                                  value={l.lecturaFinalInput ?? ""}
+                                  onChange={(e) =>
+                                    handleReadingChange(
+                                      l.manguera_id,
+                                      e.target.value,
+                                    )
+                                  }
+                                  onBlur={() =>
+                                    handleReadingBlur(l.manguera_id)
+                                  }
+                                />
+                              </div>
+
+                              <div className="bg-white p-3 rounded-xl border border-slate-100 text-right flex flex-col justify-center">
+                                <p className="text-[8px] font-bold text-slate-400 uppercase">
+                                  Despacho Estimado
+                                </p>
+                                <p className="text-[11px] font-black text-slate-800">
+                                  {galonesRedondeados.toLocaleString("es-CO", {
+                                    minimumFractionDigits: 3,
+                                    maximumFractionDigits: 3,
+                                  })}{" "}
+                                  gal
+                                </p>
+                                <p className="text-[9px] font-bold text-slate-500">
+                                  $
+                                  {Math.round(subtotalManguera).toLocaleString(
+                                    "es-CO",
+                                  )}
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                          <span className="text-[9px] font-black text-yellow-600 bg-yellow-50 px-2.5 py-0.5 rounded-full border border-yellow-200">
-                            Inicial: {formatLectura(l.lectura_inicial)}
-                          </span>
-                        </div>
-                        <div>
-                          <label className="text-[8px] font-bold text-slate-400 uppercase block mb-1">
-                            Lectura Final
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="space-y-6">
+                    {/* Destinos de Recaudo */}
+                    {editDestinosRecaudo
+                      .filter(
+                        (destino) =>
+                          destino.codigo !== "LUBR" &&
+                          destino.nombre !== "Lubricantes",
+                      )
+                      .map((destino) => {
+                        return (
+                          <div
+                            key={destino.destino_recaudo_id}
+                            className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4"
+                          >
+                            <h3 className="text-xs font-black uppercase mb-6 flex items-center gap-2 text-slate-800">
+                              <Banknote size={16} /> Recaudo de {destino.nombre}
+                            </h3>
+                            <div className="grid grid-cols-2 gap-4">
+                              {Object.keys(destino.pagos).map((medio) => (
+                                <div key={medio} className="space-y-1">
+                                  <label className="text-[9px] font-bold text-slate-400 uppercase">
+                                    {medio}
+                                  </label>
+                                  <input
+                                    type="text"
+                                    className="w-full p-3 rounded-xl text-xs font-black text-right outline-none transition-all bg-slate-50 border border-slate-200 focus:border-zinc-900 text-slate-800"
+                                    value={destino.pagosInputs?.[medio] ?? ""}
+                                    placeholder="0,00"
+                                    onChange={(e) =>
+                                      handlePaymentChange(
+                                        destino.destino_recaudo_id,
+                                        medio,
+                                        e.target.value,
+                                      )
+                                    }
+                                    onBlur={() =>
+                                      handlePaymentBlur(
+                                        destino.destino_recaudo_id,
+                                        medio,
+                                      )
+                                    }
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                    {/* Sección de Anticipos Aplicados */}
+                    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-3">
+                      <h3 className="text-xs font-black uppercase flex items-center gap-2 text-slate-800">
+                        <CreditCard size={16} /> Total Anticipos Aplicados
+                      </h3>
+                      <input
+                        type="text"
+                        readOnly
+                        disabled
+                        className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-sm font-black text-slate-700 text-right outline-none cursor-not-allowed"
+                        value={formatPesos(calculatedValues.anticipos)}
+                      />
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">
+                        Anticipos cruzados en ventas del turno
+                      </p>
+                    </div>
+
+                    {/* Otros Movimientos y Observaciones */}
+                    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4">
+                      <h3 className="text-xs font-black uppercase flex items-center gap-2 text-slate-800">
+                        <FileText size={16} /> Ajustes y Observaciones
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-slate-400 uppercase">
+                            Otros Movimientos
                           </label>
                           <input
                             type="text"
-                            placeholder="0,000"
-                            className="w-full p-3 rounded-xl border border-slate-200 bg-white text-right text-xs font-black outline-none focus:border-zinc-900 transition-all text-slate-800"
-                            value={l.lecturaFinalInput ?? ""}
+                            placeholder="0,00"
+                            className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-black text-right text-slate-800 outline-none focus:border-zinc-900 transition-all"
+                            value={otrosMovimientosInput}
                             onChange={(e) =>
-                              handleReadingChange(l.manguera_id, e.target.value)
+                              handleOtrosMovimientosChange(e.target.value)
                             }
-                            onBlur={() => handleReadingBlur(l.manguera_id)}
+                            onBlur={handleOtrosMovimientosBlur}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-slate-400 uppercase">
+                            Detalle Movimientos
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Ej. Ajuste de caja"
+                            className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-zinc-900 transition-all"
+                            value={otrosDetalle}
+                            onChange={(e) => setOtrosDetalle(e.target.value)}
                           />
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
 
-                <div className="space-y-6">
-                  {/* Destinos de Recaudo */}
-                  {editDestinosRecaudo.map((destino) => {
-                    const esLubricantes = destino.nombre === "Lubricantes";
-
-                    return (
-                      <div
-                        key={destino.destino_recaudo_id}
-                        className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4"
-                      >
-                        <h3 className="text-xs font-black uppercase mb-6 flex items-center gap-2 text-slate-800">
-                          <Banknote size={16} /> {destino.nombre}
-                          {esLubricantes && (
-                            <span className="text-[9px] font-bold text-slate-400 ml-auto">
-                              (Automático)
-                            </span>
-                          )}
-                        </h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          {Object.keys(destino.pagos).map((medio) => (
-                            <div key={medio} className="space-y-1">
-                              <label className="text-[9px] font-bold text-slate-400 uppercase">
-                                {medio}
-                              </label>
-                              <input
-                                type="text"
-                                readOnly={esLubricantes}
-                                disabled={esLubricantes}
-                                className={`w-full p-3 rounded-xl text-xs font-black text-right outline-none transition-all ${
-                                  esLubricantes
-                                    ? "bg-slate-100 border border-slate-200 text-slate-700 cursor-not-allowed"
-                                    : "bg-slate-50 border border-slate-200 focus:border-zinc-900 text-slate-800"
-                                }`}
-                                value={
-                                  esLubricantes
-                                    ? formatPesos(destino.pagos[medio])
-                                    : (destino.pagosInputs?.[medio] ?? "")
-                                }
-                                placeholder="0,00"
-                                onChange={(e) =>
-                                  handlePaymentChange(
-                                    destino.destino_recaudo_id,
-                                    medio,
-                                    e.target.value,
-                                  )
-                                }
-                                onBlur={() =>
-                                  handlePaymentBlur(
-                                    destino.destino_recaudo_id,
-                                    medio,
-                                  )
-                                }
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Sección de Créditos */}
-                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-3">
-                    <h3 className="text-xs font-black uppercase flex items-center gap-2 text-slate-800">
-                      <CreditCard size={16} /> Total Créditos del Turno
-                    </h3>
-                    <input
-                      type="text"
-                      readOnly
-                      disabled
-                      className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-sm font-black text-slate-700 text-right outline-none cursor-not-allowed"
-                      value={formatPesos(calculatedValues.totalCreditos)}
-                    />
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">
-                      {revisionData.creditos?.length || 0} crédito(s)
-                      registrado(s) en este turno
-                    </p>
-                  </div>
-
-                  {/* Total Abonos de Cartera */}
-                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-3">
-                    <h3 className="text-xs font-black uppercase flex items-center gap-2 text-slate-800">
-                      <Users size={16} /> Total Abonos de Cartera
-                    </h3>
-                    <input
-                      type="text"
-                      readOnly
-                      disabled
-                      className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-sm font-black text-slate-700 text-right outline-none cursor-not-allowed"
-                      value={formatPesos(
-                        (revisionData.abonos || []).reduce(
-                          (acc, a) => acc + Number(a.monto || 0),
-                          0,
-                        ),
-                      )}
-                    />
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">
-                      {revisionData.abonos?.length || 0} abono(s) registrado(s)
-                      en este turno
-                    </p>
-                  </div>
-
-                  {/* Otros Movimientos y Observaciones */}
-                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4">
-                    <h3 className="text-xs font-black uppercase flex items-center gap-2 text-slate-800">
-                      <FileText size={16} /> Ajustes y Observaciones
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
+                      <div className="space-y-1 pt-2">
                         <label className="text-[9px] font-bold text-slate-400 uppercase">
-                          Otros Movimientos
+                          Observación de Cierre
                         </label>
-                        <input
-                          type="text"
-                          placeholder="0,00"
-                          className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-black text-right text-slate-800 outline-none focus:border-zinc-900 transition-all"
-                          value={otrosMovimientosInput}
-                          onChange={(e) =>
-                            handleOtrosMovimientosChange(e.target.value)
-                          }
-                          onBlur={handleOtrosMovimientosBlur}
+                        <textarea
+                          rows="2"
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-zinc-900 transition-all resize-none"
+                          value={observacionCierre}
+                          onChange={(e) => setObservacionCierre(e.target.value)}
                         />
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-400 uppercase">
-                          Detalle Movimientos
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Ej. Ajuste de caja"
-                          className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-zinc-900 transition-all"
-                          value={otrosDetalle}
-                          onChange={(e) => setOtrosDetalle(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1 pt-2">
-                      <label className="text-[9px] font-bold text-slate-400 uppercase">
-                        Observación de Cierre
-                      </label>
-                      <textarea
-                        rows="2"
-                        className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-zinc-900 transition-all resize-none"
-                        value={observacionCierre}
-                        onChange={(e) => setObservacionCierre(e.target.value)}
-                      />
                     </div>
                   </div>
                 </div>
-              </div>
               </form>
 
               <ShiftOperationsSection

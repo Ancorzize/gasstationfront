@@ -4,12 +4,13 @@ import * as XLSX from 'xlsx';
 import { 
   ShoppingBag, Search, Plus, Loader2, 
   Calendar, Eye, Edit3, CheckCircle2, 
-  Clock, Wallet, Download 
+  Clock, Wallet, Download, Layers 
 } from 'lucide-react';
 import { purchaseService } from '../services/purchaseService';
 import { useToast } from '../../../context/ToastContext';
 import { getTodayStr } from '../../../shared/utils/dateUtils';
 import { GeneralPaymentModal } from '../components/GeneralPaymentModal'; 
+import { InitialBalanceModal } from '../components/InitialBalanceModal'; 
 
 export const PurchaseListPage = () => {
 
@@ -20,6 +21,7 @@ export const PurchaseListPage = () => {
   const [endDate, setEndDate] = useState(getTodayStr());
   
   const [isGeneralModalOpen, setIsGeneralModalOpen] = useState(false);
+  const [isInitialBalanceModalOpen, setIsInitialBalanceModalOpen] = useState(false);
 
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -148,6 +150,13 @@ export const PurchaseListPage = () => {
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-blue-700 transition-all shadow-md"
           >
             <Wallet size={16} /> Abono a proveedor
+          </button>
+
+          <button 
+            onClick={() => setIsInitialBalanceModalOpen(true)}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-indigo-700 transition-all shadow-md"
+          >
+            <Layers size={16} /> Saldo inicial
           </button>
 
           {/* BOTÓN EXPORTAR */}
@@ -293,6 +302,14 @@ export const PurchaseListPage = () => {
       </div>
 
       {/* RENDERIZADO DEL MODAL DE ABONO GENERAL */}
+      <InitialBalanceModal
+        isOpen={isInitialBalanceModalOpen}
+        onClose={() => setIsInitialBalanceModalOpen(false)}
+        onSave={() => {
+          fetchPurchases();
+        }}
+      />
+
       <GeneralPaymentModal 
         isOpen={isGeneralModalOpen}
         onClose={() => setIsGeneralModalOpen(false)}
