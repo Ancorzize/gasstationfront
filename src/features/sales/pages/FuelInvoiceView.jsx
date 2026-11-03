@@ -1,14 +1,34 @@
-import React from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { printService } from '../../../shared/services/printService';
 
 export const FuelInvoiceView = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const sale = location.state?.saleData;
+  const isReprint = Boolean(location.state?.isReprint);
+  const autoPrint = Boolean(location.state?.autoPrint || location.state?.isReprint);
+  const hasAutoPrintedRef = useRef(false);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = useCallback(async () => {
+    try {
+      const jobName = `Ticket_${sale?.prefijo || 'POS'}_${sale?.numero_factura || '000000'}`;
+      await printService.printInvoice(jobName);
+    } catch (error) {
+      console.error("Error al imprimir ticket:", error);
+      alert(error.message || "No se pudo iniciar la impresión en el dispositivo.");
+    }
+  }, [sale]);
+
+  useEffect(() => {
+    if (autoPrint && sale && !hasAutoPrintedRef.current) {
+      hasAutoPrintedRef.current = true;
+      const timer = setTimeout(() => {
+        handlePrint();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [autoPrint, sale, handlePrint]);
 
   return (
     <div className="min-h-screen bg-slate-100 py-6 px-4 flex flex-col items-center justify-start text-left">
@@ -39,6 +59,11 @@ export const FuelInvoiceView = () => {
           </h1>
           <p className="text-[10px] font-black text-black">Factura POS N°: {sale?.prefijo}-{sale?.numero_factura || '000000'}</p>
           <p className="text-[10px] font-black text-black mt-1">DESPACHO DE COMBUSTIBLE</p>
+          {isReprint && (
+            <p className="text-[9px] font-black text-black tracking-wider uppercase mt-1">
+              *** COPIA / REIMPRESIÓN ***
+            </p>
+          )}
         </div>
 
         {/* Datos Generales */}
@@ -59,7 +84,11 @@ export const FuelInvoiceView = () => {
           </div>
           <div className="flex justify-between">
             <span className="text-black">CLIENTE:</span>
-            <span className="text-black">{sale?.cliente?.nombre || 'Consumidor Final'}</span>
+            <span className="text-black">
+              {sale?.cliente
+                ? `${sale.cliente.nombre || ''} ${sale.cliente.apellidos || ''}`.trim() || 'Consumidor Final'
+                : 'Consumidor Final'}
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-black">OBS:</span>

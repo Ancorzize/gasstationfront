@@ -32,7 +32,7 @@ export const authService = {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('permissions');
-    window.location.href = '/login';
+    window.dispatchEvent(new CustomEvent('gasstation:logout'));
   },
 
   getToken: () => {

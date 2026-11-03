@@ -5,8 +5,10 @@ import { X, User, Smartphone, MapPin, Contact2, Mail, Globe, Shield, Hash } from
 import { clientService } from '../services/clientService';
 import { companyService } from '../../settings/services/companyService';
 import { useToast } from '../../../context/ToastContext';
+import { useModalBackHandler } from '../../../hooks/useModalBackHandler';
 
 export const ClientModal = ({ isOpen, onClose, onSave, clientToEdit = null }) => {
+  useModalBackHandler(isOpen, onClose);
   const [formData, setFormData] = useState({ 
     nombre: '', 
     apellidos: '', 

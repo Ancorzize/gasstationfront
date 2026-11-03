@@ -4,9 +4,11 @@ import { X, Save, User, Mail, Lock, Shield, Warehouse } from 'lucide-react';
 import { userService } from '../services/userService';
 import { useToast } from '../../../context/ToastContext';
 import { warehouseService } from '../../warehouses/services/warehouseService';
+import { useModalBackHandler } from '../../../hooks/useModalBackHandler';
 
 export const UserModal = ({ isOpen, onClose, onSave, userToEdit = null }) => {
   const [roles, setRoles] = useState([]);
+  useModalBackHandler(isOpen, onClose);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', role: '', bodega_id: null });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

@@ -4,8 +4,10 @@ import { shiftService } from '../services/shiftService';
 import { stationService } from '../../stations/services/stationService';
 import { useToast } from '../../../context/ToastContext';
 import { usePermissions } from '../../../hooks/usePermissions';
+import { useModalBackHandler } from '../../../hooks/useModalBackHandler';
 
 export const OpenShiftModal = ({ isOpen, onClose, onSave }) => {
+  useModalBackHandler(isOpen, onClose);
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();
   const requiereCombustible = hasPermission('vender_combustible');

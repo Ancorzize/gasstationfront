@@ -1,14 +1,34 @@
-import React from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { printService } from '../../../shared/services/printService';
 
 export const SaleInvoiceView = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const sale = location.state?.saleData;
+  const isReprint = Boolean(location.state?.isReprint);
+  const autoPrint = Boolean(location.state?.autoPrint || location.state?.isReprint);
+  const hasAutoPrintedRef = useRef(false);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = useCallback(async () => {
+    try {
+      const jobName = `Ticket_${sale?.prefijo || 'POS'}_${sale?.numero_factura || '000000'}`;
+      await printService.printInvoice(jobName);
+    } catch (error) {
+      console.error("Error al imprimir ticket:", error);
+      alert(error.message || "No se pudo iniciar la impresión en el dispositivo.");
+    }
+  }, [sale]);
+
+  useEffect(() => {
+    if (autoPrint && sale && !hasAutoPrintedRef.current) {
+      hasAutoPrintedRef.current = true;
+      const timer = setTimeout(() => {
+        handlePrint();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [autoPrint, sale, handlePrint]);
 
   return (
     <div className="min-h-screen bg-slate-100 py-6 px-4 flex flex-col items-center justify-start text-left">
@@ -35,21 +55,30 @@ export const SaleInvoiceView = () => {
         {/* Cabecera */}
         <div className="text-center pb-3 border-b-2 border-dashed border-black space-y-0.5">
           <h1 className="text-xs font-black uppercase text-black">
-            {sale?.turno_islero?.estacion?.nombre || 'PANEL ADMINISTRATIVO'}
+            {sale?.turno_islero?.estacion?.nombre || 'ESTACIÓN DE SERVICIO'}
           </h1>
-          <p className="text-[10px] font-black text-black">NIT: {sale?.turno_islero?.estacion?.nit || 'NIT: --'}</p>
+          <p className="text-[10px] font-black text-black">Factura POS N°: {sale?.prefijo || 'POS'}-{sale?.numero_factura || '000000'}</p>
           <p className="text-[10px] font-black text-black mt-1">Factura de Venta POS</p>
+          {isReprint && (
+            <p className="text-[9px] font-black text-black tracking-wider uppercase mt-1">
+              *** COPIA / REIMPRESIÓN ***
+            </p>
+          )}
         </div>
 
         {/* Datos Generales */}
         <div className="py-2 border-b-2 border-dashed border-black space-y-1 text-[10px] font-bold">
           <div className="flex justify-between">
             <span className="text-black">FECHA:</span>
-            <span className="text-black">{sale?.created_at || '29/08/2026'}</span>
+            <span className="text-black">
+              {sale?.fecha_venta
+                ? new Date(sale.fecha_venta).toLocaleString()
+                : (sale?.created_at ? new Date(sale.created_at).toLocaleString() : '---')}
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-black">ATENDIDO POR:</span>
-            <span className="text-black">{sale?.turno_islero?.user?.name || 'Islero'}</span>
+            <span className="text-black">{sale?.usuario?.name || sale?.turno_islero?.user?.name || 'Vendedor'}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-black">TIPO VENTA:</span>
@@ -57,11 +86,15 @@ export const SaleInvoiceView = () => {
           </div>
           <div className="flex justify-between">
             <span className="text-black">CLIENTE:</span>
-            <span className="text-black">{sale?.cliente?.nombre || 'Consumidor Final'}</span>
+            <span className="text-black">
+              {sale?.cliente
+                ? `${sale.cliente.nombre || ''} ${sale.cliente.apellidos || ''}`.trim() || 'Consumidor Final'
+                : 'Consumidor Final'}
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-black">OBS:</span>
-            <span className="text-black">{sale?.observacion || 'Venta de lubricantes'}</span>
+            <span className="text-black">{sale?.observacion || 'Sin observación'}</span>
           </div>
         </div>
 
@@ -73,24 +106,16 @@ export const SaleInvoiceView = () => {
             sale.detalles.map((item, index) => (
               <div key={index} className="py-1 space-y-0.5 text-[10px] font-bold">
                 <div className="flex justify-between font-black">
-                  <span className="truncate pr-1">{item.producto?.nombre || 'TERPEL ULTREK 90'}</span>
-                  <span>${Number(item.subtotal || 24000).toLocaleString()}</span>
+                  <span className="truncate pr-1">{item.producto?.nombre || 'Producto'}</span>
+                  <span>${Number(item.total || item.subtotal || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-[9px] font-bold text-black">
-                  <span>{item.cantidad || 1} UN x ${Number(item.precio_unitario || 24000).toLocaleString()}</span>
+                  <span>{Number(item.cantidad || 0)} {item.producto?.unidad_medida || 'UN'} x ${Number(item.precio_unitario || 0).toLocaleString()}</span>
                 </div>
               </div>
             ))
           ) : (
-            <div className="py-1 space-y-0.5 text-[10px] font-bold">
-              <div className="flex justify-between font-black">
-                <span className="truncate pr-1">TERPEL ULTREK 90 TRANSMISION 1/4</span>
-                <span>$ 24.000,00</span>
-              </div>
-              <div className="flex justify-between text-[9px] font-bold text-black">
-                <span>1 UN x $ 24.000,00</span>
-              </div>
-            </div>
+            <p className="text-[10px] font-bold text-black italic text-center">Sin detalles de productos</p>
           )}
         </div>
 
@@ -98,15 +123,15 @@ export const SaleInvoiceView = () => {
         <div className="py-2 border-b-2 border-dashed border-black space-y-1 text-[10px] font-bold">
           <div className="flex justify-between">
             <span className="text-black">Subtotal</span>
-            <span className="text-black">${Number(sale?.subtotal || 24000).toLocaleString()}</span>
+            <span className="text-black">${Number(sale?.subtotal || 0).toLocaleString()}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-black">Impuestos / IVA</span>
-            <span className="text-black">${Number(sale?.impuestos || 0).toLocaleString()}</span>
+            <span className="text-black">${Number(sale?.impuesto || sale?.impuestos || 0).toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-xs font-black pt-1">
             <span>TOTAL A PAGAR</span>
-            <span>${Number(sale?.total || 24000).toLocaleString()}</span>
+            <span>${Number(sale?.total || 0).toLocaleString()}</span>
           </div>
         </div>
 
@@ -121,14 +146,24 @@ export const SaleInvoiceView = () => {
               </div>
             ))
           )}
-          <div className="flex justify-between">
-            <span className="text-black">EFECTIVO (EFECTIVO)</span>
-            <span className="text-black">${Number(sale?.total || 24000).toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-black">SALDO PENDIENTE</span>
-            <span className="text-black">${Number(sale?.saldo_pendiente || 0).toLocaleString()}</span>
-          </div>
+          {sale?.pagos && sale.pagos.length > 0 ? (
+            sale.pagos.map((pago, idx) => (
+              <div key={idx} className="flex justify-between font-bold">
+                <span className="text-black uppercase">{pago.metodo_pago || 'PAGO'}</span>
+                <span className="text-black">${Number(pago.monto || 0).toLocaleString()}</span>
+              </div>
+            ))
+          ) : (
+            (!sale?.aplicaciones_anticipo || sale.aplicaciones_anticipo.length === 0) && (
+              <p className="text-[9px] font-bold text-black italic text-center">Sin pagos registrados</p>
+            )
+          )}
+          {Number(sale?.saldo_pendiente || 0) > 0 && (
+            <div className="flex justify-between text-[9px] font-bold text-black pt-1">
+              <span>SALDO PENDIENTE:</span>
+              <span>${Number(sale?.saldo_pendiente).toLocaleString()}</span>
+            </div>
+          )}
         </div>
 
         {/* Pie de página */}

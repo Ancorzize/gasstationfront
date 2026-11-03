@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { X, Search, Loader2, UserCheck, ChevronRight } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { clientService } from '../../clients/services/clientService';
+import { useModalBackHandler } from '../../../hooks/useModalBackHandler';
 
 export const SearchClientModal = ({ isOpen, onClose }) => {
+  useModalBackHandler(isOpen, onClose);
   const [documento, setDocumento] = useState('');
   const [loading, setLoading] = useState(false);
   const [clientsList, setClientsList] = useState([]);

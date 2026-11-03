@@ -1,8 +1,11 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, X } from 'lucide-react';
+import { useModalBackHandler } from '../../hooks/useModalBackHandler';
 
 export const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, loading = false }) => {
+  useModalBackHandler(isOpen, onClose);
+
   return (
     <AnimatePresence>
       {isOpen && (

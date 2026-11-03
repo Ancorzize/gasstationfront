@@ -57,14 +57,23 @@ import { FuelInvoiceView } from "./features/sales/pages/FuelInvoiceView";
 import { PayrollEmployeesPage } from "./features/payroll/pages/PayrollEmployeesPage";
 import { PayrollPeriodsPage } from "./features/payroll/pages/PayrollPeriodsPage";
 import { PayrollSettlementsPage } from "./features/payroll/pages/PayrollSettlementsPage";
+import { useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { ElectronicPayrollPage } from "./features/payroll/pages/ElectronicPayrollPage";
+import { NativeAppManager } from "./components/NativeAppManager";
+import { AnimatedSplashScreen } from "./components/AnimatedSplashScreen";
 
 function App() {
   useInactivityTimeout(300);
+  const [showSplash, setShowSplash] = useState(() => Capacitor.isNativePlatform());
 
   return (
     <ToastProvider>
       <BrowserRouter>
+        {showSplash && (
+          <AnimatedSplashScreen onFinish={() => setShowSplash(false)} />
+        )}
+        <NativeAppManager isSplashActive={showSplash} />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
 

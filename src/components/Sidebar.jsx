@@ -10,6 +10,7 @@ import logoEmpresa from '../images/logoGranjas.png';
 import { authService } from '../features/auth/services/authService';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePermissions } from '../hooks/usePermissions';
+import { modalStack } from '../utils/modalStack';
 
 const menuGroups = [
   {
@@ -92,6 +93,12 @@ const menuGroups = [
 export const Sidebar = () => {
   const [isExpanded, setIsExpanded] = useState(window.innerWidth > 768);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (isMobileOpen) {
+      return modalStack.push(() => setIsMobileOpen(false));
+    }
+  }, [isMobileOpen]);
   const [user, setUser] = useState({ name: 'Usuario', email: '' });
   const { hasPermission, loading } = usePermissions();
   const navigate = useNavigate();

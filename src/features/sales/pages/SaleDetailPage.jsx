@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import {
   ArrowLeft,
   Loader2,
@@ -54,6 +55,18 @@ export const SaleDetailPage = () => {
   }, [id]);
 
   const handlePrint = () => {
+    if (Capacitor.isNativePlatform()) {
+      if (!sale) return;
+      const targetRoute =
+        sale.tipo_origen === "combustible"
+          ? "/operacion/factura-combustible"
+          : "/operacion/factura-venta";
+      navigate(targetRoute, {
+        state: { saleData: sale, isReprint: true, autoPrint: true },
+      });
+      return;
+    }
+
     window.print();
   };
 
