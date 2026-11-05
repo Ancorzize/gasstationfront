@@ -70,9 +70,10 @@ const fetchApkDownloadInfo = async () => {
 
   inMemoryApkPromise = companyService.getPublicApkUrl()
     .then((data) => {
+      const payload = data?.data || data;
       inMemoryApkData = {
-        disponible: Boolean(data && data.disponible && data.url_descarga_apk),
-        url_descarga_apk: data?.url_descarga_apk || null,
+        disponible: Boolean(payload && payload.disponible && payload.url_descarga_apk),
+        url_descarga_apk: payload?.url_descarga_apk || null,
       };
       return inMemoryApkData;
     })
