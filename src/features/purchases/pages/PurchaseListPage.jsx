@@ -10,7 +10,8 @@ import { purchaseService } from '../services/purchaseService';
 import { useToast } from '../../../context/ToastContext';
 import { getTodayStr } from '../../../shared/utils/dateUtils';
 import { GeneralPaymentModal } from '../components/GeneralPaymentModal'; 
-import { InitialBalanceModal } from '../components/InitialBalanceModal'; 
+import { InitialBalanceModal } from '../components/InitialBalanceModal';
+import { usePermissions } from '../../../hooks/usePermissions'; 
 
 export const PurchaseListPage = () => {
 
@@ -25,6 +26,7 @@ export const PurchaseListPage = () => {
 
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
 
   const fetchPurchases = async () => {
     setLoading(true);
@@ -145,19 +147,23 @@ export const PurchaseListPage = () => {
 
         <div className="flex flex-wrap items-center gap-3">
           {/* BOTÓN NUEVO: ABONO A PROVEEDOR */}
-          <button 
-            onClick={() => setIsGeneralModalOpen(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-blue-700 transition-all shadow-md"
-          >
-            <Wallet size={16} /> Abono a proveedor
-          </button>
+          {hasPermission('registrar_pagos_compra') && (
+            <button 
+              onClick={() => setIsGeneralModalOpen(true)}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-blue-700 transition-all shadow-md"
+            >
+              <Wallet size={16} /> Abono a proveedor
+            </button>
+          )}
 
-          <button 
-            onClick={() => setIsInitialBalanceModalOpen(true)}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-indigo-700 transition-all shadow-md"
-          >
-            <Layers size={16} /> Saldo inicial
-          </button>
+          {hasPermission('crear_saldos_iniciales_cartera') && (
+            <button 
+              onClick={() => setIsInitialBalanceModalOpen(true)}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-indigo-700 transition-all shadow-md"
+            >
+              <Layers size={16} /> Saldo inicial
+            </button>
+          )}
 
           {/* BOTÓN EXPORTAR */}
           <button 
@@ -198,12 +204,14 @@ export const PurchaseListPage = () => {
             />
           </div>
 
-          <button 
-            onClick={() => navigate('/compras/nueva')}
-            className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black shadow-xl transition-all"
-          >
-            <Plus size={16} /> Nueva Compra
-          </button>
+          {hasPermission('crear_compras') && (
+            <button 
+              onClick={() => navigate('/compras/nueva')}
+              className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-black shadow-xl transition-all"
+            >
+              <Plus size={16} /> Nueva Compra
+            </button>
+          )}
         </div>
       </header>
 
@@ -277,7 +285,7 @@ export const PurchaseListPage = () => {
                         >
                           <Eye size={18} />
                         </button>
-                        {purchase.estado === 'borrador' && (
+                        {purchase.estado === 'borrador' && hasPermission('editar_compras') && (
                           <button 
                             onClick={() => navigate(`/compras/editar/${purchase.id}`)}
                             className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"

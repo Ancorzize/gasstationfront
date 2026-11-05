@@ -153,12 +153,14 @@ export const CustomerStatementPage = () => {
             </button>
           )}
 
-          <button
-            onClick={() => setIsPaymentModalOpen(true)}
-            className="flex items-center justify-center gap-2 bg-zinc-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200"
-          >
-            <PlusCircle size={18} /> Registrar Abono
-          </button>
+          {hasPermission('registrar_abonos_cartera') && (
+            <button
+              onClick={() => setIsPaymentModalOpen(true)}
+              className="flex items-center justify-center gap-2 bg-zinc-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200"
+            >
+              <PlusCircle size={18} /> Registrar Abono
+            </button>
+          )}
         </div>
       </header>
 

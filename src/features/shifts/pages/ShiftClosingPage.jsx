@@ -12,6 +12,8 @@ import {
   Calculator,
   CheckCircle2,
   RotateCcw,
+  CreditCard,
+  FileText,
 } from "lucide-react";
 import { shiftService } from "../services/shiftService";
 import { useToast } from "../../../context/ToastContext";
@@ -126,6 +128,11 @@ export const ShiftClosingPage = () => {
     destinos_recaudo: [],
   });
 
+  const [otrosMovimientos, setOtrosMovimientos] = useState(0);
+  const [otrosMovimientosInput, setOtrosMovimientosInput] = useState("");
+  const [otrosDetalle, setOtrosDetalle] = useState("");
+  const [observacionCierre, setObservacionCierre] = useState("");
+
   const estadoActual = summary?.turno?.estado;
   const isReadOnly =
     estadoActual === "pendiente_cierre" || estadoActual === "cerrado";
@@ -201,6 +208,12 @@ export const ShiftClosingPage = () => {
             lecturas_finales: lecturasInits,
             destinos_recaudo: destinosInits,
           });
+
+          const valOtros = parseFloat(data.turno?.otros_movimientos || 0);
+          setOtrosMovimientos(valOtros);
+          setOtrosMovimientosInput(valOtros ? formatPesos(valOtros) : "");
+          setOtrosDetalle(data.turno?.otros_movimientos_detalle || "");
+          setObservacionCierre(data.turno?.observacion_cierre || "");
         } else {
           // Refresco tras editar/anular operaciones:
           // PRESERVAR lecturas finales y recaudo de combustible digitados por el islero.
@@ -270,53 +283,56 @@ export const ShiftClosingPage = () => {
         balance: 0,
       };
 
+    const round2 = (num) => Math.round((Number(num) || 0) * 100) / 100;
+
     // 1. Combustible físico a partir de las lecturas ingresadas en el formulario
-    const totalCombustible = formData.lecturas_finales.reduce((acc, l) => {
-      const inicial = Number(l.lectura_inicial) || 0;
-      const final =
-        l.lectura_final !== "" && !isNaN(Number(l.lectura_final))
-          ? Number(l.lectura_final)
-          : inicial;
-      const galonesVendidos = Math.max(0, final - inicial);
-      const galonesRedondeados = Math.round(galonesVendidos * 1000) / 1000;
-      return acc + galonesRedondeados * Number(l.precio_galon || 0);
-    }, 0);
+    const totalCombustible = round2(
+      formData.lecturas_finales.reduce((acc, l) => {
+        const inicial = Number(l.lectura_inicial) || 0;
+        const final =
+          l.lectura_final !== "" && !isNaN(Number(l.lectura_final))
+            ? Number(l.lectura_final)
+            : inicial;
+        const galonesVendidos = Math.max(0, final - inicial);
+        const galonesRedondeados = Math.round(galonesVendidos * 1000) / 1000;
+        return acc + round2(galonesRedondeados * Number(l.precio_galon || 0));
+      }, 0),
+    );
 
     // 2. Ventas de lubricantes (POS)
-    const ventasLubricantes = Number(
+    const ventasLubricantes = round2(
       summary.totales_sistema?.ventas_lubricantes || 0,
     );
 
     // 3. Créditos otorgados en el turno (saldo pendiente de ventas)
-    const creditos = Number(
+    const creditos = round2(
       summary.totales_sistema?.creditos ||
         summary.totales_pago_sugeridos?.creditos ||
         0,
     );
 
     // 4. Anticipos de clientes aplicados a ventas del turno (saldo a favor consumido)
-    const anticipos = Number(
+    const anticipos = round2(
       summary.totales_sistema?.anticipos_aplicados ||
         summary.totales_pago_sugeridos?.anticipos_aplicados ||
         0,
     );
 
     // 5. Abonos de cartera recibidos en el turno
-    const abonos = (summary.abonos_recibidos || []).reduce(
-      (acc, a) => acc + Number(a.monto || 0),
-      0,
+    const abonos = round2(
+      (summary.abonos_recibidos || []).reduce(
+        (acc, a) => acc + Number(a.monto || 0),
+        0,
+      ),
     );
 
     // Total Esperado = Combustible físico + Lubricantes - Créditos - Anticipos + Abonos
-    let totalEsperado =
-      totalCombustible + ventasLubricantes - creditos - anticipos + abonos;
+    const totalEsperado = round2(
+      totalCombustible + ventasLubricantes - creditos - anticipos + abonos,
+    );
 
-    if (Math.abs(totalEsperado) < 100) {
-      totalEsperado = 0;
-    }
-
-    // Total Reportado = Recaudos por destino (combustible + lubricantes automáticos) + Abonos
-    const totalReportado =
+    // Total Reportado = Recaudos por destino (combustible + lubricantes automáticos) + Abonos + Otros Movimientos
+    const totalReportado = round2(
       formData.destinos_recaudo.reduce((acc, d) => {
         return (
           acc +
@@ -325,25 +341,25 @@ export const ShiftClosingPage = () => {
             0,
           )
         );
-      }, 0) + abonos;
+      }, 0) +
+        Number(otrosMovimientos || 0) +
+        abonos,
+    );
 
-    let balance = totalReportado - totalEsperado;
-
-    if (Math.abs(balance) < 100) {
-      balance = 0;
-    }
+    const balance = round2(totalReportado - totalEsperado);
 
     return {
-      totalCombustible: Math.round(totalCombustible),
-      ventasLubricantes: Math.round(ventasLubricantes),
-      creditos: Math.round(creditos),
-      anticipos: Math.round(anticipos),
-      abonos: Math.round(abonos),
-      totalEsperado: Math.round(totalEsperado),
-      totalReportado: Math.round(totalReportado),
-      balance: Math.round(balance),
+      totalCombustible,
+      ventasLubricantes,
+      creditos,
+      anticipos,
+      abonos,
+      totalEsperado,
+      totalReportado,
+      balance,
+      otrosMovimientos: round2(otrosMovimientos || 0),
     };
-  }, [summary, formData]);
+  }, [summary, formData, otrosMovimientos]);
 
   const handleReadingChange = (mangueraId, rawValue) => {
     // Permitir dígitos, comas, puntos y guiones sin alterar destructivamente el texto mientras se escribe
@@ -429,6 +445,18 @@ export const ShiftClosingPage = () => {
     }));
   };
 
+  const handleOtrosMovimientosChange = (rawValue) => {
+    setOtrosMovimientosInput(rawValue);
+    const parsedNum = parsePesos(rawValue);
+    setOtrosMovimientos(parsedNum === "" ? 0 : parsedNum);
+  };
+
+  const handleOtrosMovimientosBlur = () => {
+    setOtrosMovimientosInput(
+      otrosMovimientos ? formatPesos(otrosMovimientos) : "",
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isReadOnly) return;
@@ -475,9 +503,9 @@ export const ShiftClosingPage = () => {
           destino_recaudo_id: d.destino_recaudo_id,
           pagos: d.pagos,
         })),
-        otros_movimientos: 0,
-        otros_movimientos_detalle: null,
-        observacion_cierre: "",
+        otros_movimientos: Number(otrosMovimientos) || 0,
+        otros_movimientos_detalle: otrosDetalle ? otrosDetalle : null,
+        observacion_cierre: observacionCierre,
       };
 
       const res = await shiftService.requestCloseShift(id, payload);
@@ -623,6 +651,14 @@ export const ShiftClosingPage = () => {
             Créditos: -${calculatedValues.creditos.toLocaleString("es-CO")} |{" "}
             Anticipos: -${calculatedValues.anticipos.toLocaleString("es-CO")} |{" "}
             Abonos: +${calculatedValues.abonos.toLocaleString("es-CO")}
+            {calculatedValues.otrosMovimientos !== 0 && (
+              <>
+                {" "}
+                | Otros Mov.:{" "}
+                {calculatedValues.otrosMovimientos >= 0 ? "+" : ""}$
+                {calculatedValues.otrosMovimientos.toLocaleString("es-CO")}
+              </>
+            )}
           </p>
         </div>
         <div className="text-left md:text-right">
@@ -636,7 +672,7 @@ export const ShiftClosingPage = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form id="shift-closing-form" onSubmit={handleSubmit} className="space-y-8">
         {/* 3. Bloque Principal: Mangueras y Recaudo de Combustible */}
         <div
           className={
@@ -817,42 +853,123 @@ export const ShiftClosingPage = () => {
                   </div>
                 );
               })}
+
+            {/* Sección de Anticipos Aplicados */}
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-3">
+              <h3 className="text-xs font-black uppercase flex items-center gap-2 text-slate-800">
+                <CreditCard size={16} /> Total Anticipos Aplicados
+              </h3>
+              <input
+                type="text"
+                readOnly
+                disabled
+                className="w-full p-4 bg-slate-100 border border-slate-200 rounded-2xl text-sm font-black text-slate-700 text-right outline-none cursor-not-allowed"
+                value={formatPesos(calculatedValues.anticipos)}
+              />
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">
+                Anticipos cruzados en ventas del turno
+              </p>
+            </div>
+
+            {/* Otros Movimientos y Observaciones */}
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4">
+              <h3 className="text-xs font-black uppercase flex items-center gap-2 text-slate-800">
+                <FileText size={16} /> Ajustes y Observaciones
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase">
+                    Otros Movimientos
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="0,00"
+                    disabled={isReadOnly}
+                    className={`w-full p-3 rounded-xl text-xs font-black text-right outline-none transition-all ${
+                      isReadOnly
+                        ? "bg-slate-100 border border-slate-200 text-slate-600 cursor-not-allowed"
+                        : "bg-white border border-slate-200 focus:border-zinc-900 text-slate-800"
+                    }`}
+                    value={otrosMovimientosInput}
+                    onChange={(e) =>
+                      handleOtrosMovimientosChange(e.target.value)
+                    }
+                    onBlur={handleOtrosMovimientosBlur}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase">
+                    Detalle Movimientos
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Ajuste de caja"
+                    disabled={isReadOnly}
+                    className={`w-full p-3 rounded-xl text-xs font-bold outline-none transition-all ${
+                      isReadOnly
+                        ? "bg-slate-100 border border-slate-200 text-slate-600 cursor-not-allowed"
+                        : "bg-white border border-slate-200 focus:border-zinc-900 text-slate-800"
+                    }`}
+                    value={otrosDetalle}
+                    onChange={(e) => setOtrosDetalle(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1 pt-2">
+                <label className="text-[9px] font-bold text-slate-400 uppercase">
+                  Observación de Cierre
+                </label>
+                <textarea
+                  rows="2"
+                  disabled={isReadOnly}
+                  className={`w-full p-3 rounded-xl text-xs font-bold outline-none transition-all resize-none ${
+                    isReadOnly
+                      ? "bg-slate-100 border border-slate-200 text-slate-600 cursor-not-allowed"
+                      : "bg-white border border-slate-200 focus:border-zinc-900 text-slate-800"
+                  }`}
+                  value={observacionCierre}
+                  onChange={(e) => setObservacionCierre(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* 4. Sección Operaciones del Turno (Integración con ShiftOperationsSection) */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm">
-          <ShiftOperationsSection
-            turnoId={id}
-            turnoEstado={estadoActual}
-            onOperationsChanged={handleOperationsChanged}
-          />
-        </div>
-
-        {/* 5. Botón de Acción Principal */}
-        {!isReadOnly ? (
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white py-5 rounded-[2rem] font-black uppercase text-xs hover:bg-black transition-all shadow-xl disabled:opacity-50"
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" size={18} />
-            ) : (
-              <Send size={18} />
-            )}
-            {estadoActual === "devuelto"
-              ? "Reenviar Solicitud de Cierre"
-              : "Solicitar Aprobación de Cierre"}
-          </button>
-        ) : (
-          <div className="p-4 bg-slate-100 rounded-2xl text-center text-slate-500 font-black text-[10px] uppercase tracking-widest border border-slate-200">
-            {estadoActual === "pendiente_cierre"
-              ? "El turno ya se encuentra enviado y pendiente de revisión administrativa."
-              : "Turno cerrado definitivamente. No admite modificaciones."}
-          </div>
-        )}
       </form>
+
+      {/* 4. Sección Operaciones del Turno (Desacoplada del formulario de cierre) */}
+      <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm">
+        <ShiftOperationsSection
+          turnoId={id}
+          turnoEstado={estadoActual}
+          onOperationsChanged={handleOperationsChanged}
+        />
+      </div>
+
+      {/* 5. Botón de Acción Principal */}
+      {!isReadOnly ? (
+        <button
+          form="shift-closing-form"
+          type="submit"
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white py-5 rounded-[2rem] font-black uppercase text-xs hover:bg-black transition-all shadow-xl disabled:opacity-50 cursor-pointer"
+        >
+          {loading ? (
+            <Loader2 className="animate-spin" size={18} />
+          ) : (
+            <Send size={18} />
+          )}
+          {estadoActual === "devuelto"
+            ? "Reenviar Solicitud de Cierre"
+            : "Solicitar Aprobación de Cierre"}
+        </button>
+      ) : (
+        <div className="p-4 bg-slate-100 rounded-2xl text-center text-slate-500 font-black text-[10px] uppercase tracking-widest border border-slate-200">
+          {estadoActual === "pendiente_cierre"
+            ? "El turno ya se encuentra enviado y pendiente de revisión administrativa."
+            : "Turno cerrado definitivamente. No admite modificaciones."}
+        </div>
+      )}
     </div>
   );
 };

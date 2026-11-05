@@ -10,6 +10,7 @@ import { inventoryService } from '../services/inventoryService';
 import { warehouseService } from '../../warehouses/services/warehouseService';
 import { productService } from '../../products/services/productService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const TransferModal = ({ isOpen, onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -24,6 +25,8 @@ export const TransferModal = ({ isOpen, onClose, onSave }) => {
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const { hasPermission } = usePermissions();
+  const canTransfer = hasPermission('crear_movimientos_inventario');
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -72,6 +75,9 @@ export const TransferModal = ({ isOpen, onClose, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canTransfer) {
+      return showToast("No tienes permisos para registrar movimientos de inventario", "error");
+    }
     if (formData.bodega_origen_id === formData.bodega_destino_id) {
       return showToast("La bodega destino debe ser diferente al origen", "error");
     }
@@ -173,9 +179,11 @@ export const TransferModal = ({ isOpen, onClose, onSave }) => {
                   value={formData.observacion} onChange={e => setFormData({...formData, observacion: e.target.value})} placeholder="Observación..." />
               </div>
 
-              <button type="submit" disabled={submitting} className="w-full py-4 rounded-2xl bg-zinc-900 text-white font-black text-[10px] uppercase transition-all hover:bg-black disabled:opacity-50">
-                {submitting ? <Loader2 className="animate-spin mx-auto" size={16} /> : "Confirmar Traslado"}
-              </button>
+              {canTransfer && (
+                <button type="submit" disabled={submitting} className="w-full py-4 rounded-2xl bg-zinc-900 text-white font-black text-[10px] uppercase transition-all hover:bg-black disabled:opacity-50">
+                  {submitting ? <Loader2 className="animate-spin mx-auto" size={16} /> : "Confirmar Traslado"}
+                </button>
+              )}
             </form>
           </motion.div>
         </div>

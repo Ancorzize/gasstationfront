@@ -11,12 +11,17 @@ import { warehouseService } from '../../warehouses/services/warehouseService';
 import { productService } from '../../products/services/productService';
 import { companyService } from '../../settings/services/companyService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 import { getTodayStr } from '../../../shared/utils/dateUtils';
 
 export const PurchaseFormPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+
+  const requiredPermission = id ? 'editar_compras' : 'crear_compras';
+  const canManagePurchase = hasPermission(requiredPermission);
 
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -53,6 +58,11 @@ export const PurchaseFormPage = () => {
   });
 
   useEffect(() => {
+    if (!canManagePurchase) {
+      showToast(`No tienes permisos para ${id ? 'editar' : 'crear'} compras`, 'error');
+      navigate('/compras');
+      return;
+    }
     const init = async () => {
       setLoading(true);
       await loadMasters();
@@ -60,7 +70,7 @@ export const PurchaseFormPage = () => {
       setLoading(false);
     };
     init();
-  }, [id]);
+  }, [id, canManagePurchase, navigate, showToast]);
 
   const loadMasters = async () => {
     try {
@@ -188,6 +198,9 @@ export const PurchaseFormPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canManagePurchase) {
+      return showToast(`No tienes permisos para ${id ? 'editar' : 'crear'} compras`, 'error');
+    }
     if (formData.detalles.some(d => !d.producto_id)) {
       return showToast("Complete todos los productos", "warning");
     }
@@ -229,6 +242,22 @@ export const PurchaseFormPage = () => {
     finally { setIsSaving(false); }
   };
 
+  if (!canManagePurchase) {
+    return (
+      <div className="p-8 flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="p-6 bg-rose-50 border border-rose-100 rounded-3xl text-center max-w-md">
+          <p className="text-sm font-black text-rose-700 uppercase">Acceso Restringido</p>
+          <p className="text-xs text-rose-500 mt-2 font-medium">
+            No cuentas con los permisos necesarios ({requiredPermission}) para {id ? 'modificar esta' : 'registrar una nueva'} compra.
+          </p>
+          <button onClick={() => navigate('/compras')} className="mt-4 px-6 py-2.5 bg-rose-600 text-white rounded-xl text-xs font-black uppercase hover:bg-rose-700 transition-all">
+            Volver a Compras
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
       <Loader2 className="animate-spin text-zinc-900" size={40} />
@@ -254,9 +283,11 @@ export const PurchaseFormPage = () => {
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total a Pagar</p>
             <p className="text-3xl font-black text-zinc-900 tracking-tighter">$ {totalPagar.toLocaleString('es-CO')}</p>
           </div>
-          <button form="purchase-form" type="submit" disabled={isSaving} className="flex items-center gap-2 px-8 py-4 bg-zinc-900 text-white rounded-2xl font-black text-xs uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200">
-            {isSaving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18}/> {id ? 'Actualizar' : 'Procesar'} Compra</>}
-          </button>
+          {canManagePurchase && (
+            <button form="purchase-form" type="submit" disabled={isSaving} className="flex items-center gap-2 px-8 py-4 bg-zinc-900 text-white rounded-2xl font-black text-xs uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200">
+              {isSaving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18}/> {id ? 'Actualizar' : 'Procesar'} Compra</>}
+            </button>
+          )}
         </div>
       </header>
 

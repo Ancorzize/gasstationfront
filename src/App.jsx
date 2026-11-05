@@ -62,6 +62,7 @@ import { Capacitor } from "@capacitor/core";
 import { ElectronicPayrollPage } from "./features/payroll/pages/ElectronicPayrollPage";
 import { NativeAppManager } from "./components/NativeAppManager";
 import { AnimatedSplashScreen } from "./components/AnimatedSplashScreen";
+import { AndroidDownloadButton } from "./components/AndroidDownloadButton";
 
 function App() {
   useInactivityTimeout(300);
@@ -579,6 +580,7 @@ function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        <AndroidDownloadButton variant="floating" />
       </BrowserRouter>
     </ToastProvider>
   );

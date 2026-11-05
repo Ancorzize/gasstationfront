@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Calendar, CheckCircle2, Calculator } from 'lucide-react';
 import { payrollService } from '../services/payrollService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const PayrollSettlementModal = ({ isOpen, onClose, onSave, periodId, periodName }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [loadingEmployees, setLoadingEmployees] = useState(false);
@@ -48,6 +50,8 @@ export const PayrollSettlementModal = ({ isOpen, onClose, onSave, periodId, peri
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!hasPermission('crear_liquidaciones_nomina')) return;
 
     if (!periodId) {
       showToast('Debe seleccionar un período de nómina válido.', 'error');
@@ -180,20 +184,22 @@ export const PayrollSettlementModal = ({ isOpen, onClose, onSave, periodId, peri
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200 uppercase"
-                >
-                  {loading ? (
-                    'Procesando...'
-                  ) : (
-                    <>
-                      <CheckCircle2 size={16} />
-                      <span>Generar Liquidación</span>
-                    </>
-                  )}
-                </button>
+                {hasPermission('crear_liquidaciones_nomina') && (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200 uppercase"
+                  >
+                    {loading ? (
+                      'Procesando...'
+                    ) : (
+                      <>
+                        <CheckCircle2 size={16} />
+                        <span>Generar Liquidación</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </form>
           </motion.div>

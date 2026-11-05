@@ -4,12 +4,18 @@ import { X, Layers, AlignLeft, MapPin } from 'lucide-react';
 import { categoryService } from '../services/categoryService';
 import { cashService } from '../../cash/services/cashService'
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const CategoryModal = ({ isOpen, onClose, onSave, categoryToEdit = null }) => {
   const [formData, setFormData] = useState({ nombre: '', descripcion: '', destino_recaudo_id: '' });
   const [destinos, setDestinos] = useState([]);
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+
+  const isEditing = Boolean(categoryToEdit);
+  const requiredPermission = isEditing ? 'editar_categorias_producto' : 'crear_categorias_producto';
+  const canSave = hasPermission(requiredPermission);
 
   const loadDestinos = async () => {
     try {
@@ -37,6 +43,9 @@ export const CategoryModal = ({ isOpen, onClose, onSave, categoryToEdit = null }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSave) {
+      return showToast(`No tienes permisos para ${isEditing ? 'editar' : 'crear'} categorías`, "error");
+    }
     setLoading(true);
     try {
       const result = categoryToEdit 
@@ -123,9 +132,11 @@ export const CategoryModal = ({ isOpen, onClose, onSave, categoryToEdit = null }
 
               <div className="pt-2 flex flex-col-reverse md:flex-row gap-3">
                 <button type="button" onClick={onClose} className="flex-1 py-3.5 rounded-2xl border border-slate-200 text-slate-600 font-bold text-xs uppercase">Cancelar</button>
-                <button type="submit" disabled={loading} className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl uppercase">
-                  {loading ? "Cargando..." : (categoryToEdit ? "Actualizar" : "Crear Categoría")}
-                </button>
+                {canSave && (
+                  <button type="submit" disabled={loading} className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl uppercase">
+                    {loading ? "Cargando..." : (categoryToEdit ? "Actualizar" : "Crear Categoría")}
+                  </button>
+                )}
               </div>
             </form>
           </motion.div>

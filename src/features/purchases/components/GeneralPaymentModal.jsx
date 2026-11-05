@@ -15,9 +15,12 @@ import { purchaseService } from "../services/purchaseService";
 import { supplierService } from "../../suppliers/services/supplierService";
 import { useToast } from "../../../context/ToastContext";
 import { cashService } from "../../cash/services/cashService";
+import { usePermissions } from "../../../hooks/usePermissions";
 
 export const GeneralPaymentModal = ({ isOpen, onClose, onSave }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canRegisterPayment = hasPermission('registrar_pagos_compra');
   const [loading, setLoading] = useState(false);
   const [loadingCajas, setLoadingCajas] = useState(true);
   const [loadingProveedores, setLoadingProveedores] = useState(false);
@@ -169,6 +172,10 @@ export const GeneralPaymentModal = ({ isOpen, onClose, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!canRegisterPayment) {
+      return showToast("No tienes permisos para registrar pagos de compra", "error");
+    }
 
     if (!formData.proveedor_id) {
       return showToast("Debe seleccionar un proveedor", "error");
@@ -690,17 +697,19 @@ export const GeneralPaymentModal = ({ isOpen, onClose, onSave }) => {
                     />
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={loading || loadingCajas || loadingProveedores}
-                    className="w-full py-4 bg-zinc-900 text-white rounded-2xl font-black text-xs uppercase hover:bg-black transition-all flex items-center justify-center gap-2 mt-2"
-                  >
-                    {loading ? (
-                      <Loader2 className="animate-spin" size={18} />
-                    ) : (
-                      "Registrar Abono General"
-                    )}
-                  </button>
+                  {canRegisterPayment && (
+                    <button
+                      type="submit"
+                      disabled={loading || loadingCajas || loadingProveedores}
+                      className="w-full py-4 bg-zinc-900 text-white rounded-2xl font-black text-xs uppercase hover:bg-black transition-all flex items-center justify-center gap-2 mt-2"
+                    >
+                      {loading ? (
+                        <Loader2 className="animate-spin" size={18} />
+                      ) : (
+                        "Registrar Abono General"
+                      )}
+                    </button>
+                  )}
                 </form>
               )}
             </div>

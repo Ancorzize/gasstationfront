@@ -5,6 +5,7 @@ import { WarehouseModal } from '../components/WarehouseModal';
 import { ConfirmModal } from '../../../shared/components/ConfirmModal';
 import { useToast } from '../../../context/ToastContext';
 import { useParams, useNavigate } from 'react-router-dom';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const WarehouseListPage = () => {
   const [warehouses, setWarehouses] = useState([]);
@@ -13,6 +14,7 @@ export const WarehouseListPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const { hasPermission } = usePermissions();
   const [warehouseToDelete, setWarehouseToDelete] = useState(null);
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -76,10 +78,12 @@ export const WarehouseListPage = () => {
               value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
 
-          <button onClick={() => { setSelectedWarehouse(null); setIsModalOpen(true); }}
-            className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200">
-            <Plus size={16} /> Nueva Bodega
-          </button>
+          {hasPermission('crear_bodegas') && (
+            <button onClick={() => { setSelectedWarehouse(null); setIsModalOpen(true); }}
+              className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200">
+              <Plus size={16} /> Nueva Bodega
+            </button>
+          )}
         </div>
       </div>
 
@@ -142,28 +146,32 @@ export const WarehouseListPage = () => {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <button 
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      setSelectedWarehouse(w); 
-                      setIsModalOpen(true); 
-                    }} 
-                    className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                  >
-                    <Edit2 size={16} />
-                  </button>
+                  {hasPermission('editar_bodegas') && (
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setSelectedWarehouse(w); 
+                        setIsModalOpen(true); 
+                      }} 
+                      className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                  )}
 
-                  <button 
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      handleToggleStatus(w); 
-                    }} 
-                    className={`p-2.5 rounded-xl transition-all ${w.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'}`}
-                  >
-                    <Power size={16} />
-                  </button>
+                  {hasPermission('cambiar_estado_bodegas') && (
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleToggleStatus(w); 
+                      }} 
+                      className={`p-2.5 rounded-xl transition-all ${w.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'}`}
+                    >
+                      <Power size={16} />
+                    </button>
+                  )}
 
-                  {!w.is_principal && (
+                  {!w.is_principal && hasPermission('eliminar_bodegas') && (
                     <button 
                       onClick={(e) => { 
                         e.stopPropagation(); 

@@ -7,6 +7,7 @@ import fondoImage from '../../images/fondo1.jpg';
 import logoDefault from '../../images/logoGranjas.png';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { AndroidDownloadButton } from '../../components/AndroidDownloadButton';
 
 export const LoginPage = () => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
@@ -131,6 +132,11 @@ export const LoginPage = () => {
             </Button>
           </div>
         </form>
+
+        {/* Botón de descarga de APK para dispositivos móviles */}
+        <div className="mt-4">
+          <AndroidDownloadButton variant="inline" />
+        </div>
 
         {/* Footer Dinámico */}
         <p className="text-center mt-10 text-zinc-500 text-[10px] font-medium uppercase tracking-widest">

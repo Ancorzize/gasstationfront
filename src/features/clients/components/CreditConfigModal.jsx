@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { X, CreditCard, Calendar, DollarSign, Loader2, Save } from 'lucide-react';
 import { clientService } from '../services/clientService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const CreditConfigModal = ({ isOpen, onClose, onSave, client }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canConfigure = hasPermission('configurar_credito_clientes');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     maneja_credito: false,
@@ -24,6 +27,9 @@ export const CreditConfigModal = ({ isOpen, onClose, onSave, client }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canConfigure) {
+      return showToast("No tienes permisos para configurar el crédito de clientes", "error");
+    }
     setLoading(true);
     try {
       const res = await clientService.configureCredit(client.id, formData);
@@ -114,14 +120,16 @@ export const CreditConfigModal = ({ isOpen, onClose, onSave, client }) => {
             >
               Cancelar
             </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-[2] bg-zinc-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase shadow-xl shadow-zinc-200 hover:bg-black transition-all flex items-center justify-center gap-2"
-            >
-              {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-              Guardar Configuración
-            </button>
+            {canConfigure && (
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-[2] bg-zinc-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase shadow-xl shadow-zinc-200 hover:bg-black transition-all flex items-center justify-center gap-2"
+              >
+                {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                Guardar Configuración
+              </button>
+            )}
           </div>
         </form>
       </div>

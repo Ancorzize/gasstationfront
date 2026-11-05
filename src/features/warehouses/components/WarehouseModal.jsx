@@ -4,6 +4,7 @@ import { X, Home, Hash, User, Phone, MapPin, AlignLeft, Star, Loader2 } from 'lu
 import { warehouseService } from '../services/warehouseService';
 import { userService } from '../../users/services/userService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const WarehouseModal = ({ isOpen, onClose, onSave, warehouseToEdit = null }) => {
   const [formData, setFormData] = useState({
@@ -14,6 +15,11 @@ export const WarehouseModal = ({ isOpen, onClose, onSave, warehouseToEdit = null
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+
+  const isEditing = Boolean(warehouseToEdit);
+  const requiredPermission = isEditing ? 'editar_bodegas' : 'crear_bodegas';
+  const canSave = hasPermission(requiredPermission);
 
   useEffect(() => {
     if (isOpen) {
@@ -44,6 +50,9 @@ export const WarehouseModal = ({ isOpen, onClose, onSave, warehouseToEdit = null
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSave) {
+      return showToast(`No tienes permisos para ${isEditing ? 'editar' : 'crear'} bodegas`, "error");
+    }
     setLoading(true);
     try {
       const dataToSend = { ...formData, responsable_id: formData.responsable_id || null };
@@ -167,9 +176,11 @@ export const WarehouseModal = ({ isOpen, onClose, onSave, warehouseToEdit = null
 
               <div className="pt-4 flex gap-3">
                 <button type="button" onClick={onClose} className="flex-1 py-4 rounded-2xl border border-slate-100 text-slate-500 font-black text-[10px] uppercase hover:bg-slate-50 transition-all">Cancelar</button>
-                <button type="submit" disabled={loading} className="flex-1 py-4 rounded-2xl bg-zinc-900 text-white font-black text-[10px] uppercase hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200">
-                  {loading ? <Loader2 className="animate-spin" size={16} /> : (warehouseToEdit ? "Actualizar Bodega" : "Guardar Bodega")}
-                </button>
+                {canSave && (
+                  <button type="submit" disabled={loading} className="flex-1 py-4 rounded-2xl bg-zinc-900 text-white font-black text-[10px] uppercase hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200">
+                    {loading ? <Loader2 className="animate-spin" size={16} /> : (warehouseToEdit ? "Actualizar Bodega" : "Guardar Bodega")}
+                  </button>
+                )}
               </div>
             </form>
           </motion.div>

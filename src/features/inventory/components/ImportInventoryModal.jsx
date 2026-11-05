@@ -4,14 +4,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, FileSpreadsheet, Upload, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { inventoryService } from '../services/inventoryService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const ImportInventoryModal = ({ isOpen, onClose, onImportSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [previewData, setPreviewData] = useState([]); // Para mostrar al usuario qué se leyó
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canImport = hasPermission('importar_inventario');
 
   const handleFileChange = (e) => {
+    if (!canImport) {
+      return showToast("No tienes permisos para importar inventario", "error");
+    }
     const file = e.target.files[0];
     if (!file) return;
 
@@ -52,6 +58,9 @@ export const ImportInventoryModal = ({ isOpen, onClose, onImportSuccess }) => {
     };
 
   const handleProcessImport = async () => {
+    if (!canImport) {
+      return showToast("No tienes permisos para importar inventario", "error");
+    }
     if (previewData.length === 0) return showToast("No hay datos para importar", "error");
     
     setLoading(true);
@@ -96,16 +105,23 @@ export const ImportInventoryModal = ({ isOpen, onClose, onImportSuccess }) => {
               {!result ? (
                 <div className="space-y-6">
                   {previewData.length === 0 ? (
-                    <label className="group relative border-2 border-dashed border-slate-200 rounded-[2rem] p-12 flex flex-col items-center justify-center gap-4 hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer">
-                      <input type="file" className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileChange} />
-                      <div className="w-16 h-16 rounded-3xl bg-slate-50 group-hover:bg-white flex items-center justify-center text-slate-400 group-hover:text-emerald-500 transition-all">
-                        <Upload size={28} />
+                    canImport ? (
+                      <label className="group relative border-2 border-dashed border-slate-200 rounded-[2rem] p-12 flex flex-col items-center justify-center gap-4 hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer">
+                        <input type="file" className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileChange} />
+                        <div className="w-16 h-16 rounded-3xl bg-slate-50 group-hover:bg-white flex items-center justify-center text-slate-400 group-hover:text-emerald-500 transition-all">
+                          <Upload size={28} />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs font-black text-slate-700 uppercase">Cargar archivo Excel o CSV</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">El navegador procesará los datos localmente</p>
+                        </div>
+                      </label>
+                    ) : (
+                      <div className="border-2 border-dashed border-rose-100 bg-rose-50/50 rounded-[2rem] p-12 flex flex-col items-center justify-center gap-3 text-center">
+                        <p className="text-xs font-black text-rose-700 uppercase">Acceso Restringido</p>
+                        <p className="text-[10px] font-bold text-rose-500 uppercase">No cuentas con el permiso requerido (importar_inventario) para subir inventario.</p>
                       </div>
-                      <div className="text-center">
-                        <p className="text-xs font-black text-slate-700 uppercase">Cargar archivo Excel o CSV</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">El navegador procesará los datos localmente</p>
-                      </div>
-                    </label>
+                    )
                   ) : (
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
@@ -133,10 +149,12 @@ export const ImportInventoryModal = ({ isOpen, onClose, onImportSuccess }) => {
                         </table>
                         {previewData.length > 5 && <div className="p-3 text-center text-[9px] text-slate-400 font-bold uppercase bg-slate-50/50">Y {previewData.length - 5} filas más...</div>}
                       </div>
-                      <button onClick={handleProcessImport} disabled={loading} className="w-full py-4 bg-zinc-900 text-white rounded-2xl font-black text-xs uppercase hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl">
-                        {loading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
-                        Confirmar e Importar {previewData.length} Registros
-                      </button>
+                      {canImport && (
+                        <button onClick={handleProcessImport} disabled={loading} className="w-full py-4 bg-zinc-900 text-white rounded-2xl font-black text-xs uppercase hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl">
+                          {loading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
+                          Confirmar e Importar {previewData.length} Registros
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

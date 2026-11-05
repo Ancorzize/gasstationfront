@@ -991,22 +991,26 @@ export const ShiftOperationsSection = ({
                             estadoStr !== "anulada" ? (
                               <>
                                 <button
-                                  onClick={() =>
+                                  type="button"
+                                  onClick={(e) => {
+                                    if (e && e.stopPropagation) e.stopPropagation();
                                     isAbono
                                       ? handleOpenEditAbono(item)
-                                      : handleOpenEditSale(item)
-                                  }
+                                      : handleOpenEditSale(item);
+                                  }}
                                   className="p-1.5 bg-slate-100 hover:bg-zinc-900 hover:text-white rounded-lg transition-all text-slate-600"
                                   title="Editar Operación"
                                 >
                                   <Edit3 size={13} />
                                 </button>
                                 <button
-                                  onClick={() =>
+                                  type="button"
+                                  onClick={(e) => {
+                                    if (e && e.stopPropagation) e.stopPropagation();
                                     isAbono
                                       ? handleOpenAnnulAbono(item)
-                                      : handleOpenAnnulSale(item)
-                                  }
+                                      : handleOpenAnnulSale(item);
+                                  }}
                                   className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition-all"
                                   title="Anular Operación"
                                 >
@@ -1041,7 +1045,11 @@ export const ShiftOperationsSection = ({
                 {annulSaleModal.numero_factura || annulSaleModal.id}
               </h4>
               <button
-                onClick={() => setAnnulSaleModal(null)}
+                type="button"
+                onClick={(e) => {
+                  if (e && e.stopPropagation) e.stopPropagation();
+                  setAnnulSaleModal(null);
+                }}
                 className="text-slate-400 hover:text-slate-700"
               >
                 <X size={18} />
@@ -1097,7 +1105,11 @@ export const ShiftOperationsSection = ({
                 ABO-#${annulAbonoModal.id}
               </h4>
               <button
-                onClick={() => setAnnulAbonoModal(null)}
+                type="button"
+                onClick={(e) => {
+                  if (e && e.stopPropagation) e.stopPropagation();
+                  setAnnulAbonoModal(null);
+                }}
                 className="text-slate-400 hover:text-slate-700"
               >
                 <X size={18} />

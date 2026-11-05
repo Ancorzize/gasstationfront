@@ -2,12 +2,14 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Search, Loader2, Eye, Download, Calculator, Calendar, Plus } from 'lucide-react';
 import { payrollService } from '../services/payrollService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 import { PayrollSettlementDetailModal } from '../components/PayrollSettlementDetailModal';
 import { PayrollSettlementModal } from '../components/PayrollSettlementModal';
 import { exportToExcel } from '../../../shared/utils/exportExcel';
 
 export const PayrollSettlementsPage = () => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
 
   const [periods, setPeriods] = useState([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState('');
@@ -251,9 +253,12 @@ export const PayrollSettlementsPage = () => {
           </select>
 
           {/* New Settlement Button */}
-          {selectedPeriodId && (
+          {selectedPeriodId && hasPermission('crear_liquidaciones_nomina') && (
             <button
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={() => {
+                if (!hasPermission('crear_liquidaciones_nomina')) return;
+                setIsCreateModalOpen(true);
+              }}
               className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] uppercase hover:bg-black transition-all shadow-md"
             >
               <Plus size={16} /> <span className="hidden sm:inline">Nueva Liquidación</span>

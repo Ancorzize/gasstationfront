@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, Loader2, Fuel, MapPin, Hash, Globe } from 'lucide-react';
 import { stationService } from '../services/stationService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const StationModal = ({ isOpen, onClose, onSave, stationToEdit }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -28,6 +30,14 @@ export const StationModal = ({ isOpen, onClose, onSave, stationToEdit }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (stationToEdit && !hasPermission('editar_estaciones')) {
+      showToast('No tienes permiso para editar estaciones', 'error');
+      return;
+    }
+    if (!stationToEdit && !hasPermission('crear_estaciones')) {
+      showToast('No tienes permiso para crear estaciones', 'error');
+      return;
+    }
     setLoading(true);
     try {
       const res = await stationService.saveStation(formData, stationToEdit?.id);
@@ -134,14 +144,16 @@ export const StationModal = ({ isOpen, onClose, onSave, stationToEdit }) => {
             >
               Cancelar
             </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-[2] bg-zinc-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase shadow-xl shadow-zinc-200 hover:bg-black transition-all flex items-center justify-center gap-2"
-            >
-              {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-              {stationToEdit ? 'Actualizar Sede' : 'Crear Estación'}
-            </button>
+            {(stationToEdit ? hasPermission('editar_estaciones') : hasPermission('crear_estaciones')) && (
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-[2] bg-zinc-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase shadow-xl shadow-zinc-200 hover:bg-black transition-all flex items-center justify-center gap-2"
+              >
+                {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                {stationToEdit ? 'Actualizar Sede' : 'Crear Estación'}
+              </button>
+            )}
           </div>
         </form>
       </div>

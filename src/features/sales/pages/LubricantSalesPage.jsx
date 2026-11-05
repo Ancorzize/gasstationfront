@@ -9,10 +9,12 @@ import { productService } from '../../products/services/productService';
 import { clientService } from '../../clients/services/clientService';
 import { ClientModal } from '../../clients/components/ClientModal';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const LubricantSalesPage = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(false);
   const [products, setProducts] = useState([]);
@@ -212,6 +214,9 @@ export const LubricantSalesPage = () => {
   }, [totals.total, usarAnticipo, selectedClient]);
 
   const handleSubmit = async () => {
+    if (!hasPermission('vender_lubricantes')) {
+      return showToast('No tienes permisos para registrar ventas de productos y lubricantes', 'error');
+    }
     if (cart.length === 0) return showToast("El carrito está vacío", "error");
     if (saleData.tipo_venta === 'credito' && !saleData.cliente_id) return showToast("Seleccione un cliente para la venta a crédito", "error");
     if (saleData.factura_electronica && !saleData.cliente_id) return showToast("Seleccione o registre un cliente para la factura electrónica", "error");
@@ -504,13 +509,15 @@ export const LubricantSalesPage = () => {
                   <label className="text-[9px] font-black text-slate-400 uppercase">
                     {saleData.factura_electronica ? 'Cliente Factura Electrónica' : 'Buscar Cliente'}
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsClientModalOpen(true)}
-                    className="text-[9px] font-black text-blue-600 hover:text-blue-800 uppercase flex items-center gap-1"
-                  >
-                    <UserPlus size={12} /> Nuevo Cliente
-                  </button>
+                  {hasPermission('crear_clientes') && (
+                    <button
+                      type="button"
+                      onClick={() => setIsClientModalOpen(true)}
+                      className="text-[9px] font-black text-blue-600 hover:text-blue-800 uppercase flex items-center gap-1"
+                    >
+                      <UserPlus size={12} /> Nuevo Cliente
+                    </button>
+                  )}
                 </div>
                 <div className="relative">
                   <User className="absolute left-4 top-3.5 text-slate-400" size={16} />
@@ -559,16 +566,18 @@ export const LubricantSalesPage = () => {
                     ) : !searchingClients ? (
                       <div className="p-3 text-center space-y-1">
                         <p className="text-[10px] text-slate-400 uppercase italic font-bold">No se encontró cliente con "{clientSearchTerm}"</p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowClientList(false);
-                            setIsClientModalOpen(true);
-                          }}
-                          className="text-[10px] font-black text-blue-600 uppercase underline"
-                        >
-                          Crear cliente "{clientSearchTerm}"
-                        </button>
+                        {hasPermission('crear_clientes') && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowClientList(false);
+                              setIsClientModalOpen(true);
+                            }}
+                            className="text-[10px] font-black text-blue-600 uppercase underline"
+                          >
+                            Crear cliente "{clientSearchTerm}"
+                          </button>
+                        )}
                       </div>
                     ) : null}
                   </div>
@@ -698,24 +707,28 @@ export const LubricantSalesPage = () => {
               )}
             </div>
 
-            <button 
-              onClick={handleSubmit}
-              disabled={loading || cart.length === 0}
-              className="w-full bg-zinc-900 text-white py-4 rounded-[1.2rem] md:rounded-[1.5rem] font-black uppercase text-xs hover:bg-amber-600 transition-all flex items-center justify-center gap-2 shadow-lg mt-1"
-            >
-              {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} 
-              Finalizar Venta de Productos
-            </button>
+            {hasPermission('vender_lubricantes') && (
+              <button 
+                onClick={handleSubmit}
+                disabled={loading || cart.length === 0}
+                className="w-full bg-zinc-900 text-white py-4 rounded-[1.2rem] md:rounded-[1.5rem] font-black uppercase text-xs hover:bg-amber-600 transition-all flex items-center justify-center gap-2 shadow-lg mt-1"
+              >
+                {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} 
+                Finalizar Venta de Productos
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Modal para Crear Cliente Nuevo */}
-      <ClientModal
-        isOpen={isClientModalOpen}
-        onClose={() => setIsClientModalOpen(false)}
-        onSave={handleClientCreated}
-      />
+      {hasPermission('crear_clientes') && (
+        <ClientModal
+          isOpen={isClientModalOpen}
+          onClose={() => setIsClientModalOpen(false)}
+          onSave={handleClientCreated}
+        />
+      )}
     </div>
   );
 };

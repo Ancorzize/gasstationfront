@@ -98,15 +98,21 @@ export const CashSessionPage = () => {
         <div className="flex flex-wrap gap-2">
           {isCashOpen && (
             <>
-              <button onClick={() => setIsIncomeModalOpen(true)} className="px-4 py-3 bg-emerald-50 text-emerald-700 rounded-2xl font-black text-[10px] uppercase hover:bg-emerald-100 shadow-sm flex items-center gap-1">
-                <ArrowUpCircle size={16} /> Ingreso
-              </button>
-              <button onClick={() => setIsWithdrawalModalOpen(true)} className="px-4 py-3 bg-rose-50 text-rose-700 rounded-2xl font-black text-[10px] uppercase hover:bg-rose-100 shadow-sm flex items-center gap-1">
-                <ArrowDownCircle size={16} /> Retiro
-              </button>
-              <button onClick={() => setIsTransferModalOpen(true)} className="px-4 py-3 bg-blue-50 text-blue-700 rounded-2xl font-black text-[10px] uppercase hover:bg-blue-100 shadow-sm flex items-center gap-1">
-                <ArrowLeftRight size={16} /> Transferencia
-              </button>
+              {hasPermission('ingreso_manual_caja') && (
+                <button onClick={() => setIsIncomeModalOpen(true)} className="px-4 py-3 bg-emerald-50 text-emerald-700 rounded-2xl font-black text-[10px] uppercase hover:bg-emerald-100 shadow-sm flex items-center gap-1">
+                  <ArrowUpCircle size={16} /> Ingreso
+                </button>
+              )}
+              {hasPermission('retiro_manual_caja') && (
+                <button onClick={() => setIsWithdrawalModalOpen(true)} className="px-4 py-3 bg-rose-50 text-rose-700 rounded-2xl font-black text-[10px] uppercase hover:bg-rose-100 shadow-sm flex items-center gap-1">
+                  <ArrowDownCircle size={16} /> Retiro
+                </button>
+              )}
+              {hasPermission('transferencia_caja') && (
+                <button onClick={() => setIsTransferModalOpen(true)} className="px-4 py-3 bg-blue-50 text-blue-700 rounded-2xl font-black text-[10px] uppercase hover:bg-blue-100 shadow-sm flex items-center gap-1">
+                  <ArrowLeftRight size={16} /> Transferencia
+                </button>
+              )}
             </>
           )}
           {hasPermission('ver_caja') && (

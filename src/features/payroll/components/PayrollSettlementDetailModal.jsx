@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, DollarSign, Calendar, FileText, Loader2, CheckCircle2, Lock, XCircle, Clock } from 'lucide-react';
 import { payrollService } from '../services/payrollService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const PayrollSettlementDetailModal = ({ isOpen, onClose, settlementId, onStatusChange }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [settlement, setSettlement] = useState(null);
   const [earnings, setEarnings] = useState([]);
@@ -55,6 +57,7 @@ export const PayrollSettlementDetailModal = ({ isOpen, onClose, settlementId, on
 
   const handleChangeStatus = async (newStatus) => {
     if (!settlementId) return;
+    if (!hasPermission('cambiar_estado_liquidaciones_nomina')) return;
     setUpdatingStatus(true);
     try {
       const res = await payrollService.changeSettlementStatus(settlementId, newStatus);
@@ -335,45 +338,47 @@ export const PayrollSettlementDetailModal = ({ isOpen, onClose, settlementId, on
             {/* Footer / Status Actions */}
             {settlement && !loading && (
               <div className="p-6 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-bold text-slate-500 uppercase mr-1">Cambiar Estado:</span>
-                  {settlement.status !== 'draft' && (
-                    <button
-                      disabled={updatingStatus}
-                      onClick={() => handleChangeStatus('draft')}
-                      className="px-3 py-1.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-700 text-xs font-bold hover:bg-amber-100 transition-all disabled:opacity-50"
-                    >
-                      Borrador
-                    </button>
-                  )}
-                  {settlement.status !== 'calculated' && (
-                    <button
-                      disabled={updatingStatus}
-                      onClick={() => handleChangeStatus('calculated')}
-                      className="px-3 py-1.5 rounded-xl border border-blue-300 bg-blue-50 text-blue-700 text-xs font-bold hover:bg-blue-100 transition-all disabled:opacity-50"
-                    >
-                      Calculada
-                    </button>
-                  )}
-                  {settlement.status !== 'closed' && (
-                    <button
-                      disabled={updatingStatus}
-                      onClick={() => handleChangeStatus('closed')}
-                      className="px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-all disabled:opacity-50"
-                    >
-                      Cerrar
-                    </button>
-                  )}
-                  {settlement.status !== 'cancelled' && (
-                    <button
-                      disabled={updatingStatus}
-                      onClick={() => handleChangeStatus('cancelled')}
-                      className="px-3 py-1.5 rounded-xl border border-rose-300 bg-rose-50 text-rose-700 text-xs font-bold hover:bg-rose-100 transition-all disabled:opacity-50"
-                    >
-                      Cancelar
-                    </button>
-                  )}
-                </div>
+                {hasPermission('cambiar_estado_liquidaciones_nomina') && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-slate-500 uppercase mr-1">Cambiar Estado:</span>
+                    {settlement.status !== 'draft' && (
+                      <button
+                        disabled={updatingStatus}
+                        onClick={() => handleChangeStatus('draft')}
+                        className="px-3 py-1.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-700 text-xs font-bold hover:bg-amber-100 transition-all disabled:opacity-50"
+                      >
+                        Borrador
+                      </button>
+                    )}
+                    {settlement.status !== 'calculated' && (
+                      <button
+                        disabled={updatingStatus}
+                        onClick={() => handleChangeStatus('calculated')}
+                        className="px-3 py-1.5 rounded-xl border border-blue-300 bg-blue-50 text-blue-700 text-xs font-bold hover:bg-blue-100 transition-all disabled:opacity-50"
+                      >
+                        Calculada
+                      </button>
+                    )}
+                    {settlement.status !== 'closed' && (
+                      <button
+                        disabled={updatingStatus}
+                        onClick={() => handleChangeStatus('closed')}
+                        className="px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-all disabled:opacity-50"
+                      >
+                        Cerrar
+                      </button>
+                    )}
+                    {settlement.status !== 'cancelled' && (
+                      <button
+                        disabled={updatingStatus}
+                        onClick={() => handleChangeStatus('cancelled')}
+                        className="px-3 py-1.5 rounded-xl border border-rose-300 bg-rose-50 text-rose-700 text-xs font-bold hover:bg-rose-100 transition-all disabled:opacity-50"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 <button
                   onClick={onClose}

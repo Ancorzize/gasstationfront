@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, Loader2, Hash, Fuel, Barcode } from 'lucide-react';
 import { stationService } from '../services/stationService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const PumpModal = ({ isOpen, onClose, onSave, pumpToEdit }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [stations, setStations] = useState([]);
   const [formData, setFormData] = useState({ 
@@ -35,6 +37,14 @@ export const PumpModal = ({ isOpen, onClose, onSave, pumpToEdit }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (pumpToEdit && !hasPermission('editar_bombas')) {
+      showToast('No tienes permiso para editar dispensadores', 'error');
+      return;
+    }
+    if (!pumpToEdit && !hasPermission('crear_bombas')) {
+      showToast('No tienes permiso para crear dispensadores', 'error');
+      return;
+    }
     setLoading(true);
     try {
       const res = await stationService.savePump(formData, pumpToEdit?.id);
@@ -107,14 +117,16 @@ export const PumpModal = ({ isOpen, onClose, onSave, pumpToEdit }) => {
             />
           </div>
 
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="w-full bg-zinc-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 shadow-xl shadow-zinc-200 hover:bg-black transition-all"
-          >
-            {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} 
-            Guardar Dispensador
-          </button>
+          {(pumpToEdit ? hasPermission('editar_bombas') : hasPermission('crear_bombas')) && (
+            <button 
+              type="submit" 
+              disabled={loading} 
+              className="w-full bg-zinc-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 shadow-xl shadow-zinc-200 hover:bg-black transition-all"
+            >
+              {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} 
+              Guardar Dispensador
+            </button>
+          )}
         </form>
       </div>
     </div>

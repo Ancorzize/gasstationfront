@@ -5,6 +5,7 @@ import { BrandModal } from '../components/BrandModal';
 import { useToast } from '../../../context/ToastContext';
 import { exportToExcel } from '../../../shared/utils/exportExcel';
 import { ConfirmModal } from '../../../shared/components/ConfirmModal';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const BrandListPage = () => {
   const [brands, setBrands] = useState([]);
@@ -13,6 +14,7 @@ export const BrandListPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState(null);
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [brandToDelete, setBrandToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -90,12 +92,14 @@ export const BrandListPage = () => {
             />
           </div>
 
-          <button 
-            onClick={() => { setSelectedBrand(null); setIsModalOpen(true); }}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-black transition-all shadow-md"
-          >
-            <Plus size={16} /> <span className="hidden sm:inline">Nueva Marca</span>
-          </button>
+          {hasPermission('crear_marcas') && (
+            <button 
+              onClick={() => { setSelectedBrand(null); setIsModalOpen(true); }}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-black transition-all shadow-md"
+            >
+              <Plus size={16} /> <span className="hidden sm:inline">Nueva Marca</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -130,13 +134,19 @@ export const BrandListPage = () => {
                     </td>
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => { setSelectedBrand(b); setIsModalOpen(true); }}
-                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit2 size={14} /></button>
-                        <button onClick={() => handleToggleStatus(b)}
-                          className={`p-2 rounded-lg transition-all ${b.is_active ? 'hover:text-red-600 hover:bg-red-50' : 'hover:text-emerald-600 hover:bg-emerald-50'}`}><Power size={14} /></button>
-                        <button onClick={() => handleDeleteClick(b)} 
-                          className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"><Trash2 size={14} />
-                        </button>
+                        {hasPermission('editar_marcas') && (
+                          <button onClick={() => { setSelectedBrand(b); setIsModalOpen(true); }}
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit2 size={14} /></button>
+                        )}
+                        {hasPermission('cambiar_estado_marcas') && (
+                          <button onClick={() => handleToggleStatus(b)}
+                            className={`p-2 rounded-lg transition-all ${b.is_active ? 'hover:text-red-600 hover:bg-red-50' : 'hover:text-emerald-600 hover:bg-emerald-50'}`}><Power size={14} /></button>
+                        )}
+                        {hasPermission('eliminar_marcas') && (
+                          <button onClick={() => handleDeleteClick(b)} 
+                            className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"><Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

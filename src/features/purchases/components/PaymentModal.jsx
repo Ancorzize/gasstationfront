@@ -4,9 +4,12 @@ import { X, Wallet, Calendar, DollarSign, Info, Loader2 } from "lucide-react";
 import { purchaseService } from "../services/purchaseService";
 import { cashService } from "../../cash/services/cashService";
 import { useToast } from "../../../context/ToastContext";
+import { usePermissions } from "../../../hooks/usePermissions";
 
 export const PaymentModal = ({ isOpen, onClose, purchase, onSave }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canRegisterPayment = hasPermission('registrar_pagos_compra');
   const [loading, setLoading] = useState(false);
   const [loadingCajas, setLoadingCajas] = useState(true);
   const [cajas, setCajas] = useState([]);
@@ -117,6 +120,10 @@ export const PaymentModal = ({ isOpen, onClose, purchase, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!canRegisterPayment) {
+      return showToast("No tienes permisos para registrar pagos de compra", "error");
+    }
 
     if (!formData.caja_id) {
       return showToast("Debe seleccionar una caja", "error");
@@ -295,19 +302,21 @@ export const PaymentModal = ({ isOpen, onClose, purchase, onSave }) => {
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={loading || loadingCajas}
-                className="w-full py-4 bg-zinc-900 text-white rounded-2xl font-black text-xs uppercase hover:bg-black transition-all flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <Loader2 className="animate-spin" size={18} />
-                ) : loadingCajas ? (
-                  "Cargando cajas..."
-                ) : (
-                  "Confirmar Pago"
-                )}
-              </button>
+              {canRegisterPayment && (
+                <button
+                  type="submit"
+                  disabled={loading || loadingCajas}
+                  className="w-full py-4 bg-zinc-900 text-white rounded-2xl font-black text-xs uppercase hover:bg-black transition-all flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <Loader2 className="animate-spin" size={18} />
+                  ) : loadingCajas ? (
+                    "Cargando cajas..."
+                  ) : (
+                    "Confirmar Pago"
+                  )}
+                </button>
+              )}
             </form>
           </motion.div>
         </div>

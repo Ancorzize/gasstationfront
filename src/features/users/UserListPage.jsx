@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, Power, Shield, Loader2, UserCircle, Warehouse } fr
 import { UserModal } from './components/UserModal';
 import { useToast } from '../../context/ToastContext';
 import { ConfirmModal } from '../../shared/components/ConfirmModal';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export const UserListPage = () => {
   const [users, setUsers] = useState([]);
@@ -17,6 +18,7 @@ export const UserListPage = () => {
   const [deleting, setDeleting] = useState(false);
 
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
 
   useEffect(() => {
     loadUsers();
@@ -94,12 +96,14 @@ export const UserListPage = () => {
           <p className="text-slate-500 text-xs md:text-sm">Gestiona el personal, sus bodegas asignadas y niveles de acceso.</p>
         </div>
         
-        <button 
-          onClick={handleCreate}
-          className="flex items-center justify-center gap-2 bg-zinc-900 text-white px-5 py-2.5 rounded-2xl font-bold text-xs uppercase hover:bg-black transition-all shadow-lg shadow-zinc-200"
-        >
-          <Plus size={18} /> Nuevo Usuario
-        </button>
+        {hasPermission('crear_usuarios') && (
+          <button 
+            onClick={handleCreate}
+            className="flex items-center justify-center gap-2 bg-zinc-900 text-white px-5 py-2.5 rounded-2xl font-bold text-xs uppercase hover:bg-black transition-all shadow-lg shadow-zinc-200"
+          >
+            <Plus size={18} /> Nuevo Usuario
+          </button>
+        )}
       </div>
 
       {/* Tabla de Usuarios con diseño responsive */}
@@ -164,22 +168,26 @@ export const UserListPage = () => {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center justify-center gap-1 md:gap-2">
-                          <button 
-                            onClick={() => handleEdit(user)}
-                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                            title="Editar"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button 
-                            onClick={() => handleToggleStatus(user)}
-                            className={`p-2 rounded-xl transition-all ${
-                              user.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
-                            }`}
-                            title={user.is_active ? "Desactivar" : "Activar"}
-                          >
-                            <Power size={16} />
-                          </button>
+                          {hasPermission('editar_usuarios') && (
+                            <button 
+                              onClick={() => handleEdit(user)}
+                              className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                              title="Editar"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                          )}
+                          {hasPermission('cambiar_estado_usuarios') && (
+                            <button 
+                              onClick={() => handleToggleStatus(user)}
+                              className={`p-2 rounded-xl transition-all ${
+                                user.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
+                              }`}
+                              title={user.is_active ? "Desactivar" : "Activar"}
+                            >
+                              <Power size={16} />
+                            </button>
+                          )}
                           <button 
                             onClick={() => handleDeleteClick(user)}
                             className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all"

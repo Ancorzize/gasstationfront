@@ -3,9 +3,11 @@ import { X, Save, Loader2, Droplets, Hash, Search, Check } from 'lucide-react';
 import { stationService } from '../services/stationService';
 import { productService } from '../../products/services/productService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const HoseModal = ({ isOpen, onClose, onSave, hoseToEdit }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [pumps, setPumps] = useState([]);
@@ -83,6 +85,14 @@ export const HoseModal = ({ isOpen, onClose, onSave, hoseToEdit }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (hoseToEdit && !hasPermission('editar_mangueras')) {
+      showToast('No tienes permiso para editar mangueras', 'error');
+      return;
+    }
+    if (!hoseToEdit && !hasPermission('crear_mangueras')) {
+      showToast('No tienes permiso para crear mangueras', 'error');
+      return;
+    }
     if (!formData.producto_id) {
       showToast("Debes seleccionar un combustible válido de la lista", "error");
       return;
@@ -213,13 +223,15 @@ export const HoseModal = ({ isOpen, onClose, onSave, hoseToEdit }) => {
             >
               Cancelar
             </button>
-            <button
-              type="submit" disabled={loading}
-              className="flex-[2] bg-zinc-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase shadow-xl shadow-zinc-200 hover:bg-black transition-all flex items-center justify-center gap-2"
-            >
-              {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-              Guardar Manguera
-            </button>
+            {(hoseToEdit ? hasPermission('editar_mangueras') : hasPermission('crear_mangueras')) && (
+              <button
+                type="submit" disabled={loading}
+                className="flex-[2] bg-zinc-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase shadow-xl shadow-zinc-200 hover:bg-black transition-all flex items-center justify-center gap-2"
+              >
+                {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                Guardar Manguera
+              </button>
+            )}
           </div>
         </form>
       </div>

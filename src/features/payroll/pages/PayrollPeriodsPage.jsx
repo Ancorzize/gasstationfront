@@ -3,10 +3,12 @@ import { Search, Plus, Loader2, Calendar, Edit2, CheckCircle2, XCircle, Lock, Do
 import { payrollService } from '../services/payrollService';
 import { useToast } from '../../../context/ToastContext';
 import { PayrollPeriodModal } from '../components/PayrollPeriodModal';
+import { usePermissions } from '../../../hooks/usePermissions';
 import { exportToExcel } from '../../../shared/utils/exportExcel';
 
 export const PayrollPeriodsPage = () => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
 
   const [periods, setPeriods] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,9 @@ export const PayrollPeriodsPage = () => {
   }, [fetchPeriods]);
 
   const handleChangeStatus = async (periodId, newStatus) => {
+    if (newStatus === 'open' && !hasPermission('abrir_periodos_nomina')) return;
+    if (newStatus === 'closed' && !hasPermission('cerrar_periodos_nomina')) return;
+    if (newStatus === 'cancelled' && !hasPermission('anular_periodos_nomina')) return;
     try {
       const res = await payrollService.changePeriodStatus(periodId, newStatus);
       if (res?.status) {
@@ -152,15 +157,18 @@ export const PayrollPeriodsPage = () => {
             <option value="cancelled">Cancelados (cancelled)</option>
           </select>
 
-          <button
-            onClick={() => {
-              setSelectedPeriod(null);
-              setIsModalOpen(true);
-            }}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] uppercase hover:bg-black transition-all shadow-md"
-          >
-            <Plus size={16} /> <span className="hidden sm:inline">Nuevo Período</span>
-          </button>
+          {hasPermission('crear_periodos_nomina') && (
+            <button
+              onClick={() => {
+                if (!hasPermission('crear_periodos_nomina')) return;
+                setSelectedPeriod(null);
+                setIsModalOpen(true);
+              }}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] uppercase hover:bg-black transition-all shadow-md"
+            >
+              <Plus size={16} /> <span className="hidden sm:inline">Nuevo Período</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -210,19 +218,22 @@ export const PayrollPeriodsPage = () => {
                     <td className="py-4 px-6 text-center">{getStatusBadge(period.status)}</td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => {
-                            setSelectedPeriod(period);
-                            setIsModalOpen(true);
-                          }}
-                          className="p-2 text-slate-500 hover:text-zinc-900 hover:bg-slate-100 rounded-xl transition-all"
-                          title="Editar Período"
-                        >
-                          <Edit2 size={16} />
-                        </button>
+                        {hasPermission('editar_periodos_nomina') && (
+                          <button
+                            onClick={() => {
+                              if (!hasPermission('editar_periodos_nomina')) return;
+                              setSelectedPeriod(period);
+                              setIsModalOpen(true);
+                            }}
+                            className="p-2 text-slate-500 hover:text-zinc-900 hover:bg-slate-100 rounded-xl transition-all"
+                            title="Editar Período"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                        )}
 
                         {/* Status change actions */}
-                        {period.status !== 'open' && (
+                        {period.status !== 'open' && hasPermission('abrir_periodos_nomina') && (
                           <button
                             onClick={() => handleChangeStatus(period.id, 'open')}
                             className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
@@ -231,7 +242,7 @@ export const PayrollPeriodsPage = () => {
                             <CheckCircle2 size={16} />
                           </button>
                         )}
-                        {period.status !== 'closed' && (
+                        {period.status !== 'closed' && hasPermission('cerrar_periodos_nomina') && (
                           <button
                             onClick={() => handleChangeStatus(period.id, 'closed')}
                             className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all"
@@ -240,7 +251,7 @@ export const PayrollPeriodsPage = () => {
                             <Lock size={16} />
                           </button>
                         )}
-                        {period.status !== 'cancelled' && (
+                        {period.status !== 'cancelled' && hasPermission('anular_periodos_nomina') && (
                           <button
                             onClick={() => handleChangeStatus(period.id, 'cancelled')}
                             className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"

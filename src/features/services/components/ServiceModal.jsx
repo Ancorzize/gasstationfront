@@ -4,6 +4,7 @@ import { X, Wrench, Hash, DollarSign, Clock, Ruler, AlignLeft, Info } from 'luci
 import { serviceService } from '../services/serviceService';
 import { unitService } from '../../units/services/unitService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const ServiceModal = ({ isOpen, onClose, onSave, serviceToEdit = null }) => {
   const [formData, setFormData] = useState({
@@ -14,6 +15,11 @@ export const ServiceModal = ({ isOpen, onClose, onSave, serviceToEdit = null }) 
   const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+
+  const isEditing = Boolean(serviceToEdit);
+  const requiredPermission = isEditing ? 'editar_servicios' : 'crear_servicios';
+  const canSave = hasPermission(requiredPermission);
 
   useEffect(() => {
     if (isOpen) {
@@ -44,6 +50,9 @@ export const ServiceModal = ({ isOpen, onClose, onSave, serviceToEdit = null }) 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSave) {
+      return showToast(`No tienes permisos para ${isEditing ? 'editar' : 'crear'} servicios`, "error");
+    }
     setLoading(true);
     try {
       // Limpiar unidad_medida_id si es string vacío para enviar null
@@ -154,9 +163,11 @@ export const ServiceModal = ({ isOpen, onClose, onSave, serviceToEdit = null }) 
 
               <div className="pt-4 flex flex-col-reverse md:flex-row gap-3">
                 <button type="button" onClick={onClose} className="flex-1 py-3.5 rounded-2xl border border-slate-200 text-slate-600 font-bold text-xs uppercase">Cancelar</button>
-                <button type="submit" disabled={loading} className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 uppercase shadow-xl">
-                  {loading ? "..." : (serviceToEdit ? "Actualizar" : "Guardar Servicio")}
-                </button>
+                {canSave && (
+                  <button type="submit" disabled={loading} className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 uppercase shadow-xl">
+                    {loading ? "..." : (serviceToEdit ? "Actualizar" : "Guardar Servicio")}
+                  </button>
+                )}
               </div>
             </form>
           </motion.div>

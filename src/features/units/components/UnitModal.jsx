@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Ruler, Type, AlignLeft, Hash, Tag } from 'lucide-react';
 import { unitService } from '../services/unitService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const UnitModal = ({ isOpen, onClose, onSave, unitToEdit = null }) => {
   const [formData, setFormData] = useState({ 
@@ -14,6 +15,11 @@ export const UnitModal = ({ isOpen, onClose, onSave, unitToEdit = null }) => {
   });
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+
+  const isEditing = Boolean(unitToEdit);
+  const requiredPermission = isEditing ? 'editar_unidades_medida' : 'crear_unidades_medida';
+  const canSave = hasPermission(requiredPermission);
 
   useEffect(() => {
     if (isOpen) {
@@ -39,6 +45,9 @@ export const UnitModal = ({ isOpen, onClose, onSave, unitToEdit = null }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSave) {
+      return showToast(`No tienes permisos para ${isEditing ? 'editar' : 'crear'} unidades de medida`, "error");
+    }
     setLoading(true);
 
     const payload = { ...formData };
@@ -152,9 +161,11 @@ export const UnitModal = ({ isOpen, onClose, onSave, unitToEdit = null }) => {
 
               <div className="pt-4 flex flex-col-reverse md:flex-row gap-3">
                 <button type="button" onClick={onClose} className="flex-1 py-3.5 rounded-2xl border border-slate-200 text-slate-600 font-bold text-xs uppercase">Cancelar</button>
-                <button type="submit" disabled={loading} className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl uppercase">
-                  {loading ? "..." : (unitToEdit ? "Actualizar" : "Guardar")}
-                </button>
+                {canSave && (
+                  <button type="submit" disabled={loading} className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl uppercase">
+                    {loading ? "..." : (unitToEdit ? "Actualizar" : "Guardar")}
+                  </button>
+                )}
               </div>
             </form>
           </motion.div>

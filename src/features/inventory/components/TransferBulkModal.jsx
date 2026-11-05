@@ -4,9 +4,12 @@ import {
 } from 'lucide-react';
 import { inventoryService } from '../services/inventoryService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const TransferBulkModal = ({ isOpen, onClose, onSave }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canTransfer = hasPermission('crear_movimientos_inventario');
   
   // Estados de bodegas y paso/estado general
   const [warehouses, setWarehouses] = useState([]);
@@ -143,6 +146,9 @@ export const TransferBulkModal = ({ isOpen, onClose, onSave }) => {
   const esValidoFormulario = origenId && destinoId && !bodegasIguales && totalProductosSeleccionados > 0 && !hayErroresCantidad;
 
   const handleSubmitTraslado = async () => {
+    if (!canTransfer) {
+      return showToast("No tienes permisos para registrar movimientos de inventario", "error");
+    }
     if (!esValidoFormulario) return;
 
     setEnviando(true);
@@ -405,14 +411,16 @@ export const TransferBulkModal = ({ isOpen, onClose, onSave }) => {
               Ver Resumen
             </button>
           ) : (
-            <button 
-              disabled={enviando}
-              onClick={handleSubmitTraslado}
-              className="px-6 py-3 rounded-2xl font-black text-[10px] uppercase bg-emerald-600 text-white hover:bg-emerald-700 transition-all disabled:opacity-50 shadow-xl shadow-emerald-100 flex items-center gap-2"
-            >
-              {enviando && <Loader2 className="animate-spin" size={14} />}
-              {enviando ? 'Procesando...' : 'Realizar Traslado'}
-            </button>
+            canTransfer && (
+              <button 
+                disabled={enviando}
+                onClick={handleSubmitTraslado}
+                className="px-6 py-3 rounded-2xl font-black text-[10px] uppercase bg-emerald-600 text-white hover:bg-emerald-700 transition-all disabled:opacity-50 shadow-xl shadow-emerald-100 flex items-center gap-2"
+              >
+                {enviando && <Loader2 className="animate-spin" size={14} />}
+                {enviando ? 'Procesando...' : 'Realizar Traslado'}
+              </button>
+            )
           )}
         </div>
 

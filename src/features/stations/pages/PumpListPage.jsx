@@ -3,8 +3,10 @@ import { Search, Edit2, Plus, Loader2, Fuel, Power, Hash } from 'lucide-react';
 import { stationService } from '../services/stationService';
 import { useToast } from '../../../context/ToastContext';
 import { PumpModal } from '../components/PumpModal';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const PumpListPage = () => {
+  const { hasPermission } = usePermissions();
   const [pumps, setPumps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,12 +34,18 @@ export const PumpListPage = () => {
           <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">Dispensador / Islas</h2>
           <p className="text-slate-500 text-xs md:text-sm font-bold uppercase tracking-widest">Dispensadores por estación</p>
         </div>
-        <button 
-          onClick={() => { setSelectedPump(null); setIsModalOpen(true); }}
-          className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-black shadow-xl shadow-zinc-200"
-        >
-          <Plus size={16} /> Nuevo Dispensador
-        </button>
+        {hasPermission('crear_bombas') && (
+          <button 
+            onClick={() => {
+              if (!hasPermission('crear_bombas')) return;
+              setSelectedPump(null);
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-black shadow-xl shadow-zinc-200"
+          >
+            <Plus size={16} /> Nuevo Dispensador
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -60,9 +68,19 @@ export const PumpListPage = () => {
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{p.estacion?.nombre}</p>
             </div>
             <div className="pt-4 border-t border-slate-50 flex justify-end gap-1">
-              <button onClick={() => { setSelectedPump(p); setIsModalOpen(true); }} className="p-2 text-slate-400 hover:text-blue-600 rounded-lg transition-all">
-                <Edit2 size={16} />
-              </button>
+              {hasPermission('editar_bombas') && (
+                <button
+                  onClick={() => {
+                    if (!hasPermission('editar_bombas')) return;
+                    setSelectedPump(p);
+                    setIsModalOpen(true);
+                  }}
+                  className="p-2 text-slate-400 hover:text-blue-600 rounded-lg transition-all"
+                  title="Editar Dispensador"
+                >
+                  <Edit2 size={16} />
+                </button>
+              )}
             </div>
           </div>
         ))}

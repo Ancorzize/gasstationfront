@@ -22,6 +22,13 @@ export const companyService = {
     return res.json();
   },
 
+  getPublicApkUrl: async () => {
+    const res = await fetch(`${API_URL}/configuracion-empresa/apk-download-url`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return res.json();
+  },
+
   getCountries: async () => {
     const res = await fetch(`${API_URL}/ubicaciones/paises`, { 
       headers: { ...getHeaders(), 'Content-Type': 'application/json' } 

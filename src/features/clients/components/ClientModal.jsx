@@ -6,6 +6,7 @@ import { clientService } from '../services/clientService';
 import { companyService } from '../../settings/services/companyService';
 import { useToast } from '../../../context/ToastContext';
 import { useModalBackHandler } from '../../../hooks/useModalBackHandler';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const ClientModal = ({ isOpen, onClose, onSave, clientToEdit = null }) => {
   useModalBackHandler(isOpen, onClose);
@@ -32,6 +33,11 @@ export const ClientModal = ({ isOpen, onClose, onSave, clientToEdit = null }) =>
   const [departments, setDepartments] = useState([]);
   const [cities, setCities] = useState([]);
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+
+  const isEditing = Boolean(clientToEdit);
+  const requiredPermission = isEditing ? 'editar_clientes' : 'crear_clientes';
+  const canSave = hasPermission(requiredPermission);
 
   useEffect(() => {
     if (isOpen) {
@@ -137,6 +143,9 @@ export const ClientModal = ({ isOpen, onClose, onSave, clientToEdit = null }) =>
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSave) {
+      return showToast(`No tienes permisos para ${isEditing ? 'editar' : 'crear'} clientes`, "error");
+    }
     setLoading(true);
 
     const payload = { ...formData };
@@ -397,9 +406,11 @@ export const ClientModal = ({ isOpen, onClose, onSave, clientToEdit = null }) =>
                 <button type="button" onClick={onClose} className="flex-1 py-3.5 rounded-2xl border border-slate-200 text-slate-600 font-bold text-xs uppercase hover:bg-slate-50 transition-all">
                   Cancelar
                 </button>
-                <button type="submit" disabled={loading} className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200 uppercase">
-                  {loading ? "Procesando..." : (clientToEdit ? "Actualizar Datos" : "Registrar Cliente")}
-                </button>
+                {canSave && (
+                  <button type="submit" disabled={loading} className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200 uppercase">
+                    {loading ? "Procesando..." : (clientToEdit ? "Actualizar Datos" : "Registrar Cliente")}
+                  </button>
+                )}
               </div>
             </form>
           </motion.div>

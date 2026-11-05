@@ -4,9 +4,12 @@ import { X, Layers, DollarSign, Loader2, Calendar, FileText, AlertCircle } from 
 import { purchaseService } from '../services/purchaseService';
 import { supplierService } from '../../suppliers/services/supplierService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const InitialBalanceModal = ({ isOpen, onClose, onSave, preselectedSupplierId = null }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canCreateBalance = hasPermission('crear_saldos_iniciales_cartera');
   const [loading, setLoading] = useState(false);
   const [loadingProveedores, setLoadingProveedores] = useState(false);
   const [proveedores, setProveedores] = useState([]);
@@ -82,6 +85,10 @@ export const InitialBalanceModal = ({ isOpen, onClose, onSave, preselectedSuppli
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!canCreateBalance) {
+      return showToast('No tienes permisos para registrar saldos iniciales de cartera', 'error');
+    }
 
     if (!formData.proveedor_id) {
       return showToast('Debe seleccionar un proveedor', 'error');
@@ -235,13 +242,15 @@ export const InitialBalanceModal = ({ isOpen, onClose, onSave, preselectedSuppli
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading || loadingProveedores}
-                  className="w-full py-4 bg-zinc-900 text-white rounded-2xl font-black text-xs uppercase hover:bg-black transition-all flex items-center justify-center gap-2 mt-2 shadow-lg disabled:opacity-50"
-                >
-                  {loading ? <Loader2 className="animate-spin" size={18} /> : 'Registrar Saldo Inicial'}
-                </button>
+                {canCreateBalance && (
+                  <button
+                    type="submit"
+                    disabled={loading || loadingProveedores}
+                    className="w-full py-4 bg-zinc-900 text-white rounded-2xl font-black text-xs uppercase hover:bg-black transition-all flex items-center justify-center gap-2 mt-2 shadow-lg disabled:opacity-50"
+                  >
+                    {loading ? <Loader2 className="animate-spin" size={18} /> : 'Registrar Saldo Inicial'}
+                  </button>
+                )}
               </form>
             </div>
           </motion.div>

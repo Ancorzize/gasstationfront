@@ -3,8 +3,10 @@ import { Search, Edit2, MapPin, Plus, Loader2, Fuel, Power } from 'lucide-react'
 import { stationService } from '../services/stationService';
 import { useToast } from '../../../context/ToastContext';
 import { StationModal } from '../components/StationModal';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const StationListPage = () => {
+  const { hasPermission } = usePermissions();
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,12 +55,18 @@ export const StationListPage = () => {
             />
           </div>
 
-          <button 
-            onClick={() => { setSelectedStation(null); setIsModalOpen(true); }}
-            className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200"
-          >
-            <Plus size={16} /> Nueva Estación
-          </button>
+          {hasPermission('crear_estaciones') && (
+            <button 
+              onClick={() => {
+                if (!hasPermission('crear_estaciones')) return;
+                setSelectedStation(null);
+                setIsModalOpen(true);
+              }}
+              className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200"
+            >
+              <Plus size={16} /> Nueva Estación
+            </button>
+          )}
         </div>
       </div>
 
@@ -100,15 +108,27 @@ export const StationListPage = () => {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => { setSelectedStation(s); setIsModalOpen(true); }}
-                    className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button className="p-2.5 text-slate-400 hover:text-zinc-900 hover:bg-slate-100 rounded-xl transition-all">
-                    <Power size={16} />
-                  </button>
+                  {hasPermission('editar_estaciones') && (
+                    <button 
+                      onClick={() => {
+                        if (!hasPermission('editar_estaciones')) return;
+                        setSelectedStation(s);
+                        setIsModalOpen(true);
+                      }}
+                      className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                      title="Editar Estación"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                  )}
+                  {hasPermission('cambiar_estado_estaciones') && (
+                    <button
+                      className="p-2.5 text-slate-400 hover:text-zinc-900 hover:bg-slate-100 rounded-xl transition-all"
+                      title={s.is_active ? 'Desactivar Estación' : 'Activar Estación'}
+                    >
+                      <Power size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

@@ -18,10 +18,12 @@ import {
 } from 'lucide-react';
 import { payrollService } from '../services/payrollService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 import { exportToExcel } from '../../../shared/utils/exportExcel';
 
 export const ElectronicPayrollPage = () => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
 
   const [periods, setPeriods] = useState([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState('');
@@ -130,6 +132,10 @@ export const ElectronicPayrollPage = () => {
     const { type, settlement } = confirmModal;
     if (!settlement || !type) return;
 
+    if (type === 'transmit' && !hasPermission('transmitir_nomina_electronica')) return;
+    if (type === 'replace' && !hasPermission('reemplazar_nomina_electronica')) return;
+    if (type === 'delete' && !hasPermission('eliminar_nomina_electronica')) return;
+
     setConfirmModal((prev) => ({ ...prev, loading: true }));
 
     try {
@@ -196,6 +202,10 @@ export const ElectronicPayrollPage = () => {
 
   // Open confirmation modal
   const openConfirm = (type, settlement) => {
+    if (type === 'transmit' && !hasPermission('transmitir_nomina_electronica')) return;
+    if (type === 'replace' && !hasPermission('reemplazar_nomina_electronica')) return;
+    if (type === 'delete' && !hasPermission('eliminar_nomina_electronica')) return;
+
     setConfirmModal({
       isOpen: true,
       type,
@@ -477,7 +487,7 @@ export const ElectronicPayrollPage = () => {
                       <td className="py-4 px-6 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {/* TRANSMITIR */}
-                          {!tx.transmitted && (
+                          {!tx.transmitted && hasPermission('transmitir_nomina_electronica') && (
                             <button
                               onClick={() => openConfirm('transmit', settlement)}
                               className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-zinc-900 text-white font-bold text-[10px] uppercase hover:bg-black transition-all shadow-sm"
@@ -488,7 +498,7 @@ export const ElectronicPayrollPage = () => {
                           )}
 
                           {/* REEMPLAZAR */}
-                          {tx.transmitted && (
+                          {tx.transmitted && hasPermission('reemplazar_nomina_electronica') && (
                             <button
                               onClick={() => openConfirm('replace', settlement)}
                               className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500 text-white font-bold text-[10px] uppercase hover:bg-amber-600 transition-all shadow-sm"
@@ -499,7 +509,7 @@ export const ElectronicPayrollPage = () => {
                           )}
 
                           {/* ELIMINAR */}
-                          {tx.transmitted && (
+                          {tx.transmitted && hasPermission('eliminar_nomina_electronica') && (
                             <button
                               onClick={() => openConfirm('delete', settlement)}
                               className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-600 text-white font-bold text-[10px] uppercase hover:bg-rose-700 transition-all shadow-sm"

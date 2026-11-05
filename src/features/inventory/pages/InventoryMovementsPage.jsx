@@ -8,8 +8,10 @@ import { ImportInventoryModal } from '../components/ImportInventoryModal';
 import { TransferModal } from '../components/TransferModal'; 
 import { TransferBulkModal } from '../components/TransferBulkModal'; 
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const InventoryMovementsPage = () => {
+  const { hasPermission } = usePermissions();
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -123,26 +125,32 @@ export const InventoryMovementsPage = () => {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <button 
-              onClick={() => setIsImportOpen(true)} 
-              className="flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"
-            >
-              <FileSpreadsheet size={16} /> Importar Excel
-            </button>
+            {hasPermission('importar_inventario') && (
+              <button 
+                onClick={() => setIsImportOpen(true)} 
+                className="flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"
+              >
+                <FileSpreadsheet size={16} /> Importar Excel
+              </button>
+            )}
             
-            <button 
-              onClick={() => setIsBulkTransferOpen(true)} 
-              className="flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-blue-700 transition-all shadow-xl shadow-blue-100"
-            >
-              <Layers3 size={16} /> Traslado Masivo
-            </button>
+            {hasPermission('crear_movimientos_inventario') && (
+              <button 
+                onClick={() => setIsBulkTransferOpen(true)} 
+                className="flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-blue-700 transition-all shadow-xl shadow-blue-100"
+              >
+                <Layers3 size={16} /> Traslado Masivo
+              </button>
+            )}
 
-            <button 
-              onClick={() => setIsTransferOpen(true)} 
-              className="flex items-center justify-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200"
-            >
-              <ArrowLeftRight size={16} /> Nuevo Traslado
-            </button>
+            {hasPermission('crear_movimientos_inventario') && (
+              <button 
+                onClick={() => setIsTransferOpen(true)} 
+                className="flex items-center justify-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200"
+              >
+                <ArrowLeftRight size={16} /> Nuevo Traslado
+              </button>
+            )}
           </div>
         </div>
 

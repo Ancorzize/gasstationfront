@@ -5,6 +5,7 @@ import { supplierService } from '../services/supplierService';
 import { SupplierModal } from '../components/SupplierModal';
 import { useToast } from '../../../context/ToastContext';
 import { exportToExcel } from '../../../shared/utils/exportExcel';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const SupplierListPage = () => {
   const [suppliers, setSuppliers] = useState([]);
@@ -14,6 +15,7 @@ export const SupplierListPage = () => {
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [isInitialBalanceModalOpen, setIsInitialBalanceModalOpen] = useState(false);
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
 
   const fetchSuppliers = async () => {
     setLoading(true);
@@ -69,19 +71,23 @@ export const SupplierListPage = () => {
             />
           </div>
 
-          <button 
-            onClick={() => setIsInitialBalanceModalOpen(true)}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-indigo-700 transition-all shadow-md"
-          >
-            <Layers size={16} /> <span className="hidden sm:inline">Saldo Inicial</span>
-          </button>
+          {hasPermission('crear_saldos_iniciales_cartera') && (
+            <button 
+              onClick={() => setIsInitialBalanceModalOpen(true)}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-indigo-700 transition-all shadow-md"
+            >
+              <Layers size={16} /> <span className="hidden sm:inline">Saldo Inicial</span>
+            </button>
+          )}
 
-          <button 
-            onClick={() => { setSelectedSupplier(null); setIsModalOpen(true); }}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-black transition-all shadow-md"
-          >
-            <Plus size={16} /> <span className="hidden sm:inline">Nuevo Proveedor</span>
-          </button>
+          {hasPermission('crear_proveedores') && (
+            <button 
+              onClick={() => { setSelectedSupplier(null); setIsModalOpen(true); }}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] md:text-xs uppercase hover:bg-black transition-all shadow-md"
+            >
+              <Plus size={16} /> <span className="hidden sm:inline">Nuevo Proveedor</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -130,10 +136,14 @@ export const SupplierListPage = () => {
                     </td>
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => { setSelectedSupplier(s); setIsModalOpen(true); }}
-                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit2 size={14} /></button>
-                        <button onClick={() => handleToggleStatus(s)}
-                          className={`p-2 rounded-lg transition-all ${s.is_active ? 'hover:text-red-600 hover:bg-red-50' : 'hover:text-emerald-600 hover:bg-emerald-50'}`}><Power size={14} /></button>
+                        {hasPermission('editar_proveedores') && (
+                          <button onClick={() => { setSelectedSupplier(s); setIsModalOpen(true); }}
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit2 size={14} /></button>
+                        )}
+                        {hasPermission('editar_proveedores') && (
+                          <button onClick={() => handleToggleStatus(s)}
+                            className={`p-2 rounded-lg transition-all ${s.is_active ? 'hover:text-red-600 hover:bg-red-50' : 'hover:text-emerald-600 hover:bg-emerald-50'}`}><Power size={14} /></button>
+                        )}
                       </div>
                     </td>
                   </tr>

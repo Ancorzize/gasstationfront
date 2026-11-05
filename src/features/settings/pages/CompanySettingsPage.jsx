@@ -1,16 +1,18 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { 
   Building2, MapPin, Globe, 
-  Save, Loader2, Image as ImageIcon, Percent, UploadCloud, FileText
+  Save, Loader2, Image as ImageIcon, Percent, UploadCloud, FileText, Smartphone, AlertTriangle
 } from 'lucide-react';
 import { companyService } from '../services/companyService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const CompanySettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -21,7 +23,8 @@ export const CompanySettingsPage = () => {
     responsable_iva: false, regimen: '', tipo_regimen: '48', responsabilidades_fiscales: [], porcentaje_iva: 0, maneja_iva_incluido: false,
     prefijo_factura: '', numero_resolucion: '', fecha_resolucion: '',
     rango_desde: 1, rango_hasta: 1000, fecha_vencimiento: '', matricula_mercantil: '',
-    moneda: 'COP', simbolo_moneda: '$', decimales: 0
+    moneda: 'COP', simbolo_moneda: '$', decimales: 0,
+    url_descarga_apk: ''
   });
 
   const [selectedFile, setSelectedFile] = useState(null);
@@ -57,6 +60,7 @@ export const CompanySettingsPage = () => {
           tipo_regimen: config.tipo_regimen || '48',
           codigo_postal: config.codigo_postal || '',
           matricula_mercantil: config.matricula_mercantil || '',
+          url_descarga_apk: config.url_descarga_apk || '',
           responsabilidades_fiscales: respFisc
         }));
         
@@ -119,6 +123,20 @@ export const CompanySettingsPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.url_descarga_apk && formData.url_descarga_apk.trim() !== '') {
+      const urlTrimmed = formData.url_descarga_apk.trim();
+      if (!urlTrimmed.startsWith('https://')) {
+        showToast("La URL de descarga de la aplicación debe ser un enlace seguro HTTPS (ej: https://github.com/...)", "error");
+        return;
+      }
+
+      const urlLower = urlTrimmed.toLowerCase();
+      if (!urlLower.endsWith('.apk') && !urlLower.includes('.apk?')) {
+        showToast("Aviso: El enlace no termina en .apk. Verifique que sea el enlace directo al archivo de instalación y no la página general del Release.", "warning");
+      }
+    }
+
     setSaving(true);
 
     const dataToSend = new FormData();
@@ -180,13 +198,15 @@ export const CompanySettingsPage = () => {
           <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Configuración de Empresa</h2>
           <p className="text-slate-500 text-sm italic">Parámetros corporativos y fiscales</p>
         </div>
-        <button 
-          form="config-form" disabled={saving}
-          className="bg-zinc-900 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase hover:bg-black transition-all flex items-center gap-2 shadow-xl disabled:opacity-50"
-        >
-          {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-          {selectedFile ? "Subir y Guardar Todo" : "Guardar Cambios"}
-        </button>
+        {hasPermission('editar_configuracion_empresa') && (
+          <button 
+            form="config-form" disabled={saving}
+            className="bg-zinc-900 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase hover:bg-black transition-all flex items-center gap-2 shadow-xl disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+            {selectedFile ? "Subir y Guardar Todo" : "Guardar Cambios"}
+          </button>
+        )}
       </header>
 
       <div className="flex gap-1.5 p-1.5 bg-slate-100 rounded-2xl w-fit overflow-x-auto max-w-full">
@@ -207,7 +227,7 @@ export const CompanySettingsPage = () => {
         ))}
       </div>
 
-      <form id="config-form" onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[400px]">
+      <form id="config-form" onSubmit={hasPermission('editar_configuracion_empresa') ? handleSubmit : (e) => e.preventDefault()} className="bg-white border border-slate-100 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[400px]">
         <div className="p-6 md:p-10">
           {activeTab === 'general' && (
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 space-y-6">
@@ -258,6 +278,46 @@ export const CompanySettingsPage = () => {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Email</label>
                 <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none" />
+              </div>
+
+              <div className="pt-6 border-t border-slate-100 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Smartphone size={18} className="text-zinc-900" />
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                    Aplicación Móvil Android
+                  </h4>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 flex items-center justify-between">
+                    <span>URL de descarga de la aplicación Android (GitHub Releases)</span>
+                    <span className="text-[9px] font-semibold text-slate-400 lowercase">https://github.com/.../app.apk</span>
+                  </label>
+                  <input
+                    type="url"
+                    name="url_descarga_apk"
+                    placeholder="https://github.com/usuario/repo/releases/download/v1.0.0/app-release.apk"
+                    value={formData.url_descarga_apk || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-yellow-500 outline-none text-slate-800"
+                  />
+                  <p className="text-[9px] text-slate-400 ml-1">
+                    Ingrese el enlace directo HTTPS del archivo APK publicado en GitHub Releases. Se mostrará en navegadores móviles para descargar la app.
+                  </p>
+                  {formData.url_descarga_apk && 
+                   formData.url_descarga_apk.trim() !== '' && 
+                   !formData.url_descarga_apk.toLowerCase().endsWith('.apk') && 
+                   !formData.url_descarga_apk.toLowerCase().includes('.apk?') && (
+                    <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs mt-2">
+                      <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold">Advertencia: Enlace general detectado</p>
+                        <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
+                          El enlace no parece terminar en <strong>.apk</strong>. Para que la descarga directa funcione en celulares Android, asegúrese de ingresar el enlace directo al instalador (ej: <code>https://github.com/.../releases/download/v1.0.0/app-release.apk</code>) y no la página general del Release.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

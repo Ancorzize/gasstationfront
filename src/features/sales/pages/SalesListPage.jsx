@@ -11,6 +11,7 @@ import { useToast } from '../../../context/ToastContext';
 import { getTodayStr } from '../../../shared/utils/dateUtils';
 import { NotaCreditoModal } from '../components/NotaCreditoModal';
 import { NotaDebitoModal } from '../components/NotaDebitoModal';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const SalesListPage = () => {
   const [sales, setSales] = useState([]);
@@ -30,6 +31,7 @@ export const SalesListPage = () => {
 
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
 
   const fetchSales = async () => {
     setLoading(true);
@@ -285,13 +287,15 @@ export const SalesListPage = () => {
                         </button>
 
                         {sale.estado !== 'anulada' ? (
-                          <button
+                          hasPermission('anular_ventas') && (
+                            <button
                             onClick={() => handleOpenAnularModal(sale)}
                             className="px-2.5 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[9px] font-black uppercase transition-all flex items-center gap-1"
                             title="Anular Venta"
                           >
                             <Ban size={14} /> Anular
                           </button>
+                            )
                         ) : (
                           <span className="px-2 py-1 bg-zinc-100 text-zinc-500 rounded-xl text-[9px] font-black uppercase tracking-wider">
                             Anulada

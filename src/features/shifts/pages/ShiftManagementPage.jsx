@@ -125,12 +125,14 @@ export const ShiftManagementPage = () => {
                   debes abrir un turno en tu estación asignada.
                 </p>
               </div>
-              <button
-                onClick={() => setIsOpeningModal(true)}
-                className="w-full md:w-auto inline-flex items-center justify-center gap-3 bg-zinc-900 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-black transition-all shadow-xl shadow-zinc-200"
-              >
-                <Play size={16} fill="currentColor" /> Abrir Nuevo Turno
-              </button>
+              {hasPermission("abrir_turnos_islero") && (
+                <button
+                  onClick={() => setIsOpeningModal(true)}
+                  className="w-full md:w-auto inline-flex items-center justify-center gap-3 bg-zinc-900 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-black transition-all shadow-xl shadow-zinc-200"
+                >
+                  <Play size={16} fill="currentColor" /> Abrir Nuevo Turno
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -243,16 +245,18 @@ export const ShiftManagementPage = () => {
                     </>
                   )}
 
-                  <div className="mt-4 pt-4 border-t border-slate-100">
-                    <button
-                      onClick={() =>
-                        navigate(`/turnos-islero/${currentShift.id}/cerrar`)
-                      }
-                      className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-wider hover:bg-black transition-all flex items-center justify-center gap-2"
-                    >
-                      Cerrar Turno Actual <ArrowRight size={14} />
-                    </button>
-                  </div>
+                  {hasPermission("cerrar_turnos_islero") && (
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <button
+                        onClick={() =>
+                          navigate(`/turnos-islero/${currentShift.id}/cerrar`)
+                        }
+                        className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-wider hover:bg-black transition-all flex items-center justify-center gap-2"
+                      >
+                        Cerrar Turno Actual <ArrowRight size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 

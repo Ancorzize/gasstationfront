@@ -3,6 +3,7 @@ import { roleService } from './services/roleService';
 import { Shield, Save, Lock, ChevronRight, ChevronDown, Search, FilterX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '../../context/ToastContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export const RolePage = () => {
   const [roles, setRoles] = useState([]);
@@ -17,6 +18,7 @@ export const RolePage = () => {
   const [expandedModules, setExpandedModules] = useState({});
 
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
 
   useEffect(() => {
     initData();
@@ -138,13 +140,15 @@ export const RolePage = () => {
                 <h2 className="font-black text-slate-800 text-sm uppercase">Permisos: {selectedRole?.name}</h2>
                 <p className="text-slate-400 text-[10px] uppercase font-bold tracking-tighter">Gestiona el acceso modular</p>
               </div>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="w-full sm:w-auto bg-yellow-500 hover:bg-black hover:text-white text-black font-black text-[10px] py-3 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all uppercase shadow-lg shadow-yellow-100 disabled:opacity-50"
-              >
-                {saving ? "Guardando..." : <><Save size={14} /> Guardar Cambios</>}
-              </button>
+              {hasPermission('editar_roles') && (
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="w-full sm:w-auto bg-yellow-500 hover:bg-black hover:text-white text-black font-black text-[10px] py-3 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all uppercase shadow-lg shadow-yellow-100 disabled:opacity-50"
+                >
+                  {saving ? "Guardando..." : <><Save size={14} /> Guardar Cambios</>}
+                </button>
+              )}
             </div>
 
             {/* Buscador de Permisos */}

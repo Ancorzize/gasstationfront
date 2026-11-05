@@ -5,6 +5,7 @@ import { ServiceModal } from '../components/ServiceModal';
 import { ConfirmModal } from '../../../shared/components/ConfirmModal';
 import { useToast } from '../../../context/ToastContext';
 import { exportToExcel } from '../../../shared/utils/exportExcel';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const ServiceListPage = () => {
   const [services, setServices] = useState([]);
@@ -13,6 +14,7 @@ export const ServiceListPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const { hasPermission } = usePermissions();
   const [serviceToDelete, setServiceToDelete] = useState(null);
   
   const { showToast } = useToast();
@@ -93,10 +95,12 @@ export const ServiceListPage = () => {
               value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
 
-          <button onClick={() => { setSelectedService(null); setIsModalOpen(true); }}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-4 py-2.5 rounded-2xl font-bold text-xs uppercase hover:bg-black transition-all shadow-md">
-            <Plus size={16} /> <span className="hidden sm:inline">Nuevo Servicio</span>
-          </button>
+          {hasPermission('crear_servicios') && (
+            <button onClick={() => { setSelectedService(null); setIsModalOpen(true); }}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-4 py-2.5 rounded-2xl font-bold text-xs uppercase hover:bg-black transition-all shadow-md">
+              <Plus size={16} /> <span className="hidden sm:inline">Nuevo Servicio</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -141,9 +145,15 @@ export const ServiceListPage = () => {
                     </td>
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => { setSelectedService(s); setIsModalOpen(true); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit2 size={14} /></button>
-                        <button onClick={() => handleToggleStatus(s)} className={`p-2 rounded-lg transition-all ${s.is_active ? 'hover:text-red-600 hover:bg-red-50' : 'hover:text-emerald-600 hover:bg-emerald-50'}`}><Power size={14} /></button>
-                        <button onClick={() => { setServiceToDelete(s); setIsConfirmOpen(true); }} className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"><Trash2 size={14} /></button>
+                        {hasPermission('editar_servicios') && (
+                          <button onClick={() => { setSelectedService(s); setIsModalOpen(true); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit2 size={14} /></button>
+                        )}
+                        {hasPermission('cambiar_estado_servicios') && (
+                          <button onClick={() => handleToggleStatus(s)} className={`p-2 rounded-lg transition-all ${s.is_active ? 'hover:text-red-600 hover:bg-red-50' : 'hover:text-emerald-600 hover:bg-emerald-50'}`}><Power size={14} /></button>
+                        )}
+                        {hasPermission('eliminar_servicios') && (
+                          <button onClick={() => { setServiceToDelete(s); setIsConfirmOpen(true); }} className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"><Trash2 size={14} /></button>
+                        )}
                       </div>
                     </td>
                   </tr>

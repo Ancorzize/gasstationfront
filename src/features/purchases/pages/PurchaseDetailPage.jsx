@@ -23,6 +23,7 @@ import { purchasePaymentService } from "../services/purchasePaymentService";
 import { cashService } from "../../cash/services/cashService";
 import { useToast } from "../../../context/ToastContext";
 import { PaymentModal } from "../components/PaymentModal";
+import { usePermissions } from "../../../hooks/usePermissions";
 
 const ConfirmModal = ({
   isOpen,
@@ -311,6 +312,7 @@ export const PurchaseDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
 
   const [purchase, setPurchase] = useState(null);
   const [pagos, setPagos] = useState([]);
@@ -486,24 +488,28 @@ export const PurchaseDetailPage = () => {
         <div className="flex items-center gap-2">
           {purchase.estado === "borrador" && (
             <>
-              <button
-                onClick={() => navigate(`/compras/editar/${id}`)}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl font-black text-[10px] uppercase hover:bg-slate-50 transition-all shadow-sm"
-              >
-                <Edit3 size={14} /> Editar
-              </button>
-              <button
-                onClick={handleInitiateConfirm}
-                disabled={confirming}
-                className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl font-black text-[10px] uppercase hover:bg-black shadow-md transition-all disabled:opacity-50"
-              >
-                {confirming ? (
-                  <Loader2 className="animate-spin" size={14} />
-                ) : (
-                  <CheckCircle2 size={14} />
-                )}
-                Confirmar e Ingresar
-              </button>
+              {hasPermission("editar_compras") && (
+                <button
+                  onClick={() => navigate(`/compras/editar/${id}`)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl font-black text-[10px] uppercase hover:bg-slate-50 transition-all shadow-sm"
+                >
+                  <Edit3 size={14} /> Editar
+                </button>
+              )}
+              {hasPermission("confirmar_compras") && (
+                <button
+                  onClick={handleInitiateConfirm}
+                  disabled={confirming}
+                  className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl font-black text-[10px] uppercase hover:bg-black shadow-md transition-all disabled:opacity-50"
+                >
+                  {confirming ? (
+                    <Loader2 className="animate-spin" size={14} />
+                  ) : (
+                    <CheckCircle2 size={14} />
+                  )}
+                  Confirmar e Ingresar
+                </button>
+              )}
             </>
           )}
           <button
@@ -812,12 +818,14 @@ export const PurchaseDetailPage = () => {
           purchase.estado === "confirmada" &&
           purchase.saldo_pendiente > 0 && (
             <div className="pt-4 flex flex-wrap gap-3 print:hidden">
-              <button
-                onClick={() => setIsPaymentOpen(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase hover:bg-emerald-700 transition-all shadow-md"
-              >
-                <Plus size={16} /> Registrar Abono
-              </button>
+              {hasPermission("registrar_pagos_compra") && (
+                <button
+                  onClick={() => setIsPaymentOpen(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase hover:bg-emerald-700 transition-all shadow-md"
+                >
+                  <Plus size={16} /> Registrar Abono
+                </button>
+              )}
               {parseFloat(purchase.proveedor?.saldo_anticipo || 0) > 0 && (
                 <button
                   onClick={() => setIsApplyAdvanceOpen(true)}

@@ -5,9 +5,11 @@ import { X, User, CreditCard, Calendar, DollarSign, MapPin, Briefcase, Building,
 import { payrollService } from '../services/payrollService';
 import { companyService } from '../../settings/services/companyService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const EmployeeModal = ({ isOpen, onClose, onSave, employeeToEdit = null }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [activeTab, setActiveTab] = useState('general'); // 'general' | 'payment' | 'cycles'
   const [loading, setLoading] = useState(false);
 
@@ -264,6 +266,7 @@ export const EmployeeModal = ({ isOpen, onClose, onSave, employeeToEdit = null }
   }, [isOpen, activeTab, employeeToEdit]);
 
   const handleCreateAssignment = async () => {
+    if (!hasPermission('editar_empleados')) return;
     if (!employeeToEdit?.id) {
       showToast('Debe guardar el empleado antes de asignarle un ciclo de nómina.', 'warning');
       return;
@@ -305,6 +308,7 @@ export const EmployeeModal = ({ isOpen, onClose, onSave, employeeToEdit = null }
   };
 
   const handleToggleAssignmentStatus = async (assignmentId, currentStatus) => {
+    if (!hasPermission('editar_empleados')) return;
     try {
       const res = await payrollService.toggleEmployeeCycleStatus(assignmentId, !currentStatus);
       if (res?.status) {
@@ -322,6 +326,9 @@ export const EmployeeModal = ({ isOpen, onClose, onSave, employeeToEdit = null }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (employeeToEdit && !hasPermission('editar_empleados')) return;
+    if (!employeeToEdit && !hasPermission('crear_empleados')) return;
 
     // Validations
     if (!formData.worker_code.trim()) {
@@ -482,30 +489,34 @@ export const EmployeeModal = ({ isOpen, onClose, onSave, employeeToEdit = null }
                 <User size={16} />
                 <span>Datos Principales</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('payment')}
-                className={`flex items-center gap-2 px-5 py-3 text-xs font-black uppercase tracking-wider rounded-t-2xl border-t border-x transition-all ${
-                  activeTab === 'payment'
-                    ? 'bg-white border-slate-200 text-slate-900 shadow-sm'
-                    : 'border-transparent text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                <CreditCard size={16} />
-                <span>Cuenta de Pago</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('cycles')}
-                className={`flex items-center gap-2 px-5 py-3 text-xs font-black uppercase tracking-wider rounded-t-2xl border-t border-x transition-all ${
-                  activeTab === 'cycles'
-                    ? 'bg-white border-slate-200 text-slate-900 shadow-sm'
-                    : 'border-transparent text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                <RefreshCw size={16} />
-                <span>Ciclos de Nómina</span>
-              </button>
+              {employeeToEdit && hasPermission('editar_empleados') && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('payment')}
+                  className={`flex items-center gap-2 px-5 py-3 text-xs font-black uppercase tracking-wider rounded-t-2xl border-t border-x transition-all ${
+                    activeTab === 'payment'
+                      ? 'bg-white border-slate-200 text-slate-900 shadow-sm'
+                      : 'border-transparent text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  <CreditCard size={16} />
+                  <span>Cuenta de Pago</span>
+                </button>
+              )}
+              {employeeToEdit && hasPermission('editar_empleados') && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('cycles')}
+                  className={`flex items-center gap-2 px-5 py-3 text-xs font-black uppercase tracking-wider rounded-t-2xl border-t border-x transition-all ${
+                    activeTab === 'cycles'
+                      ? 'bg-white border-slate-200 text-slate-900 shadow-sm'
+                      : 'border-transparent text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  <RefreshCw size={16} />
+                  <span>Ciclos de Nómina</span>
+                </button>
+              )}
             </div>
 
             {/* Body */}
@@ -1151,20 +1162,22 @@ export const EmployeeModal = ({ isOpen, onClose, onSave, employeeToEdit = null }
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200 uppercase"
-                >
-                  {loading ? (
-                    'Procesando...'
-                  ) : (
-                    <>
-                      <CheckCircle2 size={16} />
-                      <span>{employeeToEdit ? 'Guardar Cambios' : 'Registrar Empleado'}</span>
-                    </>
-                  )}
-                </button>
+                {((employeeToEdit && hasPermission('editar_empleados')) || (!employeeToEdit && hasPermission('crear_empleados'))) && (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200 uppercase"
+                  >
+                    {loading ? (
+                      'Procesando...'
+                    ) : (
+                      <>
+                        <CheckCircle2 size={16} />
+                        <span>{employeeToEdit ? 'Guardar Cambios' : 'Registrar Empleado'}</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </form>
           </motion.div>

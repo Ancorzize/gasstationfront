@@ -19,6 +19,7 @@ import {
 import { shiftService } from "../services/shiftService";
 import { useToast } from "../../../context/ToastContext";
 import { ShiftOperationsSection } from "../components/ShiftOperationsSection";
+import { usePermissions } from "../../../hooks/usePermissions";
 
 // Formato colombiano a 3 decimales para Mangueras y Lecturas (ej: 12.345,334)
 const formatLectura = (value) => {
@@ -112,6 +113,7 @@ const parsePesos = (str) => {
 
 export const ShiftApprovalsPage = () => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [pendientes, setPendientes] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -181,29 +183,41 @@ export const ShiftApprovalsPage = () => {
 
         setEditDestinosRecaudo(
           (data.destinos_recaudo || []).map((d) => {
-            const esLubricantes = d.nombre === "Lubricantes";
             const recaudoIslero = (data.turno?.recaudos || []).find(
               (r) => r.destino_recaudo_id === d.destino_recaudo_id,
             );
 
-            const initialPagos =
-              recaudoIslero && !esLubricantes
-                ? {
-                    efectivo: parseFloat(recaudoIslero.efectivo || 0),
-                    qr: parseFloat(recaudoIslero.qr || 0),
-                    datafono: parseFloat(recaudoIslero.datafono || 0),
-                    transferencia: parseFloat(recaudoIslero.transferencia || 0),
-                    consignacion: parseFloat(recaudoIslero.consignacion || 0),
-                  }
-                : {
-                    ...(d.pagos || {
-                      efectivo: 0,
-                      qr: 0,
-                      datafono: 0,
-                      transferencia: 0,
-                      consignacion: 0,
-                    }),
-                  };
+            // 1. Recaudo reportado originalmente por el islero (conservado para TODOS los destinos)
+            const recaudoOriginal = recaudoIslero
+              ? {
+                  efectivo: parseFloat(recaudoIslero.efectivo || 0),
+                  qr: parseFloat(recaudoIslero.qr || 0),
+                  datafono: parseFloat(recaudoIslero.datafono || 0),
+                  transferencia: parseFloat(recaudoIslero.transferencia || 0),
+                  consignacion: parseFloat(recaudoIslero.consignacion || 0),
+                }
+              : {
+                  efectivo: 0,
+                  qr: 0,
+                  datafono: 0,
+                  transferencia: 0,
+                  consignacion: 0,
+                };
+
+            // 2. Pagos registrados en el sistema POS (mantenidos estrictamente separados)
+            const pagosSistema = {
+              ...(d.pagos || {
+                efectivo: 0,
+                qr: 0,
+                datafono: 0,
+                transferencia: 0,
+                consignacion: 0,
+              }),
+            };
+
+            // 3. Pagos para aprobación: inicializados con el recaudo físico reportado por el islero
+            // (Si no existe recaudo reportado para un destino, NO asumir d.pagos, queda en 0)
+            const initialPagos = { ...recaudoOriginal };
 
             const pagosInputs = {};
             Object.keys(initialPagos).forEach((medio) => {
@@ -214,9 +228,12 @@ export const ShiftApprovalsPage = () => {
 
             return {
               destino_recaudo_id: d.destino_recaudo_id,
+              codigo: d.codigo,
               nombre: d.nombre,
               pagos: initialPagos,
               pagosInputs: pagosInputs,
+              recaudoOriginal: recaudoOriginal,
+              pagosSistema: pagosSistema,
             };
           }),
         );
@@ -408,47 +425,74 @@ export const ShiftApprovalsPage = () => {
       return {
         totalEsperado: 0,
         totalReportado: 0,
+        totalReportadoIslero: 0,
         balance: 0,
+        balanceIslero: 0,
         totalCreditos: 0,
         totalCombustible: 0,
         ventasLubricantes: 0,
         anticipos: 0,
         abonos: 0,
+        otrosMovimientos: 0,
       };
 
-    const totalCombustible = editLecturas.reduce((acc, l) => {
-      const inicial = Number(l.lectura_inicial) || 0;
-      const final =
-        l.lectura_final !== "" && !isNaN(Number(l.lectura_final))
-          ? Number(l.lectura_final)
-          : inicial;
-      const galonesVendidos = Math.max(0, final - inicial);
-      const galonesRedondeados = Math.round(galonesVendidos * 1000) / 1000;
-      return acc + galonesRedondeados * Number(l.precio_galon || 0);
-    }, 0);
+    const round2 = (num) => Math.round((Number(num) || 0) * 100) / 100;
 
-    const abonos = (revisionData.abonos || []).reduce(
-      (acc, a) => acc + Number(a.monto || 0),
-      0,
+    const totalCombustible = round2(
+      editLecturas.reduce((acc, l) => {
+        const inicial = Number(l.lectura_inicial) || 0;
+        const final =
+          l.lectura_final !== "" && !isNaN(Number(l.lectura_final))
+            ? Number(l.lectura_final)
+            : inicial;
+        const galonesVendidos = Math.max(0, final - inicial);
+        const galonesRedondeados = Math.round(galonesVendidos * 1000) / 1000;
+        return acc + round2(galonesRedondeados * Number(l.precio_galon || 0));
+      }, 0),
     );
-    const ventasLubricantes = Number(
+
+    const abonos = round2(
+      (revisionData.abonos || []).reduce(
+        (acc, a) => acc + Number(a.monto || 0),
+        0,
+      ),
+    );
+
+    const ventasLubricantes = round2(
       revisionData.resumen?.total_ventas_lubricantes || 0,
     );
-    const totalCreditos = Number(revisionData.resumen?.total_creditos || 0);
-    const anticipos = Number(
+
+    const totalCreditos = round2(
+      revisionData.resumen?.total_creditos || 0,
+    );
+
+    const anticipos = round2(
       revisionData.resumen?.anticipos_aplicados ||
         revisionData.resumen?.total_anticipos ||
         0,
     );
 
-    let totalEsperado =
-      totalCombustible + ventasLubricantes - totalCreditos - anticipos + abonos;
+    const totalEsperado = round2(
+      totalCombustible + ventasLubricantes - totalCreditos - anticipos + abonos,
+    );
 
-    if (Math.abs(totalEsperado) < 100) {
-      totalEsperado = 0;
-    }
+    // Total reportado originalmente por el islero
+    const totalReportadoIslero = round2(
+      editDestinosRecaudo.reduce((acc, d) => {
+        return (
+          acc +
+          Object.values(d.recaudoOriginal || {}).reduce(
+            (sum, val) => sum + Number(val || 0),
+            0,
+          )
+        );
+      }, 0) +
+        Number(revisionData.resumen?.otros_movimientos || 0) +
+        abonos,
+    );
 
-    const totalReportado =
+    // Total aprobado (valores actualmente en los inputs de aprobación)
+    const totalAprobado = round2(
       editDestinosRecaudo.reduce((acc, d) => {
         return (
           acc +
@@ -458,24 +502,25 @@ export const ShiftApprovalsPage = () => {
           )
         );
       }, 0) +
-      Number(otrosMovimientos || 0) +
-      abonos;
+        Number(otrosMovimientos || 0) +
+        abonos,
+    );
 
-    let balance = Number(totalReportado || 0) - Number(totalEsperado || 0);
-    if (Math.abs(balance) < 100) {
-      balance = 0;
-    }
+    const balance = round2(totalAprobado - totalEsperado);
+    const balanceIslero = round2(totalReportadoIslero - totalEsperado);
 
     return {
-      totalEsperado: Number(totalEsperado || 0),
-      totalReportado: Number(totalReportado || 0),
-      balance: balance,
-      totalCreditos: Number(totalCreditos || 0),
-      totalCombustible: Number(totalCombustible || 0),
-      ventasLubricantes: Number(ventasLubricantes || 0),
-      anticipos: Number(anticipos || 0),
-      abonos: Number(abonos || 0),
-      otrosMovimientos: Number(otrosMovimientos || 0),
+      totalEsperado,
+      totalReportado: totalAprobado,
+      totalReportadoIslero,
+      balance,
+      balanceIslero,
+      totalCreditos,
+      totalCombustible,
+      ventasLubricantes,
+      anticipos,
+      abonos,
+      otrosMovimientos: round2(otrosMovimientos || 0),
     };
   }, [revisionData, editLecturas, editDestinosRecaudo, otrosMovimientos]);
 
@@ -535,13 +580,15 @@ export const ShiftApprovalsPage = () => {
                   <p className="text-xs font-bold opacity-85">
                     Esperado: ${" "}
                     {calculatedValues.totalEsperado.toLocaleString("es-CO")} |{" "}
-                    Reportado: ${" "}
+                    Reportado Islero: ${" "}
+                    {calculatedValues.totalReportadoIslero.toLocaleString("es-CO")} |{" "}
+                    Aprobado: ${" "}
                     {calculatedValues.totalReportado.toLocaleString("es-CO")}
                   </p>
                   <p className="text-[9px] font-semibold opacity-70 uppercase tracking-tight">
-                    Combustible: $
+                    Combustible Físico: $
                     {calculatedValues.totalCombustible.toLocaleString("es-CO")}{" "}
-                    | Lubricantes: $
+                    | Lubricantes POS: $
                     {calculatedValues.ventasLubricantes.toLocaleString("es-CO")}{" "}
                     | Créditos: -$
                     {calculatedValues.totalCreditos.toLocaleString(
@@ -590,7 +637,7 @@ export const ShiftApprovalsPage = () => {
             <>
               <form
                 id="approvals-form"
-                onSubmit={handleAprobar}
+                onSubmit={hasPermission("aprobar_cierres_turnos_islero") ? handleAprobar : (e) => e.preventDefault()}
                 className="space-y-8"
               >
                 <div
@@ -715,20 +762,40 @@ export const ShiftApprovalsPage = () => {
                           destino.nombre !== "Lubricantes",
                       )
                       .map((destino) => {
+                        const totalReportadoDestino = Object.values(
+                          destino.recaudoOriginal || {},
+                        ).reduce((acc, v) => acc + Number(v || 0), 0);
+
                         return (
                           <div
                             key={destino.destino_recaudo_id}
                             className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-4"
                           >
-                            <h3 className="text-xs font-black uppercase mb-6 flex items-center gap-2 text-slate-800">
-                              <Banknote size={16} /> Recaudo de {destino.nombre}
-                            </h3>
-                            <div className="grid grid-cols-2 gap-4">
-                              {Object.keys(destino.pagos).map((medio) => (
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-50 pb-3">
+                              <h3 className="text-xs font-black uppercase flex items-center gap-2 text-slate-800">
+                                <Banknote size={16} /> Recaudo de {destino.nombre}
+                              </h3>
+                              <div className="flex flex-wrap items-center gap-2 text-[9px] font-bold">
+                                <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">
+                                  Reportado Islero: $ {totalReportadoDestino.toLocaleString("es-CO")}
+                                </span>
+                              </div>
+                            </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            {Object.keys(destino.pagos).map((medio) => {
+                              const valorOriginal = Number(destino.recaudoOriginal?.[medio] || 0);
+
+                              return (
                                 <div key={medio} className="space-y-1">
-                                  <label className="text-[9px] font-bold text-slate-400 uppercase">
-                                    {medio}
-                                  </label>
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-[9px] font-bold text-slate-400 uppercase">
+                                      {medio}
+                                    </label>
+                                    <span className="text-[8px] text-slate-400 font-semibold">
+                                      Islero: ${valorOriginal.toLocaleString("es-CO")}
+                                    </span>
+                                  </div>
                                   <input
                                     type="text"
                                     className="w-full p-3 rounded-xl text-xs font-black text-right outline-none transition-all bg-slate-50 border border-slate-200 focus:border-zinc-900 text-slate-800"
@@ -749,11 +816,12 @@ export const ShiftApprovalsPage = () => {
                                     }
                                   />
                                 </div>
-                              ))}
-                            </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
+                        </div>
+                      );
+                    })}
 
                     {/* Sección de Anticipos Aplicados */}
                     <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-3">
@@ -829,20 +897,22 @@ export const ShiftApprovalsPage = () => {
                 onOperationsChanged={() => handleSelectTurno(selectedTurno)}
               />
 
-              <button
-                type="submit"
-                form="approvals-form"
-                onClick={handleAprobar}
-                disabled={actionLoading}
-                className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white py-5 rounded-[2rem] font-black uppercase text-xs hover:bg-emerald-500 transition-all shadow-xl disabled:opacity-50"
-              >
-                {actionLoading ? (
-                  <Loader2 className="animate-spin" size={18} />
-                ) : (
-                  <Save size={18} />
-                )}
-                Guardar Cambios y Aprobar Turno
-              </button>
+              {hasPermission("aprobar_cierres_turnos_islero") && (
+                <button
+                  type="submit"
+                  form="approvals-form"
+                  onClick={handleAprobar}
+                  disabled={actionLoading}
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white py-5 rounded-[2rem] font-black uppercase text-xs hover:bg-emerald-500 transition-all shadow-xl disabled:opacity-50"
+                >
+                  {actionLoading ? (
+                    <Loader2 className="animate-spin" size={18} />
+                  ) : (
+                    <Save size={18} />
+                  )}
+                  Guardar Cambios y Aprobar Turno
+                </button>
+              )}
             </>
           ) : null}
         </div>

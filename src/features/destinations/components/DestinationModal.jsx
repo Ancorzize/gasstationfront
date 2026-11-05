@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, Tag, FileText, Save } from 'lucide-react';
 import { destinationService } from '../services/destinationService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const DestinationModal = ({ isOpen, onClose, onSave, destinoToEdit = null }) => {
+  const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [formData, setFormData] = useState({ codigo: '', nombre: '', descripcion: '' });
   const [loading, setLoading] = useState(false);
-  const { showToast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
@@ -17,6 +19,14 @@ export const DestinationModal = ({ isOpen, onClose, onSave, destinoToEdit = null
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (destinoToEdit && !hasPermission('editar_destino_recaudo')) {
+      showToast('No tienes permiso para editar destinos de recaudo', 'error');
+      return;
+    }
+    if (!destinoToEdit && !hasPermission('crear_destino_recaudo')) {
+      showToast('No tienes permiso para crear destinos de recaudo', 'error');
+      return;
+    }
     setLoading(true);
     try {
       const res = destinoToEdit 
@@ -59,7 +69,11 @@ export const DestinationModal = ({ isOpen, onClose, onSave, destinoToEdit = null
                 <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Descripción</label>
                 <textarea className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm" value={formData.descripcion} onChange={e => setFormData({...formData, descripcion: e.target.value})} />
               </div>
-              <button disabled={loading} className="w-full py-4 bg-zinc-900 text-white font-bold text-xs rounded-2xl uppercase hover:bg-black">{loading ? "Guardando..." : "Guardar Registro"}</button>
+              {(destinoToEdit ? hasPermission('editar_destino_recaudo') : hasPermission('crear_destino_recaudo')) && (
+                <button disabled={loading} className="w-full py-4 bg-zinc-900 text-white font-bold text-xs rounded-2xl uppercase hover:bg-black">
+                  {loading ? "Guardando..." : "Guardar Registro"}
+                </button>
+              )}
             </form>
           </motion.div>
         </div>

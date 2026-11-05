@@ -6,10 +6,12 @@ import { fuelSalesService } from '../services/fuelSalesService';
 import { clientService } from '../../clients/services/clientService';
 import { ClientModal } from '../../clients/components/ClientModal';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const FuelSalesPage = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [currentShift, setCurrentShift] = useState(null);
   
@@ -129,6 +131,9 @@ export const FuelSalesPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!hasPermission('vender_combustible')) {
+      return showToast('No tienes permisos para registrar ventas de combustible', 'error');
+    }
     if ((formData.tipo_venta === 'credito' || formData.tipo_venta === 'mixta') && !formData.cliente_id) {
       return showToast("Debes seleccionar un cliente para esta venta a crédito", "error");
     }
@@ -304,13 +309,15 @@ export const FuelSalesPage = () => {
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                 {formData.factura_electronica ? 'Cliente para Factura Electrónica (NIT/Nombre)' : 'Buscar Cliente (Nit/Nombre)'}
               </label>
-              <button
-                type="button"
-                onClick={() => setIsClientModalOpen(true)}
-                className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-xl transition-all"
-              >
-                <UserPlus size={14} /> Registrar Nuevo Cliente
-              </button>
+              {hasPermission('crear_clientes') && (
+                <button
+                  type="button"
+                  onClick={() => setIsClientModalOpen(true)}
+                  className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-xl transition-all"
+                >
+                  <UserPlus size={14} /> Registrar Nuevo Cliente
+                </button>
+              )}
             </div>
             <div className="relative">
               <User className="absolute left-4 top-4 text-slate-300" size={18} />
@@ -359,16 +366,18 @@ export const FuelSalesPage = () => {
                 ) : !searchingClients ? (
                   <div className="p-4 text-center space-y-2">
                     <p className="text-[10px] text-slate-400 uppercase italic font-bold">No se encontró cliente con "{clientSearchTerm}"</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowClientList(false);
-                        setIsClientModalOpen(true);
-                      }}
-                      className="text-[10px] font-black text-blue-600 uppercase underline"
-                    >
-                      Crear cliente "{clientSearchTerm}"
-                    </button>
+                    {hasPermission('crear_clientes') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowClientList(false);
+                          setIsClientModalOpen(true);
+                        }}
+                        className="text-[10px] font-black text-blue-600 uppercase underline"
+                      >
+                        Crear cliente "{clientSearchTerm}"
+                      </button>
+                    )}
                   </div>
                 ) : null}
               </div>
@@ -526,14 +535,16 @@ export const FuelSalesPage = () => {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={loading || !formData.manguera_id || !formData.monto}
-          className="w-full bg-zinc-900 text-white py-6 rounded-[2rem] font-black uppercase text-sm shadow-xl shadow-zinc-200 hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          {loading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle size={20} />}
-          Confirmar Venta y Generar Ticket
-        </button>
+        {hasPermission('vender_combustible') && (
+          <button
+            type="submit"
+            disabled={loading || !formData.manguera_id || !formData.monto}
+            className="w-full bg-zinc-900 text-white py-6 rounded-[2rem] font-black uppercase text-sm shadow-xl shadow-zinc-200 hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            {loading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle size={20} />}
+            Confirmar Venta y Generar Ticket
+          </button>
+        )}
       </form>
       
       <div className="p-6 bg-blue-50 border border-blue-100 rounded-[2rem] flex gap-4 text-blue-700">
@@ -544,11 +555,13 @@ export const FuelSalesPage = () => {
       </div>
 
       {/* Modal para Crear Cliente Nuevo */}
-      <ClientModal
-        isOpen={isClientModalOpen}
-        onClose={() => setIsClientModalOpen(false)}
-        onSave={handleClientCreated}
-      />
+      {hasPermission('crear_clientes') && (
+        <ClientModal
+          isOpen={isClientModalOpen}
+          onClose={() => setIsClientModalOpen(false)}
+          onSave={handleClientCreated}
+        />
+      )}
     </div>
   );
 };

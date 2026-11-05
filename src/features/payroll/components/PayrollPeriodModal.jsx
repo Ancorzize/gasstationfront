@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Clock, CheckCircle2, RefreshCw, FileText } from 'lucide-react';
 import { payrollService } from '../services/payrollService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const PayrollPeriodModal = ({ isOpen, onClose, onSave, periodToEdit = null }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [cycles, setCycles] = useState([]);
 
@@ -63,6 +65,9 @@ export const PayrollPeriodModal = ({ isOpen, onClose, onSave, periodToEdit = nul
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (periodToEdit && !hasPermission('editar_periodos_nomina')) return;
+    if (!periodToEdit && !hasPermission('crear_periodos_nomina')) return;
 
     // Frontend Validations
     if (!formData.payroll_cycle_id) {
@@ -293,20 +298,22 @@ export const PayrollPeriodModal = ({ isOpen, onClose, onSave, periodToEdit = nul
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200 uppercase"
-                >
-                  {loading ? (
-                    'Procesando...'
-                  ) : (
-                    <>
-                      <CheckCircle2 size={16} />
-                      <span>{periodToEdit ? 'Actualizar' : 'Crear Período'}</span>
-                    </>
-                  )}
-                </button>
+                {(periodToEdit ? hasPermission('editar_periodos_nomina') : hasPermission('crear_periodos_nomina')) && (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200 uppercase"
+                  >
+                    {loading ? (
+                      'Procesando...'
+                    ) : (
+                      <>
+                        <CheckCircle2 size={16} />
+                        <span>{periodToEdit ? 'Actualizar' : 'Crear Período'}</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </form>
           </motion.div>

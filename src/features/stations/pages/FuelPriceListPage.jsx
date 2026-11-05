@@ -7,10 +7,12 @@ import {
 import { fuelPriceService } from '../services/fuelPriceService';
 import { useToast } from '../../../context/ToastContext';
 import { FuelPriceModal } from '../components/FuelPriceModal';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const FuelPriceListPage = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const [prices, setPrices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -60,12 +62,14 @@ export const FuelPriceListPage = () => {
             <option value="false">Solo Inactivos</option>
           </select>
 
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200"
-          >
-            <Plus size={16} /> Nuevo Precio
-          </button>
+          {hasPermission('crear_precios_combustible') && (
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-black transition-all shadow-xl shadow-zinc-200"
+            >
+              <Plus size={16} /> Nuevo Precio
+            </button>
+          )}
         </div>
       </header>
 

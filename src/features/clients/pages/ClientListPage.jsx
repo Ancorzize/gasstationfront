@@ -80,12 +80,14 @@ export const ClientListPage = () => {
             />
           </div>
 
-          <button 
-            onClick={() => { setSelectedClient(null); setIsModalOpen(true); }}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] uppercase hover:bg-black transition-all shadow-md"
-          >
-            <UserPlus size={16} /> <span className="hidden sm:inline">Nuevo cliente</span>
-          </button>
+          {hasPermission('crear_clientes') && (
+            <button 
+              onClick={() => { setSelectedClient(null); setIsModalOpen(true); }}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-4 py-2.5 rounded-2xl font-bold text-[10px] uppercase hover:bg-black transition-all shadow-md"
+            >
+              <UserPlus size={16} /> <span className="hidden sm:inline">Nuevo cliente</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -170,20 +172,26 @@ export const ClientListPage = () => {
                             <CreditCard size={16} />
                           </button>
                         )}
-                        <button 
-                          onClick={() => { setSelectedClient(client); setIsModalOpen(true); }}
-                          className="p-2.5 text-slate-400 hover:text-zinc-900 hover:bg-slate-100 rounded-xl transition-all"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button 
-                          onClick={() => handleToggleStatus(client)}
-                          className={`p-2.5 rounded-xl transition-all ${
-                            client.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
-                          }`}
-                        >
-                          <Power size={16} />
-                        </button>
+                        {hasPermission('editar_clientes') && (
+                          <button 
+                            onClick={() => { setSelectedClient(client); setIsModalOpen(true); }}
+                            className="p-2.5 text-slate-400 hover:text-zinc-900 hover:bg-slate-100 rounded-xl transition-all"
+                            title="Editar Cliente"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                        )}
+                        {hasPermission('editar_clientes') && (
+                          <button 
+                            onClick={() => handleToggleStatus(client)}
+                            title={client.is_active ? "Bloquear Cliente" : "Habilitar Cliente"}
+                            className={`p-2.5 rounded-xl transition-all ${
+                              client.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
+                            }`}
+                          >
+                            <Power size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

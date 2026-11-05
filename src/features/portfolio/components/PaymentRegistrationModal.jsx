@@ -12,6 +12,7 @@ import {
 import { portfolioService } from "../services/portfolioService";
 import { cashService } from "../../cash/services/cashService";
 import { useToast } from "../../../context/ToastContext";
+import { usePermissions } from "../../../hooks/usePermissions";
 import { getTodayStr } from "../../../shared/utils/dateUtils";
 
 export const PaymentRegistrationModal = ({
@@ -21,6 +22,8 @@ export const PaymentRegistrationModal = ({
   client,
 }) => {
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canRegisterPayment = hasPermission('registrar_abonos_cartera');
   const [loading, setLoading] = useState(false);
   const [loadingCajas, setLoadingCajas] = useState(true);
   const [cajas, setCajas] = useState([]);
@@ -107,6 +110,9 @@ export const PaymentRegistrationModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canRegisterPayment) {
+      return showToast("No tienes permisos para registrar abonos de cartera", "error");
+    }
     if (!formData.caja_id) {
       return showToast("Debe seleccionar una caja", "error");
     }
@@ -265,18 +271,20 @@ export const PaymentRegistrationModal = ({
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading || loadingCajas}
-            className="w-full bg-emerald-600 text-white py-4 rounded-2xl text-xs font-black uppercase hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" size={18} />
-            ) : (
-              <CheckCircle size={18} />
-            )}
-            {loadingCajas ? "Cargando cajas..." : "Confirmar Abono"}
-          </button>
+          {canRegisterPayment && (
+            <button
+              type="submit"
+              disabled={loading || loadingCajas}
+              className="w-full bg-emerald-600 text-white py-4 rounded-2xl text-xs font-black uppercase hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" size={18} />
+              ) : (
+                <CheckCircle size={18} />
+              )}
+              {loadingCajas ? "Cargando cajas..." : "Confirmar Abono"}
+            </button>
+          )}
         </form>
       </div>
     </div>

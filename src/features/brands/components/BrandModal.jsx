@@ -3,11 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Tag, AlignLeft } from 'lucide-react';
 import { brandService } from '../services/brandService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const BrandModal = ({ isOpen, onClose, onSave, brandToEdit = null }) => {
   const [formData, setFormData] = useState({ nombre: '', descripcion: '' });
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+
+  const isEditing = Boolean(brandToEdit);
+  const requiredPermission = isEditing ? 'editar_marcas' : 'crear_marcas';
+  const canSave = hasPermission(requiredPermission);
 
   useEffect(() => {
     if (isOpen) {
@@ -24,6 +30,9 @@ export const BrandModal = ({ isOpen, onClose, onSave, brandToEdit = null }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSave) {
+      return showToast(`No tienes permisos para ${isEditing ? 'editar' : 'crear'} marcas`, "error");
+    }
     setLoading(true);
     try {
       const result = brandToEdit 
@@ -92,9 +101,11 @@ export const BrandModal = ({ isOpen, onClose, onSave, brandToEdit = null }) => {
 
               <div className="pt-6 flex flex-col-reverse md:flex-row gap-3">
                 <button type="button" onClick={onClose} className="flex-1 py-3.5 rounded-2xl border border-slate-200 text-slate-600 font-bold text-xs uppercase hover:bg-slate-50 transition-all">Cancelar</button>
-                <button type="submit" disabled={loading} className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl uppercase">
-                  {loading ? "Procesando..." : (brandToEdit ? "Actualizar Marca" : "Guardar Marca")}
-                </button>
+                {canSave && (
+                  <button type="submit" disabled={loading} className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl uppercase">
+                    {loading ? "Procesando..." : (brandToEdit ? "Actualizar Marca" : "Guardar Marca")}
+                  </button>
+                )}
               </div>
             </form>
           </motion.div>

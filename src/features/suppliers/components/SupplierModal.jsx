@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Truck, Hash, Phone, MapPin, Mail, Building } from 'lucide-react';
 import { supplierService } from '../services/supplierService';
 import { useToast } from '../../../context/ToastContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const SupplierModal = ({ isOpen, onClose, onSave, supplierToEdit = null }) => {
   const [formData, setFormData] = useState({ 
@@ -10,6 +11,11 @@ export const SupplierModal = ({ isOpen, onClose, onSave, supplierToEdit = null }
   });
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+
+  const isEditing = Boolean(supplierToEdit);
+  const requiredPermission = isEditing ? 'editar_proveedores' : 'crear_proveedores';
+  const canSave = hasPermission(requiredPermission);
 
   useEffect(() => {
     if (isOpen) {
@@ -29,6 +35,9 @@ export const SupplierModal = ({ isOpen, onClose, onSave, supplierToEdit = null }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSave) {
+      return showToast(`No tienes permisos para ${isEditing ? 'editar' : 'crear'} proveedores`, "error");
+    }
     setLoading(true);
     try {
       const result = supplierToEdit 
@@ -121,9 +130,11 @@ export const SupplierModal = ({ isOpen, onClose, onSave, supplierToEdit = null }
 
               <div className="pt-6 pb-2 md:pb-0 flex flex-col-reverse md:flex-row gap-3">
                 <button type="button" onClick={onClose} className="flex-1 py-3.5 rounded-2xl border border-slate-200 text-slate-600 font-bold text-xs uppercase hover:bg-slate-50 transition-all">Cancelar</button>
-                <button type="submit" disabled={loading} className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl uppercase">
-                  {loading ? "Procesando..." : (supplierToEdit ? "Actualizar Proveedor" : "Registrar Proveedor")}
-                </button>
+                {canSave && (
+                  <button type="submit" disabled={loading} className="flex-1 py-3.5 rounded-2xl bg-zinc-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl uppercase">
+                    {loading ? "Procesando..." : (supplierToEdit ? "Actualizar Proveedor" : "Registrar Proveedor")}
+                  </button>
+                )}
               </div>
             </form>
           </motion.div>
