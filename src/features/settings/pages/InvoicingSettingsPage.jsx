@@ -36,6 +36,7 @@ export const InvoicingSettingsPage = ({ initialTab = 'general' }) => {
     max_reintentos: 3,
     matias_api_token: '',
     matias_sandbox_url: 'https://sandbox-api.maticerts.com',
+    matias_production_url: '',
     matias_ds_real_transmission: false
   });
 
@@ -73,6 +74,7 @@ export const InvoicingSettingsPage = ({ initialTab = 'general' }) => {
           max_reintentos: res.data.max_reintentos ? parseInt(res.data.max_reintentos, 10) : 3,
           matias_api_token: res.data.matias_api_token || '',
           matias_sandbox_url: res.data.matias_sandbox_url || 'https://sandbox-api.maticerts.com',
+          matias_production_url: res.data.matias_production_url || '',
           matias_ds_real_transmission: !!res.data.matias_ds_real_transmission
         });
       }
@@ -110,6 +112,7 @@ export const InvoicingSettingsPage = ({ initialTab = 'general' }) => {
         max_reintentos: parseInt(formData.max_reintentos, 10),
         matias_api_token: formData.matias_api_token,
         matias_sandbox_url: formData.matias_sandbox_url,
+        matias_production_url: formData.matias_production_url,
         matias_ds_real_transmission: formData.matias_ds_real_transmission
       };
 
@@ -439,6 +442,18 @@ export const InvoicingSettingsPage = ({ initialTab = 'general' }) => {
                   value={formData.matias_sandbox_url} 
                   onChange={handleChange} 
                   placeholder="https://sandbox-api.maticerts.com"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:border-yellow-500 outline-none" 
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">URL de Producción</label>
+                <input 
+                  type="text" 
+                  name="matias_production_url" 
+                  value={formData.matias_production_url} 
+                  onChange={handleChange} 
+                  placeholder="https://api.maticerts.com"
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:border-yellow-500 outline-none" 
                 />
               </div>
