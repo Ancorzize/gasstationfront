@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Package, Tag, Layers, Ruler, DollarSign, Hash, AlignLeft, Info, Barcode } from 'lucide-react';
+import { X, Package, Tag, Layers, Ruler, DollarSign, Hash, AlignLeft, Info, Barcode, Percent, AlertTriangle } from 'lucide-react';
 import { productService } from '../services/productService';
 import { brandService } from '../../brands/services/brandService';
 import { categoryService } from '../../categories/services/categoryService';
@@ -8,11 +8,20 @@ import { unitService } from '../../units/services/unitService';
 import { useToast } from '../../../context/ToastContext';
 import { usePermissions } from '../../../hooks/usePermissions';
 
+const OPCIONES_TRIBUTARIAS = [
+  { value: 'gravado_19', label: 'Gravado IVA 19 %' },
+  { value: 'gravado_5', label: 'Gravado IVA 5 %' },
+  { value: 'gravado_otro', label: 'Gravado con otra tarifa' },
+  { value: 'exento', label: 'Exento de IVA 0 %' },
+  { value: 'excluido', label: 'Excluido / No gravado' },
+];
+
 export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) => {
   const [formData, setFormData] = useState({
     codigo: '', codigo_barras: '', nombre: '', descripcion: '', 
     marca_id: '', categoria_producto_id: '', unidad_medida_id: '',
-    precio_compra: '', precio_venta: '', permite_decimal: false
+    precio_compra: '', precio_venta: '', permite_decimal: false,
+    opcion_tributaria: '', otra_tarifa_iva: ''
   });
 
   const [options, setOptions] = useState({ brands: [], categories: [], units: [] });
@@ -33,10 +42,39 @@ export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) 
     return integerPart + (parts[1] !== undefined ? ',' + parts[1].replace(/\D/g, '') : '');
   };
 
+  const resolverOpcionTributariaInicial = (product) => {
+    if (!product || !product.tipo_impuesto) {
+      return { opcion_tributaria: '', otra_tarifa_iva: '' };
+    }
+    const tipo = String(product.tipo_impuesto).toLowerCase().trim();
+    const tarifa = product.porcentaje_iva !== null && product.porcentaje_iva !== undefined
+      ? parseFloat(product.porcentaje_iva)
+      : null;
+
+    if (tipo === 'exento') {
+      return { opcion_tributaria: 'exento', otra_tarifa_iva: '' };
+    }
+    if (tipo === 'excluido') {
+      return { opcion_tributaria: 'excluido', otra_tarifa_iva: '' };
+    }
+    if (tipo === 'gravado' && tarifa !== null && !isNaN(tarifa) && tarifa > 0) {
+      if (Math.abs(tarifa - 19) < 0.001) {
+        return { opcion_tributaria: 'gravado_19', otra_tarifa_iva: '' };
+      }
+      if (Math.abs(tarifa - 5) < 0.001) {
+        return { opcion_tributaria: 'gravado_5', otra_tarifa_iva: '' };
+      }
+      return { opcion_tributaria: 'gravado_otro', otra_tarifa_iva: String(tarifa) };
+    }
+
+    return { opcion_tributaria: '', otra_tarifa_iva: '' };
+  };
+
   useEffect(() => {
     if (isOpen) {
       loadDependencies();
       if (productToEdit) {
+        const tribInicial = resolverOpcionTributariaInicial(productToEdit);
         setFormData({
           codigo: productToEdit.codigo || '',
           codigo_barras: productToEdit.codigo_barras || '',
@@ -47,13 +85,16 @@ export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) 
           unidad_medida_id: productToEdit.unidad_medida_id || '',
           precio_compra: productToEdit.precio_compra ? formatNumberDisplay(productToEdit.precio_compra) : '',
           precio_venta: productToEdit.precio_venta ? formatNumberDisplay(productToEdit.precio_venta) : '',
-          permite_decimal: !!productToEdit.permite_decimal
+          permite_decimal: !!productToEdit.permite_decimal,
+          opcion_tributaria: tribInicial.opcion_tributaria,
+          otra_tarifa_iva: tribInicial.otra_tarifa_iva,
         });
       } else {
         setFormData({
           codigo: '', codigo_barras: '', nombre: '', descripcion: '', marca_id: '',
           categoria_producto_id: '', unidad_medida_id: '',
-          precio_compra: '', precio_venta: '', permite_decimal: false
+          precio_compra: '', precio_venta: '', permite_decimal: false,
+          opcion_tributaria: '', otra_tarifa_iva: ''
         });
       }
     }
@@ -99,6 +140,43 @@ export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) 
     if (!canSave) {
       return showToast(`No tienes permisos para ${isEditing ? 'editar' : 'crear'} productos`, "error");
     }
+
+    if (!formData.opcion_tributaria) {
+      return showToast("Debe seleccionar la clasificación tributaria del producto (DIAN)", "error");
+    }
+
+    let tipo_impuesto = '';
+    let porcentaje_iva = 0;
+    let codigo_impuesto = null;
+
+    if (formData.opcion_tributaria === 'gravado_19') {
+      tipo_impuesto = 'gravado';
+      porcentaje_iva = 19;
+      codigo_impuesto = '1';
+    } else if (formData.opcion_tributaria === 'gravado_5') {
+      tipo_impuesto = 'gravado';
+      porcentaje_iva = 5;
+      codigo_impuesto = '1';
+    } else if (formData.opcion_tributaria === 'gravado_otro') {
+      const parsedTarifa = parseFloat(String(formData.otra_tarifa_iva).replace(',', '.'));
+      if (isNaN(parsedTarifa) || parsedTarifa <= 0 || parsedTarifa > 100) {
+        return showToast("Ingrese una tarifa de IVA válida mayor a 0% y hasta 100%", "error");
+      }
+      tipo_impuesto = 'gravado';
+      porcentaje_iva = Number(parsedTarifa.toFixed(2));
+      codigo_impuesto = '1';
+    } else if (formData.opcion_tributaria === 'exento') {
+      tipo_impuesto = 'exento';
+      porcentaje_iva = 0;
+      codigo_impuesto = '1';
+    } else if (formData.opcion_tributaria === 'excluido') {
+      tipo_impuesto = 'excluido';
+      porcentaje_iva = 0;
+      codigo_impuesto = null;
+    } else {
+      return showToast("La clasificación tributaria seleccionada no es válida", "error");
+    }
+
     setLoading(true);
     try {
       // Limpiar formato visual antes de enviar al backend (puntos fuera, coma a punto decimal)
@@ -106,9 +184,19 @@ export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) 
       const cleanPrecioVenta = formData.precio_venta ? formData.precio_venta.toString().replace(/\./g, '').replace(',', '.') : null;
 
       const payload = {
-        ...formData,
+        codigo: formData.codigo,
+        codigo_barras: formData.codigo_barras || null,
+        nombre: formData.nombre,
+        descripcion: formData.descripcion || null,
+        marca_id: formData.marca_id || null,
+        categoria_producto_id: formData.categoria_producto_id,
+        unidad_medida_id: formData.unidad_medida_id,
         precio_compra: cleanPrecioCompra,
-        precio_venta: cleanPrecioVenta
+        precio_venta: cleanPrecioVenta,
+        tipo_impuesto,
+        porcentaje_iva,
+        codigo_impuesto,
+        permite_decimal: formData.permite_decimal,
       };
 
       const result = productToEdit 
@@ -120,7 +208,14 @@ export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) 
         onSave();
         onClose();
       } else {
-        showToast(result.message || "Error en validación", "error");
+        let msg = result.message || "Error en validación";
+        if (result.errors && typeof result.errors === 'object') {
+          const firstErr = Object.values(result.errors)[0];
+          if (Array.isArray(firstErr) && firstErr.length > 0) {
+            msg = firstErr[0];
+          }
+        }
+        showToast(msg, "error");
       }
     } catch (err) {
       showToast("Error de conexión", "error");
@@ -237,6 +332,68 @@ export const ProductModal = ({ isOpen, onClose, onSave, productToEdit = null }) 
                       placeholder="0,00"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Sección: Configuración Tributaria (DIAN) */}
+              <div className="border-t pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Percent size={15} className="text-yellow-600" />
+                    <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-wider">
+                      Configuración Tributaria (DIAN)
+                    </h4>
+                  </div>
+                  {isEditing && !formData.opcion_tributaria && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-50 text-amber-700 border border-amber-200">
+                      <AlertTriangle size={11} /> Pendiente de clasificación
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">
+                      Tratamiento Tributario <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      required
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-yellow-500 font-medium"
+                      value={formData.opcion_tributaria}
+                      onChange={e => setFormData({
+                        ...formData,
+                        opcion_tributaria: e.target.value,
+                        otra_tarifa_iva: e.target.value === 'gravado_otro' ? formData.otra_tarifa_iva : ''
+                      })}
+                    >
+                      <option value="">Seleccione clasificación...</option>
+                      {OPCIONES_TRIBUTARIAS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {formData.opcion_tributaria === 'gravado_otro' && (
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">
+                        Tarifa de IVA (%) <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <Percent className="absolute left-3 top-3 text-yellow-600" size={15} />
+                        <input
+                          required
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          max="100"
+                          placeholder="Ej: 16.00"
+                          className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-yellow-500 outline-none font-bold"
+                          value={formData.otra_tarifa_iva}
+                          onChange={e => setFormData({ ...formData, otra_tarifa_iva: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

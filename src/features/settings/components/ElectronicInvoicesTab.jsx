@@ -115,10 +115,17 @@ export const ElectronicInvoicesTab = () => {
 
   const renderStateBadge = (estado) => {
     const est = (estado || '').toLowerCase();
-    if (est === 'emitido' || est === 'aceptado') {
+    if (est === 'emitido' || est === 'aceptado' || est === 'aprobado') {
       return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-600 border border-emerald-200">
           <CheckCircle2 size={12} /> Emitido
+        </span>
+      );
+    }
+    if (est === 'enviado' || est === 'enviando') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-200">
+          <Clock size={12} /> {est === 'enviando' ? 'Enviando' : 'Enviado'}
         </span>
       );
     }
@@ -244,6 +251,8 @@ export const ElectronicInvoicesTab = () => {
             >
               <option value="">Todos los Estados</option>
               <option value="emitido">Emitido / Aceptado</option>
+              <option value="enviado">Enviado (En validación DIAN)</option>
+              <option value="enviando">Enviando</option>
               <option value="pendiente">Pendiente</option>
               <option value="rechazado">Rechazado</option>
               <option value="error">Error</option>

@@ -134,6 +134,7 @@ export const ProductListPage = () => {
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Marca</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Categoría</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">U. Medida</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">IVA / DIAN</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">P. Compra</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">P. Venta</th>
                   <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Estado</th>
@@ -153,6 +154,25 @@ export const ProductListPage = () => {
                     <td className="p-4 text-xs font-medium">{p.categoria_producto?.nombre}</td>
                     <td className="p-4 text-center text-[10px] font-bold text-slate-500">
                       {p.unidad_medida?.abreviatura}
+                    </td>
+                    <td className="p-4 text-center">
+                      {p.tipo_impuesto === 'gravado' ? (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-blue-50 text-blue-700 border border-blue-200">
+                          IVA {Number(p.porcentaje_iva ?? 0)}%
+                        </span>
+                      ) : p.tipo_impuesto === 'exento' ? (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-teal-50 text-teal-700 border border-teal-200">
+                          EXENTO 0%
+                        </span>
+                      ) : p.tipo_impuesto === 'excluido' ? (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-100 text-slate-600 border border-slate-200">
+                          EXCLUIDO
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-50 text-amber-700 border border-amber-200">
+                          PENDIENTE
+                        </span>
+                      )}
                     </td>
                     <td className="p-4 text-right text-xs font-medium text-emerald-600">
                       {formatCurrency(p.precio_compra)}

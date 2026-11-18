@@ -7,6 +7,7 @@ import {
 import { fuelSalesService } from '../services/fuelSalesService';
 import { productService } from '../../products/services/productService';
 import { clientService } from '../../clients/services/clientService';
+import { companyService } from '../../settings/services/companyService';
 import { ClientModal } from '../../clients/components/ClientModal';
 import { useToast } from '../../../context/ToastContext';
 import { usePermissions } from '../../../hooks/usePermissions';
@@ -35,6 +36,10 @@ export const LubricantSalesPage = () => {
   const [usarAnticipo, setUsarAnticipo] = useState(false);
   const [montoAnticipo, setMontoAnticipo] = useState('');
   const [showClientSelect, setShowClientSelect] = useState(false);
+  const [companyConfig, setCompanyConfig] = useState({
+    responsable_iva: true,
+    maneja_iva_incluido: false
+  });
 
   const [searchingClients, setSearchingClients] = useState(false);
   const [clients, setClients] = useState([]);
@@ -44,6 +49,15 @@ export const LubricantSalesPage = () => {
   const searchInputRef = useRef(null);
 
   useEffect(() => {
+    companyService.getConfig().then(res => {
+      if (res && res.status && res.data) {
+        setCompanyConfig({
+          responsable_iva: res.data.responsable_iva !== undefined ? Boolean(res.data.responsable_iva) : true,
+          maneja_iva_incluido: Boolean(res.data.maneja_iva_incluido)
+        });
+      }
+    }).catch(() => {});
+
     const timer = setTimeout(() => {
       if (searchInputRef.current) {
         searchInputRef.current.focus();
@@ -188,16 +202,74 @@ export const LubricantSalesPage = () => {
 
   const removeFromCart = (id) => setCart(cart.filter(item => item.id !== id));
 
+  const resolveItemIvaRate = (item) => {
+    if (!companyConfig.responsable_iva) return 0;
+    const tipo = String(item.tipo_impuesto || '').toLowerCase();
+    if (tipo === 'exento' || tipo === 'excluido') return 0;
+    if (tipo === 'gravado') {
+      const rate = parseFloat(item.porcentaje_iva ?? item.iva ?? 0);
+      return !isNaN(rate) && rate > 0 ? rate : 0;
+    }
+    const fallbackRate = parseFloat(item.porcentaje_iva ?? item.iva ?? 0);
+    return !isNaN(fallbackRate) && fallbackRate > 0 ? fallbackRate : 0;
+  };
+
+  const calculateItemAmounts = (item) => {
+    const qty = Number(item.cantidad) || 0;
+    const price = Number(item.precio_venta) || 0;
+    const rate = resolveItemIvaRate(item);
+
+    if (rate > 0 && companyConfig.maneja_iva_incluido) {
+      const factor = 1 + (rate / 100);
+      const totalWithTax = Number((qty * price).toFixed(2));
+      const base = Number((totalWithTax / factor).toFixed(2));
+      const tax = Math.max(0, Number((totalWithTax - base).toFixed(2)));
+      return {
+        subtotal: base,
+        iva_porcentaje: rate,
+        iva_valor: tax,
+        total: Number((base + tax).toFixed(2))
+      };
+    }
+
+    const base = Number((qty * price).toFixed(2));
+    const tax = rate > 0 ? Number((base * (rate / 100)).toFixed(2)) : 0;
+    return {
+      subtotal: base,
+      iva_porcentaje: rate,
+      iva_valor: tax,
+      total: Number((base + tax).toFixed(2))
+    };
+  };
+
+  const getItemTaxBadgeLabel = (item) => {
+    const tipo = String(item.tipo_impuesto || '').toLowerCase().trim();
+    if (tipo === 'gravado') {
+      const rate = parseFloat(item.porcentaje_iva ?? item.iva ?? 0);
+      if (!companyConfig.responsable_iva) {
+        return { text: `GRAVADO (${rate}% - NO RESP. IVA)`, className: 'bg-slate-100 text-slate-600' };
+      }
+      return {
+        text: companyConfig.maneja_iva_incluido ? `IVA ${rate}% INCL.` : `+ IVA ${rate}%`,
+        className: 'bg-blue-50 text-blue-700'
+      };
+    }
+    if (tipo === 'exento') {
+      return { text: 'EXENTO 0%', className: 'bg-teal-50 text-teal-700' };
+    }
+    if (tipo === 'excluido') {
+      return { text: 'EXCLUIDO', className: 'bg-slate-200/70 text-slate-600' };
+    }
+    return { text: 'SIN CLASIFICAR DIAN', className: 'bg-amber-50 text-amber-700' };
+  };
+
   const calculateTotals = () => {
     return cart.reduce((acc, item) => {
-      const subtotalItem = item.precio_venta * item.cantidad;
-      const ivaFactor = (item.iva || 0) / 100;
-      const ivaValorItem = subtotalItem * ivaFactor;
-      
+      const calc = calculateItemAmounts(item);
       return {
-        subtotal: acc.subtotal + subtotalItem,
-        iva: acc.iva + ivaValorItem,
-        total: acc.total + (subtotalItem + ivaValorItem)
+        subtotal: Number((acc.subtotal + calc.subtotal).toFixed(2)),
+        iva: Number((acc.iva + calc.iva_valor).toFixed(2)),
+        total: Number((acc.total + calc.total).toFixed(2))
       };
     }, { subtotal: 0, iva: 0, total: 0 });
   };
@@ -237,18 +309,17 @@ export const LubricantSalesPage = () => {
       usar_anticipo: anticipoValor > 0,
       monto_anticipo: anticipoValor > 0 ? anticipoValor : null,
       detalles: cart.map(item => {
-        const subtotal = item.precio_venta * item.cantidad;
-        const ivaValor = subtotal * ((item.iva || 0) / 100);
+        const calc = calculateItemAmounts(item);
         return {
           producto_id: item.id,
           cantidad: item.cantidad,
           precio_unitario: item.precio_venta,
           descuento: 0,
-          iva: item.iva || 0,
-          iva_valor: ivaValor,
+          iva: calc.iva_porcentaje,
+          iva_valor: calc.iva_valor,
           soldicom: 0,
           sobre_tasa: 0,
-          total: subtotal + ivaValor
+          total: calc.total
         };
       }),
       pagos: (saleData.tipo_venta === 'contado' && montoRestante > 0) ? [
@@ -394,12 +465,16 @@ export const LubricantSalesPage = () => {
           <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1 max-h-[240px] md:max-h-[320px]">
             {cart.map(item => {
               const stockDisponible = Number(item.stock_actual ?? item.stock ?? 0);
+              const taxBadge = getItemTaxBadgeLabel(item);
               return (
                 <div key={item.id} className="flex items-center justify-between gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-100">
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-black uppercase truncate text-slate-800" title={item.nombre}>{item.nombre}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-[10px] text-slate-500 font-bold">$ {Number(item.precio_venta).toLocaleString()} + IVA</p>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                      <p className="text-[10px] text-slate-500 font-bold">$ {Number(item.precio_venta).toLocaleString()}</p>
+                      <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md ${taxBadge.className}`}>
+                        {taxBadge.text}
+                      </span>
                       <span className="text-[9px] text-slate-400 font-semibold">(Stock: {stockDisponible})</span>
                     </div>
                   </div>

@@ -27,6 +27,7 @@ import { portfolioService } from "../../portfolio/services/portfolioService";
 import { productService } from "../../products/services/productService";
 import { clientService } from "../../clients/services/clientService";
 import { cashService } from "../../cash/services/cashService";
+import { companyService } from "../../settings/services/companyService";
 import { useToast } from "../../../context/ToastContext";
 import { usePermissions } from "../../../hooks/usePermissions";
 
@@ -118,6 +119,27 @@ export const ShiftOperationsSection = ({
   const [clientSearchTerm, setClientSearchTerm] = useState("");
   const [modalClients, setModalClients] = useState([]);
   const [loadingModalClients, setLoadingModalClients] = useState(false);
+  const [companyConfig, setCompanyConfig] = useState({
+    responsable_iva: true,
+    maneja_iva_incluido: false,
+  });
+
+  useEffect(() => {
+    companyService
+      .getConfig()
+      .then((res) => {
+        if (res && res.status && res.data) {
+          setCompanyConfig({
+            responsable_iva:
+              res.data.responsable_iva !== undefined
+                ? Boolean(res.data.responsable_iva)
+                : true,
+            maneja_iva_incluido: Boolean(res.data.maneja_iva_incluido),
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchSummary = async () => {
     setLoadingSummary(true);
@@ -441,6 +463,72 @@ export const ShiftOperationsSection = ({
   }, [clientSearchTerm, editSaleModal]);
 
   // --- Manejo de Edición Venta (Estilo Carrito) ---
+  const recalcularDetalleCarrito = (detalle, nuevaCantidad) => {
+    const qty = Number(nuevaCantidad) > 0 ? Number(nuevaCantidad) : 1;
+    const unitPrice = parseFloat(detalle.precio_unitario) || 0;
+    const descuento = Math.max(0, parseFloat(detalle.descuento) || 0);
+    const itemRate = parseFloat(detalle.porcentaje_iva || 0);
+
+    // 1. Si es una línea que ya pertenecía a la venta original, su precio_unitario y descuento
+    // en detalle_ventas ya están expresados en base (sin IVA), por lo que jamás se debe dividir de nuevo por (1 + tarifa/100).
+    if (detalle.es_linea_existente) {
+      if (
+        detalle.cantidad_original !== undefined &&
+        Math.abs(qty - Number(detalle.cantidad_original)) < 0.0001 &&
+        detalle.total_original > 0
+      ) {
+        return {
+          ...detalle,
+          cantidad: qty,
+          iva_valor: detalle.iva_valor_original,
+          total: detalle.total_original,
+        };
+      }
+
+      const brutoBase = Number((qty * unitPrice).toFixed(2));
+      const descBase = Math.min(descuento, brutoBase);
+      const baseImponible = Number((brutoBase - descBase).toFixed(2));
+      const ivaVal = itemRate > 0 ? Number((baseImponible * (itemRate / 100)).toFixed(2)) : 0;
+
+      return {
+        ...detalle,
+        cantidad: qty,
+        iva_valor: ivaVal,
+        total: Number((baseImponible + ivaVal).toFixed(2)),
+      };
+    }
+
+    // 2. Si es un producto nuevo agregado desde el catálogo durante la edición,
+    // su precio_unitario proviene de product.precio_venta y respeta maneja_iva_incluido.
+    if (itemRate > 0 && companyConfig.maneja_iva_incluido) {
+      const factor = 1 + itemRate / 100;
+      const brutoConIva = Number((qty * unitPrice).toFixed(2));
+      const descConIva = Math.min(descuento, brutoConIva);
+      const netoConIva = Math.max(0, Number((brutoConIva - descConIva).toFixed(2)));
+      const baseImponible = Number((netoConIva / factor).toFixed(2));
+      const ivaVal = Math.max(0, Number((netoConIva - baseImponible).toFixed(2)));
+
+      return {
+        ...detalle,
+        cantidad: qty,
+        iva_valor: ivaVal,
+        total: Number((baseImponible + ivaVal).toFixed(2)),
+      };
+    }
+
+    const brutoBase = Number((qty * unitPrice).toFixed(2));
+    const descBase = Math.min(descuento, brutoBase);
+    const baseImponible = Number((brutoBase - descBase).toFixed(2));
+    const ivaVal = itemRate > 0 ? Number((baseImponible * (itemRate / 100)).toFixed(2)) : 0;
+
+    return {
+      ...detalle,
+      cantidad: qty,
+      iva_valor: ivaVal,
+      total: Number((baseImponible + ivaVal).toFixed(2)),
+    };
+  };
+
   const handleOpenEditSale = (venta) => {
     setEditSaleModal(venta);
     setProductSearchTerm("");
@@ -449,14 +537,32 @@ export const ShiftOperationsSection = ({
     setModalClients([]);
 
     const detallesFormatted = (venta.detalles || venta.items || []).map(
-      (d) => ({
-        producto_id: d.producto_id || d.producto?.id,
-        nombre: d.producto?.nombre || d.nombre_producto || d.nombre || "Producto",
-        cantidad: parseFloat(d.cantidad || 1),
-        precio_unitario: parseFloat(d.precio_unitario || d.precio || 0),
-        total: parseFloat(d.total || d.subtotal || 0),
-        stock_actual: d.producto?.stock_actual ?? d.producto?.stock ?? 0,
-      })
+      (d) => {
+        const cantInicial = parseFloat(d.cantidad || 1);
+        const precioBase = parseFloat(d.precio_unitario || d.precio || 0);
+        const descBase = parseFloat(d.descuento || 0);
+        const tarifaHist = parseFloat(d.porcentaje_iva ?? d.iva ?? 0);
+        const tipoHist = d.tipo_impuesto || (tarifaHist > 0 ? "gravado" : d.producto?.tipo_impuesto || null);
+        const ivaValHist = parseFloat(d.iva_valor || 0);
+        const totalHist = parseFloat(d.total || d.subtotal || 0);
+
+        return {
+          producto_id: d.producto_id || d.producto?.id,
+          nombre: d.producto?.nombre || d.nombre_producto || d.nombre || "Producto",
+          cantidad: cantInicial,
+          precio_unitario: precioBase,
+          descuento: descBase,
+          tipo_impuesto: tipoHist,
+          porcentaje_iva: tarifaHist,
+          iva_valor: ivaValHist,
+          total: totalHist,
+          es_linea_existente: true,
+          cantidad_original: cantInicial,
+          iva_valor_original: ivaValHist,
+          total_original: totalHist,
+          stock_actual: d.producto?.stock_actual ?? d.producto?.stock ?? 0,
+        };
+      }
     );
 
     const pagosFormatted = (venta.pagos || []).map((p) => ({
@@ -498,27 +604,36 @@ export const ShiftOperationsSection = ({
       const existingIdx = prev.detalles.findIndex(
         (d) => Number(d.producto_id) === Number(product.id)
       );
-      const unitPrice = parseFloat(product.precio_venta || product.precio || 0);
 
       if (existingIdx >= 0) {
         const newDetalles = [...prev.detalles];
-        const newQty = (parseFloat(newDetalles[existingIdx].cantidad) || 0) + 1;
-        newDetalles[existingIdx] = {
-          ...newDetalles[existingIdx],
-          cantidad: newQty,
-          total: newQty * unitPrice,
-        };
+        const currentItem = newDetalles[existingIdx];
+        const newQty = (parseFloat(currentItem.cantidad) || 0) + 1;
+        newDetalles[existingIdx] = recalcularDetalleCarrito(currentItem, newQty);
         return { ...prev, detalles: newDetalles };
       } else {
-        const newDetail = {
+        const unitPrice = parseFloat(product.precio_venta || product.precio || 0);
+        const tipoProd = String(product.tipo_impuesto || "").toLowerCase();
+        const rate =
+          companyConfig.responsable_iva && tipoProd === "gravado"
+            ? parseFloat(product.porcentaje_iva ?? product.iva ?? 0)
+            : 0;
+
+        const baseDetail = {
           producto_id: product.id,
           nombre: product.nombre,
           cantidad: 1,
           precio_unitario: unitPrice,
+          descuento: 0,
+          tipo_impuesto: product.tipo_impuesto || null,
+          porcentaje_iva: !isNaN(rate) && rate > 0 ? rate : 0,
+          iva_valor: 0,
           total: unitPrice,
+          es_linea_existente: false,
           stock_actual: product.stock_actual ?? product.stock ?? 0,
         };
-        return { ...prev, detalles: [...prev.detalles, newDetail] };
+        const calculatedDetail = recalcularDetalleCarrito(baseDetail, 1);
+        return { ...prev, detalles: [...prev.detalles, calculatedDetail] };
       }
     });
   };
@@ -537,12 +652,7 @@ export const ShiftOperationsSection = ({
         newQty = 1;
       }
 
-      const unitPrice = parseFloat(newDetalles[index].precio_unitario) || 0;
-      newDetalles[index] = {
-        ...newDetalles[index],
-        cantidad: newQty,
-        total: newQty * unitPrice,
-      };
+      newDetalles[index] = recalcularDetalleCarrito(newDetalles[index], newQty);
       return { ...prev, detalles: newDetalles };
     });
   };
@@ -584,7 +694,7 @@ export const ShiftOperationsSection = ({
     }
 
     const grandTotal = saleForm.detalles.reduce(
-      (acc, item) => acc + (parseFloat(item.cantidad || 0) * parseFloat(item.precio_unitario || 0)),
+      (acc, item) => acc + (parseFloat(item.total) || (parseFloat(item.cantidad || 0) * parseFloat(item.precio_unitario || 0))),
       0
     );
 
@@ -598,7 +708,10 @@ export const ShiftOperationsSection = ({
           producto_id: parseInt(d.producto_id),
           cantidad: parseFloat(d.cantidad),
           precio_unitario: parseFloat(d.precio_unitario),
-          total: parseFloat(d.cantidad) * parseFloat(d.precio_unitario),
+          descuento: parseFloat(d.descuento || 0),
+          iva: parseFloat(d.porcentaje_iva || 0),
+          iva_valor: parseFloat(d.iva_valor || 0),
+          total: parseFloat(d.total) || (parseFloat(d.cantidad) * parseFloat(d.precio_unitario)),
         })),
         pagos:
           saleForm.tipo_venta === "contado"
