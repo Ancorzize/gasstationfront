@@ -19,6 +19,7 @@ import { shiftService } from "../services/shiftService";
 import { useToast } from "../../../context/ToastContext";
 import { usePermissions } from "../../../hooks/usePermissions";
 import { ShiftOperationsSection } from "../components/ShiftOperationsSection";
+import { ShiftDropsSummaryCard } from "../components/ShiftDropsSummaryCard";
 
 // Formato colombiano a 3 decimales para Mangueras y Lecturas (ej: 12.345,334)
 const formatLectura = (value) => {
@@ -360,6 +361,17 @@ export const ShiftClosingPage = () => {
       otrosMovimientos: round2(otrosMovimientos || 0),
     };
   }, [summary, formData, otrosMovimientos]);
+
+  const efectivoTotalReportado = useMemo(() => {
+    return (
+      Math.round(
+        formData.destinos_recaudo.reduce(
+          (acc, d) => acc + (Number(d.pagos?.efectivo) || 0),
+          0,
+        ) * 100,
+      ) / 100
+    );
+  }, [formData.destinos_recaudo]);
 
   const handleReadingChange = (mangueraId, rawValue) => {
     // Permitir dígitos, comas, puntos y guiones sin alterar destructivamente el texto mientras se escribe
@@ -853,6 +865,14 @@ export const ShiftClosingPage = () => {
                   </div>
                 );
               })}
+
+            {/* Bloque informativo de Descargues de Dinero del Turno */}
+            <ShiftDropsSummaryCard
+              mode="islero"
+              descargues={summary?.descargues || []}
+              totalDescargues={summary?.total_descargues || 0}
+              efectivoTotal={efectivoTotalReportado}
+            />
 
             {/* Sección de Anticipos Aplicados */}
             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm space-y-3">

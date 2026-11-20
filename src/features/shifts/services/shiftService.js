@@ -141,4 +141,20 @@ export const shiftService = {
     });
     return res.json();
   },
+
+  getShiftDrops: async (id) => {
+    const res = await fetch(`${API_URL}/turnos-islero/${id}/descargues`, {
+      headers: getHeaders()
+    });
+    return res.json();
+  },
+
+  registerShiftDrop: async (id, data) => {
+    const res = await fetch(`${API_URL}/turnos-islero/${id}/descargues`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  },
 };

@@ -19,6 +19,7 @@ import {
 import { shiftService } from "../services/shiftService";
 import { useToast } from "../../../context/ToastContext";
 import { ShiftOperationsSection } from "../components/ShiftOperationsSection";
+import { ShiftDropsSummaryCard } from "../components/ShiftDropsSummaryCard";
 import { usePermissions } from "../../../hooks/usePermissions";
 
 // Formato colombiano a 3 decimales para Mangueras y Lecturas (ej: 12.345,334)
@@ -524,6 +525,17 @@ export const ShiftApprovalsPage = () => {
     };
   }, [revisionData, editLecturas, editDestinosRecaudo, otrosMovimientos]);
 
+  const efectivoTotalCierre = useMemo(() => {
+    return (
+      Math.round(
+        editDestinosRecaudo.reduce(
+          (acc, d) => acc + (Number(d.pagos?.efectivo) || 0),
+          0,
+        ) * 100,
+      ) / 100
+    );
+  }, [editDestinosRecaudo]);
+
   const filteredPendientes = pendientes.filter((t) => {
     const term = searchTerm.toLowerCase();
     const estacion = t.estacion?.nombre?.toLowerCase() || "";
@@ -890,6 +902,13 @@ export const ShiftApprovalsPage = () => {
                   </div>
                 </div>
               </form>
+
+              <ShiftDropsSummaryCard
+                mode="admin"
+                descargues={revisionData?.descargues || []}
+                totalDescargues={revisionData?.total_descargues || 0}
+                efectivoTotal={efectivoTotalCierre}
+              />
 
               <ShiftOperationsSection
                 turnoId={selectedTurno.id}

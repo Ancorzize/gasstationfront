@@ -5,12 +5,17 @@ import {
 } from 'lucide-react';
 import { shiftService } from '../services/shiftService';
 import { ShiftOperationsSection } from '../components/ShiftOperationsSection';
+import { ShiftDropsSummaryCard } from '../components/ShiftDropsSummaryCard';
 
 export const IsleroTurnoDetalleView = ({ selectedTurno, onBack }) => {
   const turnoId = typeof selectedTurno === 'object' ? selectedTurno?.id : selectedTurno;
   const [summary, setSummary] = useState(null);
   const [creditosOps, setCreditosOps] = useState([]);
   const [abonosOps, setAbonosOps] = useState([]);
+  const [descarguesData, setDescarguesData] = useState({
+    descargues: [],
+    total_descargues: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,10 +23,11 @@ export const IsleroTurnoDetalleView = ({ selectedTurno, onBack }) => {
       const fetchDetail = async () => {
         setLoading(true);
         try {
-          const [resSummary, resCreditos, resAbonos] = await Promise.allSettled([
+          const [resSummary, resCreditos, resAbonos, resDescargues] = await Promise.allSettled([
             shiftService.getClosingSummary(turnoId),
             shiftService.getShiftOperationsByType(turnoId, 'creditos'),
-            shiftService.getShiftOperationsByType(turnoId, 'abonos')
+            shiftService.getShiftOperationsByType(turnoId, 'abonos'),
+            shiftService.getShiftDrops(turnoId),
           ]);
 
           if (resSummary.status === 'fulfilled' && resSummary.value?.status) {
@@ -36,6 +42,18 @@ export const IsleroTurnoDetalleView = ({ selectedTurno, onBack }) => {
 
           if (resAbonos.status === 'fulfilled' && resAbonos.value?.status) {
             setAbonosOps(resAbonos.value.data?.items || []);
+          }
+
+          if (resDescargues.status === 'fulfilled' && resDescargues.value?.status) {
+            setDescarguesData({
+              descargues: resDescargues.value.data?.descargues || [],
+              total_descargues: Number(resDescargues.value.data?.total_descargues || 0),
+            });
+          } else if (typeof selectedTurno === 'object' && Array.isArray(selectedTurno?.descargues)) {
+            setDescarguesData({
+              descargues: selectedTurno.descargues,
+              total_descargues: Number(selectedTurno.total_descargues || 0),
+            });
           }
         } catch (e) {
           if (typeof selectedTurno === 'object') {
@@ -377,6 +395,21 @@ export const IsleroTurnoDetalleView = ({ selectedTurno, onBack }) => {
             />
           </div>
         </div>
+
+        {/* Bloque de Descargues de Dinero en Modo SOLO LECTURA */}
+        <ShiftDropsSummaryCard
+          mode="detalle"
+          descargues={descarguesData.descargues}
+          totalDescargues={descarguesData.total_descargues}
+          efectivoTotal={
+            turnoData?.pagos_efectivo !== undefined && turnoData?.pagos_efectivo !== null
+              ? Number(turnoData.pagos_efectivo)
+              : recaudosList.reduce(
+                  (acc, r) => acc + Number(r?.pagos?.efectivo ?? r?.efectivo ?? 0),
+                  0
+                )
+          }
+        />
 
         {/* Sección de Operaciones en Modo SOLO LECTURA */}
         <ShiftOperationsSection

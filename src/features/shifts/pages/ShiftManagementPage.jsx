@@ -12,12 +12,14 @@ import {
   CreditCard,
   History,
   ArrowLeft,
+  Banknote,
 } from "lucide-react";
 import { shiftService } from "../services/shiftService";
 import { useToast } from "../../../context/ToastContext";
 import { usePermissions } from "../../../hooks/usePermissions";
 import { OpenShiftModal } from "../components/OpenShiftModal";
 import { SearchClientModal } from "../components/SearchClientModal";
+import { RegisterDropModal } from "../components/RegisterDropModal";
 import { IsleroMisTurnosPage } from "./IsleroMisTurnosPage";
 
 export const ShiftManagementPage = () => {
@@ -36,6 +38,7 @@ export const ShiftManagementPage = () => {
   const [loading, setLoading] = useState(true);
   const [isOpeningModal, setIsOpeningModal] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [isDropModalOpen, setIsDropModalOpen] = useState(false);
 
   const checkShiftStatus = async () => {
     setLoading(true);
@@ -245,6 +248,39 @@ export const ShiftManagementPage = () => {
                     </>
                   )}
 
+                  {currentShift.estado === "abierto" && (
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setIsDropModalOpen(true)}
+                        className="w-full p-4 bg-gradient-to-br from-teal-500/10 to-emerald-500/5 border border-emerald-500/25 rounded-2xl text-left hover:border-emerald-500/50 transition-all group"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <p className="text-[9px] font-black text-emerald-700 uppercase mb-1 flex items-center gap-1">
+                              <Banknote size={12} /> Control de Efectivo
+                            </p>
+                            <span className="text-xs md:text-sm font-black text-slate-800 uppercase">
+                              Registrar Descargue de Dinero
+                            </span>
+                            <p className="text-[11px] font-bold text-emerald-700 mt-0.5">
+                              {currentShift.descargues?.length || 0} descargues ·{" "}
+                              {new Intl.NumberFormat("es-CO", {
+                                style: "currency",
+                                currency: "COP",
+                                minimumFractionDigits: 0,
+                              }).format(Number(currentShift.total_descargues || 0))}
+                            </p>
+                          </div>
+                          <ArrowRight
+                            size={16}
+                            className="text-emerald-600 group-hover:translate-x-1 transition-transform shrink-0"
+                          />
+                        </div>
+                      </button>
+                    </div>
+                  )}
+
                   {hasPermission("cerrar_turnos_islero") && (
                     <div className="mt-4 pt-4 border-t border-slate-100">
                       <button
@@ -300,6 +336,28 @@ export const ShiftManagementPage = () => {
         isOpen={isClientModalOpen}
         onClose={() => setIsClientModalOpen(false)}
       />
+
+      {currentShift && currentShift.estado === "abierto" && (
+        <RegisterDropModal
+          isOpen={isDropModalOpen}
+          onClose={() => setIsDropModalOpen(false)}
+          shiftId={currentShift.id}
+          descargues={currentShift.descargues || []}
+          totalDescargues={currentShift.total_descargues || 0}
+          onSuccess={(data) => {
+            setCurrentShift((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    descargues: data?.descargues || prev.descargues,
+                    total_descargues:
+                      data?.total_descargues ?? prev.total_descargues,
+                  }
+                : prev
+            );
+          }}
+        />
+      )}
     </div>
   );
 };
