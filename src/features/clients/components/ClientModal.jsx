@@ -7,6 +7,7 @@ import { companyService } from '../../settings/services/companyService';
 import { useToast } from '../../../context/ToastContext';
 import { useModalBackHandler } from '../../../hooks/useModalBackHandler';
 import { usePermissions } from '../../../hooks/usePermissions';
+import { SearchableSelect } from '../../../components/SearchableSelect';
 
 export const ClientModal = ({ isOpen, onClose, onSave, clientToEdit = null }) => {
   useModalBackHandler(isOpen, onClose);
@@ -61,7 +62,11 @@ export const ClientModal = ({ isOpen, onClose, onSave, clientToEdit = null }) =>
           ciudad_id: clientToEdit.ciudad_id !== null && clientToEdit.ciudad_id !== undefined ? String(clientToEdit.ciudad_id) : '',
         };
         setFormData(initialForm);
-        loadLocationsForEdit(initialForm.pais_id, initialForm.ciudad_id);
+        const knownDeptId =
+          clientToEdit.ciudad?.departamento_id ??
+          clientToEdit.departamento_id ??
+          '';
+        loadLocationsForEdit(initialForm.pais_id, initialForm.ciudad_id, knownDeptId);
       } else {
         setFormData({ 
           nombre: '', apellidos: '', documento: '', telefono_uno: '', telefono_dos: '', email: '', direccion: '',
@@ -84,7 +89,7 @@ export const ClientModal = ({ isOpen, onClose, onSave, clientToEdit = null }) =>
     }
   };
 
-  const loadLocationsForEdit = async (paisId, ciudadId) => {
+  const loadLocationsForEdit = async (paisId, ciudadId, knownDeptId = '') => {
     try {
       const resPaises = await companyService.getCountries();
       const paisesList = resPaises.data || [];
@@ -96,14 +101,28 @@ export const ClientModal = ({ isOpen, onClose, onSave, clientToEdit = null }) =>
         setDepartments(deptsList);
 
         if (ciudadId) {
-          for (const dept of deptsList) {
-            const resCities = await companyService.getCities(dept.id);
+          if (knownDeptId) {
+            const resCities = await companyService.getCities(knownDeptId);
             const citiesList = resCities.data || [];
-            if (citiesList.some(c => String(c.id) === String(ciudadId))) {
-              setCities(citiesList);
-              setFormData(prev => ({ ...prev, departamento_id: String(dept.id) }));
-              break;
-            }
+            setCities(citiesList);
+            setFormData(prev => ({ ...prev, departamento_id: String(knownDeptId) }));
+            return;
+          }
+
+          const results = await Promise.all(
+            deptsList.map(async (dept) => {
+              const resCities = await companyService.getCities(dept.id);
+              return { deptId: dept.id, cities: resCities.data || [] };
+            })
+          );
+
+          const match = results.find((r) =>
+            r.cities.some((c) => String(c.id) === String(ciudadId))
+          );
+
+          if (match) {
+            setCities(match.cities);
+            setFormData(prev => ({ ...prev, departamento_id: String(match.deptId) }));
           }
         }
       }
@@ -112,8 +131,7 @@ export const ClientModal = ({ isOpen, onClose, onSave, clientToEdit = null }) =>
     }
   };
 
-  const handleCountryChange = async (e) => {
-    const val = e.target.value;
+  const handleCountryChange = async (val) => {
     setDepartments([]);
     setCities([]);
     setFormData(prev => ({ ...prev, pais_id: val, departamento_id: '', ciudad_id: '' }));
@@ -127,8 +145,7 @@ export const ClientModal = ({ isOpen, onClose, onSave, clientToEdit = null }) =>
     }
   };
 
-  const handleDepartmentChange = async (e) => {
-    const val = e.target.value;
+  const handleDepartmentChange = async (val) => {
     setCities([]);
     setFormData(prev => ({ ...prev, departamento_id: val, ciudad_id: '' }));
     if (val) {
@@ -364,30 +381,36 @@ export const ClientModal = ({ isOpen, onClose, onSave, clientToEdit = null }) =>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">País</label>
-                    <select name="pais_id" value={formData.pais_id} onChange={handleCountryChange} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-yellow-500 transition-all">
-                      <option value="">Seleccione...</option>
-                      {countries.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                      ))}
-                    </select>
+                    <SearchableSelect
+                      options={countries}
+                      value={formData.pais_id}
+                      onChange={handleCountryChange}
+                      placeholder="Buscar país..."
+                      getOptionSubtext={(opt) => opt.codigo_iso || ''}
+                      emptyMessage="País no encontrado"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Departamento</label>
-                    <select name="departamento_id" value={formData.departamento_id} onChange={handleDepartmentChange} disabled={!formData.pais_id} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-yellow-500 transition-all disabled:opacity-50">
-                      <option value="">Seleccione...</option>
-                      {departments.map(d => (
-                        <option key={d.id} value={d.id}>{d.nombre}</option>
-                      ))}
-                    </select>
+                    <SearchableSelect
+                      options={departments}
+                      value={formData.departamento_id}
+                      onChange={handleDepartmentChange}
+                      disabled={!formData.pais_id}
+                      placeholder={formData.pais_id ? "Buscar departamento..." : "Seleccione país"}
+                      emptyMessage="Departamento no encontrado"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Ciudad</label>
-                    <select name="ciudad_id" value={formData.ciudad_id} onChange={e => setFormData({...formData, ciudad_id: e.target.value})} disabled={!formData.departamento_id} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-yellow-500 transition-all disabled:opacity-50">
-                      <option value="">Seleccione...</option>
-                      {cities.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                      ))}
-                    </select>
+                    <SearchableSelect
+                      options={cities}
+                      value={formData.ciudad_id}
+                      onChange={(val) => setFormData(prev => ({ ...prev, ciudad_id: val }))}
+                      disabled={!formData.departamento_id}
+                      placeholder={formData.departamento_id ? "Buscar ciudad o DANE..." : "Seleccione departamento"}
+                      emptyMessage="Ciudad no encontrada"
+                    />
                   </div>
                 </div>
 
